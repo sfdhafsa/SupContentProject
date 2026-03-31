@@ -15,8 +15,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docker/backend/Dockerfile
     container_name: supcontent_backend
     restart: unless-stopped
     depends_on:
