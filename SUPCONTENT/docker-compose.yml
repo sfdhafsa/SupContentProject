@@ -1,17 +1,20 @@
+version: "3.8"
+
 services:
   database:
     image: postgres:16
     container_name: supcontent_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: supcontent
-      POSTGRES_PASSWORD: supcontent123
-      POSTGRES_DB: supcontent
+      POSTGRES_USER: ${POSTGRES_USER:-supcontent}
+      POSTGRES_DB: ${POSTGRES_DB:-supcontent}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
+    secrets:
+      - postgres_password
 
   backend:
     build:
@@ -27,24 +30,41 @@ services:
       - ./backend:/app
       - /app/node_modules
     environment:
-      PORT: 3000
-      DB_HOST: database
-      DB_PORT: 5432
-      DB_NAME: supcontent
-      DB_USER: supcontent
-      DB_PASSWORD: supcontent123
-      NODE_ENV: development
+      PORT: ${PORT:-3000}
+      DB_HOST: ${DB_HOST:-database}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-supcontent}
+      DB_USER: ${DB_USER:-supcontent}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # If using Docker secrets, the secret will be available at /run/secrets/db_password
+      # Update your app to prefer reading /run/secrets/db_password when present.
+      NODE_ENV: ${NODE_ENV:-development}
+    secrets:
+      - db_password
   pgadmin:
     image: dpage/pgadmin4
     container_name: supcontent_pgadmin
     restart: unless-stopped
+    # For local development, set PGAdmin credentials in the .env file (see .env.example).
+    # For production, prefer Docker secrets and an entrypoint that injects secrets
+    # as environment variables if needed by the image.
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@supcontent.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@supcontent.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "5050:80"
     depends_on:
       - database
+    secrets:
+      - pgadmin_password
 
 volumes:
   postgres_data:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  db_password:
+    file: ./secrets/db_password.txt
+  pgadmin_password:
+    file: ./secrets/pgadmin_password.txt
