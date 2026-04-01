@@ -1,0 +1,9 @@
+# Ignore local env and secret files
+.env
+secrets/*.txt
+# Keep secrets/*.txt.example tracked so examples are versioned; real secret files
+# (without .example) remain ignored above.
+
+# Node modules and other common ignores
+backend/node_modules
+*.log
