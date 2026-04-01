@@ -1,7 +1,12 @@
-const { Pool } = require("pg");
-require("dotenv").config();
+// src/config/db.js
 
-// Si on est dans Docker, override pour host 'database'
+import pkg from "pg";
+const { Pool } = pkg;
+
+import dotenv from "dotenv";
+dotenv.config();
+
+// Détection Docker
 const isDocker = process.env.NODE_ENV === "docker";
 
 const pool = new Pool({
@@ -12,6 +17,7 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
+// Logs
 pool.on("connect", () => {
   console.log("✅ Connected to PostgreSQL");
 });
@@ -20,4 +26,4 @@ pool.on("error", (err) => {
   console.error("❌ PostgreSQL connection error:", err);
 });
 
-module.exports = pool;
+export default pool; // ✅ TRÈS IMPORTANT

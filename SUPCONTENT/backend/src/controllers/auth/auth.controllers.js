@@ -1,36 +1,69 @@
+import bcrypt from 'bcrypt';
+import { UserModel } from '../../models/user.model.js';
+import { signToken } from '../../utils/jwt.utils.js';
+import { validationResult } from 'express-validator';
 
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const users = require("../models/user.model");
+const SALT_ROUNDS = 12;
 
-const register = async (req, res) => {
-  const { email, password } = req.body;
-  
-  // Vérifier si l’utilisateur existe déjà
-  const existingUser = users.find(u => u.email === email);
-  if (existingUser) return res.status(400).json({ message: "User already exists" });
+// POST /api/auth/register
+export const register = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
 
-  // Hasher le mot de passe
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const user = { email, password: hashedPassword };
-  users.push(user);
+    const { email, password, username } = req.body;
 
-  res.status(201).json({ message: "User registered successfully" });
+    const existing = await UserModel.findByEmail(email);
+    if (existing)
+      return res.status(409).json({ message: 'Email déjà utilisé' });
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const user = await UserModel.create({ email, passwordHash, username });
+    const token = signToken(user.id);
+
+    res.status(201).json({ token, user });
+  } catch (err) {
+    next(err);
+  }
 };
 
-const login = async (req, res) => {
-  const { email, password } = req.body;
+// POST /api/auth/login
+export const login = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
 
-  const user = users.find(u => u.email === email);
-  if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    const { email, password } = req.body;
 
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    const user = await UserModel.findByEmail(email);
+    if (!user)
+      return res.status(401).json({ message: 'Identifiants invalides' });
 
-  // Générer le JWT
-  const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    if (user.provider !== 'local')
+      return res.status(401).json({ message: 'Connectez-vous via Google' });
 
-  res.json({ token });
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid)
+      return res.status(401).json({ message: 'Identifiants invalides' });
+
+    const token = signToken(user.id);
+    const { password_hash, ...safeUser } = user;
+
+    res.json({ token, user: safeUser });
+  } catch (err) {
+    next(err);
+  }
 };
 
-module.exports = { register, login };
+// GET /api/auth/me  (route protégée)
+export const getMe = async (req, res, next) => {
+  try {
+    const user = await UserModel.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable' });
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+};
