@@ -1,12 +1,8 @@
-import js from "@eslint/js";
-import tsParser from "@typescript-eslint/parser";
-import tsPlugin from "@typescript-eslint/eslint-plugin";
-import unicorn from "eslint-plugin-unicorn";
-import type { Linter } from "eslint";
+import * as js from "@eslint/js";
+import * as tsParser from "@typescript-eslint/parser";
+import * as tsPlugin from "@typescript-eslint/eslint-plugin";
+import * as unicorn from "eslint-plugin-unicorn";
 
-// Use a loose typing to avoid issues with eslint versions that don't
-// export FlatConfig. Keeping the runtime shape intact while avoiding
-// TypeScript errors.
 const config: any[] = [
 
   js.configs.recommended,
