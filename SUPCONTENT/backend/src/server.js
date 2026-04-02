@@ -1,12 +1,14 @@
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+//import dotenv from 'dotenv';
 import passport from 'passport';
 import authRoutes from './routes/auth/auth.routes.js';
 import userRoutes from './routes/users/user.routes.js';
-import './config/passport.js'; 
+import './config/passport.js';
+import { errorHandler } from './middlewares/error.middleware.js';
 
-dotenv.config();
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,9 +27,6 @@ app.use('/api/users', userRoutes);
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 
 // Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({ message: err.message || 'Erreur serveur' });
-});
+app.use(errorHandler);
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
