@@ -1,12 +1,14 @@
-
+import dotenv from 'dotenv';
+dotenv.config(); 
 import express from 'express';
 import cors from 'cors';
-//import dotenv from 'dotenv';
 import passport from 'passport';
 import authRoutes from './routes/auth/auth.routes.js';
 import userRoutes from './routes/users/user.routes.js';
 import './config/passport.js';
 import { errorHandler } from './middlewares/error.middleware.js';
+
+
 
 
 

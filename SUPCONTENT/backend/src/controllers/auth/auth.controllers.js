@@ -88,3 +88,11 @@ export const getMe = async (req, res, next) => {
     next(err);
   }
 };
+// GET /api/auth/google/callback
+// GET /api/auth/github/callback
+// GET /api/auth/facebook/callback
+// Passport injecte req.user après authentification réussie
+export const oauthCallback = (req, res) => {
+  const token = signToken(req.user.id);
+  res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
+};
