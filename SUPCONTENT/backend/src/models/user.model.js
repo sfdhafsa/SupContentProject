@@ -12,46 +12,64 @@ export const UserModel = {
 
   async findById(id) {
     const { rows } = await pool.query(
-      'SELECT id, email, username, display_name, avatar_url, bio, is_public, provider, created_at FROM users WHERE id = $1',
+      `SELECT u.id, u.email, u.username, u.avatar_url, u.bio,
+              u.website_url, u.theme_preference, u.language_preference,
+              u.is_banned, u.created_at,
+              array_agg(r.name) AS roles
+       FROM users u
+       LEFT JOIN user_roles ur ON ur.user_id = u.id
+       LEFT JOIN roles r       ON r.id = ur.role_id
+       WHERE u.id = $1
+       GROUP BY u.id`,
       [id]
     );
     return rows[0] || null;
   },
 
-  async create({ email, passwordHash, username }) {
+  async findByUsername(username) {
     const { rows } = await pool.query(
-      `INSERT INTO users (email, password_hash, username, display_name)
-       VALUES ($1, $2, $3, $3)
-       RETURNING id, email, username, display_name, created_at`,
-      [email, passwordHash, username]
+      'SELECT * FROM users WHERE username = $1',
+      [username]
     );
-    return rows[0];
+    return rows[0] || null;
   },
 
-  async createOAuth({ email, username, displayName, provider, providerId, avatarUrl }) {
-    const { rows } = await pool.query(
-      `INSERT INTO users (email, username, display_name, provider, provider_id, avatar_url)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (email) DO UPDATE
-         SET provider_id = EXCLUDED.provider_id,
-             avatar_url  = EXCLUDED.avatar_url
-       RETURNING id, email, username, display_name, avatar_url`,
-      [email, username, displayName, provider, providerId, avatarUrl]
-    );
-    return rows[0];
-  },
+  // Inscription locale — retourne le user créé + lui assigne le rôle USER
+  async createLocal({ email, username, passwordHash }) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-  async update(id, fields) {
-    // Construction dynamique des champs à mettre à jour
-    const keys = Object.keys(fields);
-    if (keys.length === 0) return null;
-    const setClause = keys.map((k, i) => `${k} = $${i + 2}`).join(', ');
-    const values = [id, ...Object.values(fields)];
-    const { rows } = await pool.query(
-      `UPDATE users SET ${setClause} WHERE id = $1
-       RETURNING id, email, username, display_name, avatar_url, bio, is_public`,
-      values
-    );
-    return rows[0];
+      // 1. Créer le user
+      const { rows } = await client.query(
+        `INSERT INTO users (email, username, password_hash)
+         VALUES ($1, $2, $3)
+         RETURNING id, email, username, created_at`,
+        [email, username, passwordHash]
+      );
+      const user = rows[0];
+
+      // 2. Récupérer l'id du rôle USER
+      const { rows: roleRows } = await client.query(
+        `SELECT id FROM roles WHERE name = 'USER'`
+      );
+      const roleId = roleRows[0]?.id;
+
+      // 3. Assigner le rôle
+      if (roleId) {
+        await client.query(
+          `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)`,
+          [user.id, roleId]
+        );
+      }
+
+      await client.query('COMMIT');
+      return user;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   },
 };

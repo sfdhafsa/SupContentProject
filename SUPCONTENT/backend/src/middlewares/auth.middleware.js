@@ -1,36 +1,33 @@
-import jwt from 'jsonwebtoken';
-import pool from '../config/db.js';
+import { verifyToken } from '../utils/jwt.utils.js';
+import { UserModel } from '../models/user.model.js';
 
 export const protect = async (req, res, next) => {
-  let token;
-
-  // Vérifie le header Authorization
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    token = req.headers.authorization.split(' ')[1]; // Récupère le token
-  }
-
-  if (!token) {
-    return res.status(401).json({ message: 'Non autorisé, token manquant' });
-  }
-
   try {
-    // Vérifie le token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const header = req.headers.authorization;
+    if (!header?.startsWith('Bearer '))
+      return res.status(401).json({ message: 'Token manquant.' });
 
-    // Récupère l'utilisateur depuis la base
-    const result = await pool.query('SELECT id, username, email FROM users WHERE id = $1', [decoded.id]);
+    const token = header.split(' ')[1];
+    const decoded = verifyToken(token);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Utilisateur non trouvé' });
-    }
+    const user = await UserModel.findById(decoded.sub);
+    if (!user)
+      return res.status(401).json({ message: 'Utilisateur introuvable.' });
 
-    req.user = result.rows[0]; // Ajoute user à la requête
+    if (user.is_banned)
+      return res.status(403).json({ message: 'Ce compte a été suspendu.' });
+
+    req.user = user;
     next();
   } catch (err) {
-    console.error(err);
-    res.status(401).json({ message: 'Token invalide' });
+    // jwt expired ou signature invalide
+    res.status(401).json({ message: 'Token invalide ou expiré.' });
   }
+};
+
+// Middleware rôle — ex: requireRole('ADMIN')
+export const requireRole = (role) => (req, res, next) => {
+  if (!req.user?.roles?.includes(role))
+    return res.status(403).json({ message: 'Accès refusé.' });
+  next();
 };

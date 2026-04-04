@@ -36,9 +36,23 @@ services:
       DB_NAME: ${DB_NAME:-supcontent}
       DB_USER: ${DB_USER:-supcontent}
       DB_PASSWORD: ${DB_PASSWORD}
+     
       # If using Docker secrets, the secret will be available at /run/secrets/db_password
       # Update your app to prefer reading /run/secrets/db_password when present.
       NODE_ENV: ${NODE_ENV:-development}
+      JWT_SECRET: ${JWT_SECRET}        
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}   
+    # OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3000/api/auth/google/callback}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:3000/api/auth/github/callback}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET}
+      FACEBOOK_CALLBACK_URL: ${FACEBOOK_CALLBACK_URL:-http://localhost:3000/api/auth/facebook/callback}
+      
     secrets:
       - db_password
   pgadmin:
