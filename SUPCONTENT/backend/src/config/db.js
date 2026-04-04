@@ -1,10 +1,5 @@
-// src/config/db.js
-
 import pkg from "pg";
 const { Pool } = pkg;
-
-import dotenv from "dotenv";
-dotenv.config();
 
 // Détection Docker
 const isDocker = process.env.NODE_ENV === "docker";
@@ -26,4 +21,4 @@ pool.on("error", (err) => {
   console.error("❌ PostgreSQL connection error:", err);
 });
 
-export default pool; // ✅ TRÈS IMPORTANT
+export default pool; // ✅ TRÈS IMPORTAN
