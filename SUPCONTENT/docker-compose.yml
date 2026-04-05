@@ -6,15 +6,14 @@ services:
     container_name: supcontent_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-supcontent}
-      POSTGRES_DB: ${POSTGRES_DB:-supcontent}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
-    secrets:
-      - postgres_password
 
   backend:
     build:
@@ -36,13 +35,13 @@ services:
       DB_NAME: ${DB_NAME:-supcontent}
       DB_USER: ${DB_USER:-supcontent}
       DB_PASSWORD: ${DB_PASSWORD}
-     
+      
       # If using Docker secrets, the secret will be available at /run/secrets/db_password
       # Update your app to prefer reading /run/secrets/db_password when present.
       NODE_ENV: ${NODE_ENV:-development}
-      JWT_SECRET: ${JWT_SECRET}        
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}   
-    # OAuth
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      # OAuth
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3000/api/auth/google/callback}
@@ -52,9 +51,9 @@ services:
       FACEBOOK_APP_ID: ${FACEBOOK_APP_ID}
       FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET}
       FACEBOOK_CALLBACK_URL: ${FACEBOOK_CALLBACK_URL:-http://localhost:3000/api/auth/facebook/callback}
-      
     secrets:
       - db_password
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: supcontent_pgadmin
