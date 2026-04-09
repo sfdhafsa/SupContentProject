@@ -1,24 +1,27 @@
-import pkg from "pg";
-const { Pool } = pkg;
+import { Sequelize } from "sequelize";
 
-// Détection Docker
-const isDocker = process.env.NODE_ENV === "docker";
+const sequelize = new Sequelize(
+  process.env.DB_NAME || "supcontent",
+  process.env.DB_USER || "supcontent",
+  process.env.DB_PASSWORD || "supcontent123",
+  {
+    host: process.env.DB_HOST || "database",
+    port: process.env.DB_PORT || 5432,
+    dialect: "postgres",
+    logging: false,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
+  }
+);
 
-const pool = new Pool({
-  user: process.env.DB_USER || "supcontent",
-  host: isDocker ? "database" : process.env.DB_HOST || "localhost",
-  database: process.env.DB_NAME || "supcontent",
-  password: process.env.DB_PASSWORD || "supcontent123",
-  port: process.env.DB_PORT || 5432,
-});
+// Test connexion
+sequelize
+  .authenticate()
+  .then(() => console.log("✅ Connected to PostgreSQL via Sequelize"))
+  .catch((err) => console.error("❌ DB connection error:", err));
 
-// Logs
-pool.on("connect", () => {
-  console.log("✅ Connected to PostgreSQL");
-});
-
-pool.on("error", (err) => {
-  console.error("❌ PostgreSQL connection error:", err);
-});
-
-export default pool; // ✅ TRÈS IMPORTAN
+export default sequelize;
