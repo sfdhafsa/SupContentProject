@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import rateLimit from 'express-rate-limit';
-import { register, login, getMe,oauthCallback } from '../../controllers/auth/auth.controllers.js';
+import { register, login,oauthCallback } from '../../controllers/auth/auth.controllers.js';
 import { protect } from '../../middlewares/auth.middleware.js';
 import passport from "passport";
 const router = Router();
@@ -30,7 +30,7 @@ const oauthFailure = (provider) =>
 
 router.post('/register', authLimiter, registerRules, register);
 router.post('/login',    authLimiter, loginRules,    login);
-router.get ('/me',       protect,                    getMe);
+
 // ── Google ───────────────────────────────────────────────────────
 router.get('/google',
   passport.authenticate('google', { scope: ['profile', 'email'], session: false })
