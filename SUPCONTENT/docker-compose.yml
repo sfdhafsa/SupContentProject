@@ -34,6 +34,10 @@ services:
       DB_NAME: ${DB_NAME:-supcontent}
       DB_USER: ${DB_USER:-supcontent}
       DB_PASSWORD: ${DB_PASSWORD}
+
+      # TMDB
+      TMDB_BASE_URL: https://api.themoviedb.org/3/
+      TMDB_API_KEY: b03e5f732d2f22743b4550808c2ccf2f
       
       # If using Docker secrets, the secret will be available at /run/secrets/db_password
       # Update your app to prefer reading /run/secrets/db_password when present.
