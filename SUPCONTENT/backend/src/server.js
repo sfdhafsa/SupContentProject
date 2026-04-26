@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth/auth.routes.js";
 import userRoutes from "./routes/users/user.routes.js";
 import followRoutes from "./routes/social/follows.routes.js";
 import "./config/passport.js";
+import "./config/google.strategy.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
 const app = express();

@@ -123,20 +123,19 @@ export const login = async (req, res, next) => {
 // =====================
 // OAUTH CALLBACK
 // =====================
-export const oauthCallback = async (req, res) => {
-  try {
-    const roles = await RoleModel.getRolesByUserId(req.user.id);
+export const oauthCallback = (req, res) => {
+  const user = req.user;
 
-    const token = signToken({
-      userId: req.user.id,
-      roles
-    });
-
-    return res.redirect(
-      `${process.env.CLIENT_URL}/auth/callback?token=${token}`
-    );
-
-  } catch (err) {
-    return res.status(500).json({ message: 'OAuth error' });
+  if (!user) {
+    return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
   }
+
+  const token = signToken({
+    userId: user.id,
+    roles: user.roles || []
+  });
+
+  return res.redirect(
+    `${process.env.CLIENT_URL}/auth/callback?token=${token}`
+  );
 };

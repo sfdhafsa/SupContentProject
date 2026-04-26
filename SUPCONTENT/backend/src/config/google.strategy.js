@@ -1,9 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import pool from "../config/db.js";
-import { UserModel } from "../models/user.model.js";
-
-console.log("🚀 GOOGLE STRATEGY LOADED");
 
 passport.use(
   "google",
@@ -11,75 +8,75 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:3000/api/auth/google/callback",
-      passReqToCallback: true,
-      proxy: true,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
     },
 
-    async (req, accessToken, refreshToken, profile, done) => {
+    async (accessToken, refreshToken, profile, done) => {
       try {
         const provider = "google";
         const providerUserId = profile.id;
         const email = profile.emails?.[0]?.value;
 
-        let user;
-
-        // =========================
-        // 1. CHECK oauth_accounts
-        // =========================
-        const oauthResult = await pool.query(
-          `SELECT user_id 
-           FROM oauth_accounts 
-           WHERE provider = $1 AND provider_user_id = $2`,
+        // 1. CHECK LINK
+        const oauth = await pool.query(
+          `SELECT user_id FROM oauth_accounts
+           WHERE provider=$1 AND provider_user_id=$2`,
           [provider, providerUserId]
         );
 
-        if (oauthResult.rows.length > 0) {
-          // EXISTING LINK → LOGIN USER
-          user = await UserModel.findById(oauthResult.rows[0].user_id);
+        let user;
+
+        if (oauth.rows.length > 0) {
+          user = await pool.query(
+            `SELECT * FROM users WHERE id=$1`,
+            [oauth.rows[0].user_id]
+          );
+          user = user.rows[0];
         }
 
-        // =========================
-        // 2. IF NOT LINKED → CHECK EMAIL
-        // =========================
+        // 2. CREATE USER IF NOT FOUND
         if (!user) {
-          user = await UserModel.findByEmail(email);
-
-          // =========================
-          // 3. CREATE USER IF NOT EXISTS
-          // =========================
-          if (!user) {
-            user = await UserModel.createLocal({
-              email,
-              username: profile.displayName,
-              passwordHash: null,
-            });
-          }
-
-          // =========================
-          // 4. LINK oauth_accounts
-          // =========================
-          await pool.query(
-            `INSERT INTO oauth_accounts 
-              (user_id, provider, provider_user_id)
+          const newUser = await pool.query(
+            `INSERT INTO users (email, username, avatar_url)
              VALUES ($1, $2, $3)
-             ON CONFLICT DO NOTHING`,
+             RETURNING *`,
+            [email, profile.displayName, profile.photos?.[0]?.value]
+          );
+
+          user = newUser.rows[0];
+
+          // 3. LINK OAUTH ACCOUNT
+          await pool.query(
+            `INSERT INTO oauth_accounts (user_id, provider, provider_user_id)
+             VALUES ($1, $2, $3)`,
             [user.id, provider, providerUserId]
+          );
+
+          // 4. DEFAULT ROLE
+          const role = await pool.query(
+            `SELECT id FROM roles WHERE name='USER'`
+          );
+
+          await pool.query(
+            `INSERT INTO user_roles (user_id, role_id)
+             VALUES ($1, $2)`,
+            [user.id, role.rows[0].id]
           );
         }
 
-        // =========================
-        // 5. ENSURE DEFAULT ROLE
-        // =========================
-        await UserModel.ensureDefaultRole(user.id);
+        // 5. LOAD ROLES
+        const roles = await pool.query(
+          `SELECT r.name
+           FROM roles r
+           JOIN user_roles ur ON ur.role_id = r.id
+           WHERE ur.user_id=$1`,
+          [user.id]
+        );
 
-        // =========================
-        // 6. LOAD ROLES (RBAC)
-        // =========================
-        const roles = await UserModel.findRolesByUserId(user.id);
-        user.roles = roles;
+        user.roles = roles.rows.map(r => r.name);
 
         return done(null, user);
+
       } catch (err) {
         console.error("Google OAuth error:", err);
         return done(err, null);
