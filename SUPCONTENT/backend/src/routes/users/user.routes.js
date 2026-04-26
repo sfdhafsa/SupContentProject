@@ -1,11 +1,19 @@
-import { Router } from 'express';
+import express from 'express';
+import {
+  getMe,
+  updateMe,
+  getUserById
+} from '../../controllers/users/user.controllers.js';
+
 import { protect } from '../../middlewares/auth.middleware.js';
 
-const router = Router();
+const router = express.Router();
 
-// On le remplira à l'étape 4 (profil, avatar, export)
-router.get('/profile', protect, (req, res) => {
-  res.json({ user: req.user });
-});
+// 🔐 profil connecté
+router.get('/me', protect, getMe);
+router.put('/me', protect, updateMe);
+
+// 🌍 profil public
+router.get('/:id', getUserById);
 
 export default router;

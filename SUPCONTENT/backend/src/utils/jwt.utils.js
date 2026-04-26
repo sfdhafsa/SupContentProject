@@ -1,41 +1,47 @@
-// src/utils/jwt.utils.js
 import jwt from 'jsonwebtoken';
 
 /**
- * Génère un JWT pour un utilisateur
- * @param {string} userId - l'ID de l'utilisateur (UUID)
+ * 🔐 Générer un JWT
+ * @param {Object} param0
+ * @param {string} param0.userId
+ * @param {Array} param0.roles
  * @returns {string} token
  */
-export const signToken = (userId) => {
-  if (!userId) throw new Error("userId is required to sign a token");
+export const signToken = ({ userId, roles = [] }) => {
+  if (!userId) throw new Error("userId is required");
 
   return jwt.sign(
-    { sub: userId }, // payload
-    process.env.JWT_SECRET, // secret
-    { expiresIn: process.env.JWT_EXPIRES_IN || '1h' } // expiration
+    {
+      sub: userId,      // user id
+      roles: roles      // ["user", "admin"]
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+      issuer: 'supcontent-api',
+      audience: 'supcontent-client'
+    }
   );
 };
 
 /**
- * Vérifie et décode un token JWT
- * @param {string} token - le token JWT
- * @returns {object} payload
+ * 🔍 Vérifier un JWT
+ * @param {string} token
+ * @returns {object} decoded payload
  */
 export const verifyToken = (token) => {
   if (!token) throw new Error("Token is required");
 
-  try {
-    return jwt.verify(token, process.env.JWT_SECRET);
-  } catch (err) {
-    throw new Error("Token invalide ou expiré");
-  }
+  return jwt.verify(token, process.env.JWT_SECRET, {
+    issuer: 'supcontent-api',
+    audience: 'supcontent-client'
+  });
 };
 
 /**
- * Décode un token JWT sans vérifier la signature
- * Utile pour lire le payload côté serveur ou debug
+ * 👀 Décoder un JWT sans vérification (debug)
  * @param {string} token
- * @returns {object} payload
+ * @returns {object|null}
  */
 export const decodeToken = (token) => {
   if (!token) return null;

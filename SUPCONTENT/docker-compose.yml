@@ -34,6 +34,10 @@ services:
       DB_NAME: ${DB_NAME:-supcontent}
       DB_USER: ${DB_USER:-supcontent}
       DB_PASSWORD: ${DB_PASSWORD}
+
+      # TMDB
+      TMDB_BASE_URL: https://api.themoviedb.org/3/
+      TMDB_API_KEY: b03e5f732d2f22743b4550808c2ccf2f
       
       # If using Docker secrets, the secret will be available at /run/secrets/db_password
       # Update your app to prefer reading /run/secrets/db_password when present.
@@ -44,6 +48,7 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3000/api/auth/google/callback}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:5173}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
       GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:3000/api/auth/github/callback}
