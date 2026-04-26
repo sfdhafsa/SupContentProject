@@ -9,6 +9,15 @@ export const MovieModel = {
     return rows[0] || null;
   },
 
+  // Utilisé par la personne 3 pour faire la jointure
+  async findInternalIdByTmdbId(tmdbId) {
+    const { rows } = await pool.query(
+      `SELECT id FROM movies WHERE external_id = $1 AND source_api = 'tmdb'`,
+      [String(tmdbId)]
+    );
+    return rows[0]?.id || null;
+  },
+
   async create(movieData) {
     const { external_id, title, overview, poster_url, release_date, runtime_minutes } = movieData;
     const { rows } = await pool.query(
