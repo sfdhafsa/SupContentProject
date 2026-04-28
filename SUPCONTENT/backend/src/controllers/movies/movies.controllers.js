@@ -13,10 +13,10 @@ export const search = async (req, res, next) => {
       return res.status(400).json({ error: "Query is required" });
     }
 
-    const pageNum = Math.min(Number(page) || 1, 500);
+    const pageNum = Math.min(Math.max(parseInt(page, 10) || 1, 1), 500);
     const data = await searchMovies({ query: q, page: pageNum, year, genre_id });
 
-    res.json({ data, meta: { page: pageNum } });
+    return res.json({ data, meta: { page: pageNum } });
   } catch (err) {
     next(err);
   }
@@ -24,13 +24,19 @@ export const search = async (req, res, next) => {
 
 export const getMovie = async (req, res, next) => {
   try {
-    const movie = await getMovieById(req.params.id);
+    const { id } = req.params;
+
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "Invalid movie id" });
+    }
+
+    const movie = await getMovieById(id);
 
     if (!movie) {
       return res.status(404).json({ error: "Film non trouvé" });
     }
 
-    res.json({ data: movie });
+    return res.json({ data: movie });
   } catch (err) {
     next(err);
   }
@@ -39,7 +45,7 @@ export const getMovie = async (req, res, next) => {
 export const genres = async (req, res, next) => {
   try {
     const data = await getGenres();
-    res.json({ data });
+    return res.json({ data, meta: {} });
   } catch (err) {
     next(err);
   }
@@ -47,9 +53,9 @@ export const genres = async (req, res, next) => {
 
 export const popular = async (req, res, next) => {
   try {
-    const pageNum = Math.min(Number(req.query.page) || 1, 500);
+    const pageNum = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), 500);
     const data = await getPopularMovies(pageNum);
-    res.json({ data, meta: { page: pageNum } });
+    return res.json({ data, meta: { page: pageNum } });
   } catch (err) {
     next(err);
   }
