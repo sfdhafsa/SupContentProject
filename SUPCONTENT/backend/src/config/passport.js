@@ -13,7 +13,8 @@ const opts = {
 
 passport.use(
   new JwtStrategy(opts, async (jwt_payload, done) => {
-    try {
+    try { 
+      console.log("JWT PAYLOAD:", jwt_payload);
       const { rows } = await pool.query(
         `SELECT id, email, username, avatar_url, bio,
                 is_banned, theme_preference, language_preference
