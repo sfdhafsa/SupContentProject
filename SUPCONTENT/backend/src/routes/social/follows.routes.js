@@ -7,13 +7,14 @@ import {
   getFollowStatus,
 } from '../../controllers/social/follows.controller.js';
 import { protect } from '../../middlewares/auth.middleware.js';
+import { validateUUIDParam } from '../../middlewares/validation.middleware.js';
 
 const router = Router();
 
-router.post('/:id/follow', protect, followUser);
-router.delete('/:id/follow', protect, unfollowUser);
-router.get('/:id/followers', getFollowers);
-router.get('/:id/following', getFollowing);
-router.get('/:id/follow-status', protect, getFollowStatus);
+router.post('/:id/follow', validateUUIDParam('id'),protect, followUser);
+router.delete('/:id/unfollow', validateUUIDParam('id'), protect, unfollowUser);
+router.get('/:id/followers', validateUUIDParam('id'), getFollowers);
+router.get('/:id/following', validateUUIDParam('id'), getFollowing);
+router.get('/:id/follow-status',validateUUIDParam('id'), protect, getFollowStatus);
 
 export default router;

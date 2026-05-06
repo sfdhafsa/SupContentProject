@@ -9,14 +9,12 @@ import {
 // POST /api/users/:id/follow
 export const followUser = async (req, res, next) => {
   try {
-    const followerId = req.user.id;
+    const followerId = req.user.userId; 
     const followedId = req.params.id;
-
-    if (!isUUID(followedId))
-      return res.status(400).json({ message: 'ID utilisateur invalide.' });
 
     const result = await followUserService(followerId, followedId);
     return res.status(result.status).json(result.data);
+
   } catch (err) {
     next(err);
   }
@@ -25,14 +23,12 @@ export const followUser = async (req, res, next) => {
 // DELETE /api/users/:id/follow
 export const unfollowUser = async (req, res, next) => {
   try {
-    const followerId = req.user.id;
-    const followedId = Number(req.params.id);
-
-    if (Number.isNaN(followedId))
-      return res.status(400).json({ message: 'ID utilisateur invalide.' });
+    const followerId = req.user.userId;
+    const followedId = req.params.id;
 
     const result = await unfollowUserService(followerId, followedId);
     return res.status(result.status).json(result.data);
+
   } catch (err) {
     next(err);
   }
@@ -41,13 +37,11 @@ export const unfollowUser = async (req, res, next) => {
 // GET /api/users/:id/followers
 export const getFollowers = async (req, res, next) => {
   try {
-    const userId = Number(req.params.id);
-
-    if (Number.isNaN(userId))
-      return res.status(400).json({ message: 'ID utilisateur invalide.' });
+    const userId = req.params.id;
 
     const result = await getFollowersService(userId);
     return res.status(result.status).json(result.data);
+
   } catch (err) {
     next(err);
   }
@@ -56,13 +50,11 @@ export const getFollowers = async (req, res, next) => {
 // GET /api/users/:id/following
 export const getFollowing = async (req, res, next) => {
   try {
-    const userId = Number(req.params.id);
-
-    if (Number.isNaN(userId))
-      return res.status(400).json({ message: 'ID utilisateur invalide.' });
+    const userId = req.params.id;
 
     const result = await getFollowingService(userId);
     return res.status(result.status).json(result.data);
+
   } catch (err) {
     next(err);
   }
@@ -71,14 +63,12 @@ export const getFollowing = async (req, res, next) => {
 // GET /api/users/:id/follow-status
 export const getFollowStatus = async (req, res, next) => {
   try {
-    const followerId = req.user.id;
-    const followedId = Number(req.params.id);
-
-    if (Number.isNaN(followedId))
-      return res.status(400).json({ message: 'ID utilisateur invalide.' });
+    const followerId = req.user.userId;
+    const followedId = req.params.id;
 
     const result = await getFollowStatusService(followerId, followedId);
     return res.status(result.status).json(result.data);
+
   } catch (err) {
     next(err);
   }
