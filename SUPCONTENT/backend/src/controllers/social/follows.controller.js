@@ -4,15 +4,15 @@ import {
   getFollowers as getFollowersService,
   getFollowing as getFollowingService,
   getFollowStatus as getFollowStatusService,
-} from '../../services/social/follows.service.js';
+} from '../../services/social/follows/follows.service.js';
 
 // POST /api/users/:id/follow
 export const followUser = async (req, res, next) => {
   try {
     const followerId = req.user.id;
-    const followedId = Number(req.params.id);
+    const followedId = req.params.id;
 
-    if (Number.isNaN(followedId))
+    if (!isUUID(followedId))
       return res.status(400).json({ message: 'ID utilisateur invalide.' });
 
     const result = await followUserService(followerId, followedId);
