@@ -11,7 +11,6 @@ export const createReview = async ({
   text,
   containsSpoiler,
 }) => {
-
   if (!tmdbId || isNaN(tmdbId)) {
     throw Object.assign(new Error("Invalid TMDB id"), {
       status: 400,
@@ -35,16 +34,12 @@ export const createReview = async ({
     });
   }
 
-  const existing = await ReviewModel.findByUserAndMovie(
-    userId,
-    movie.id
-  );
+  const existing = await ReviewModel.findByUserAndMovie(userId, movie.id);
 
   if (existing) {
-    throw Object.assign(
-      new Error("You already reviewed this movie"),
-      { status: 409 }
-    );
+    throw Object.assign(new Error("You already reviewed this movie"), {
+      status: 409,
+    });
   }
 
   return await ReviewModel.create({
@@ -57,7 +52,6 @@ export const createReview = async ({
 };
 
 export const getReviewsByMovie = async (tmdbId) => {
-
   const movie = await MovieModel.findByExternalId(tmdbId);
 
   if (!movie) {
@@ -74,7 +68,6 @@ export const updateReview = async ({
   text,
   containsSpoiler,
 }) => {
-
   const review = await ReviewModel.findById(reviewId);
 
   if (!review) {
@@ -89,23 +82,14 @@ export const updateReview = async ({
     });
   }
 
-  return await ReviewModel.update(
-    reviewId,
-    userId,
-    {
-      rating: rating ?? review.rating,
-      text: text ?? review.text,
-      contains_spoiler:
-        containsSpoiler ?? review.contains_spoiler,
-    }
-  );
+  return await ReviewModel.update(reviewId, userId, {
+    rating: rating ?? review.rating,
+    text: text ?? review.text,
+    contains_spoiler: containsSpoiler ?? review.contains_spoiler,
+  });
 };
 
-export const deleteReview = async (
-  userId,
-  reviewId
-) => {
-
+export const deleteReview = async (userId, reviewId) => {
   const review = await ReviewModel.findById(reviewId);
 
   if (!review) {
@@ -120,8 +104,5 @@ export const deleteReview = async (
     });
   }
 
-  return await ReviewModel.softDelete(
-    reviewId,
-    userId
-  );
+  return await ReviewModel.softDelete(reviewId, userId);
 };
