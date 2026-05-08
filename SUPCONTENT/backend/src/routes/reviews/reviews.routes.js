@@ -8,10 +8,18 @@ import {
   updateReview,
   deleteReview,
 } from "../../controllers/reviews/reviews.controller.js";
+//methods from reviwLikes controller
 import{
   toggleLike,
   count,
 }from "../../controllers/social/likes/reviewLikes.controller.js"
+//methods from reviewComment
+import {
+  create,
+  getByReview,
+  update,
+  remove,
+} from "../../controllers/social/comments/reviewComments.controller.js";
 
 import {
   protect,
@@ -31,5 +39,15 @@ router.delete("/:id",protect,deleteReview);
 router.post("/:id/likes", protect, toggleLike);
 
 router.get("/:id/likesCount", count);
+
+//comments routes 
+
+router.post("/:reviewId/comments",protect,create);
+
+router.get("/:reviewId/comments",getByReview);
+
+router.patch("/comments/:commentId",protect,update);
+
+router.delete("/comments/:commentId",protect,remove);
 
 export default router;
