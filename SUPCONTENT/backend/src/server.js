@@ -24,7 +24,9 @@ app.use(passport.initialize());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/social", followRoutes);
+app.use("/api/social/follow", followRoutes);
+app.use("/api/social/comment",commentRouter);
+app.use("/api/social/like",likeRouter);
 app.use("/api/movies", movieRoutes);
 app.use("/api/reviews",reviewsRoutes);
 
