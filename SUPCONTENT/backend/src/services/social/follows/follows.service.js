@@ -1,5 +1,5 @@
-import { FollowModel } from '../../models/follow.model.js';
-import { UserModel } from '../../models/user.model.js';
+import { FollowModel } from '../../../models/follow.model.js';
+import { UserModel } from '../../../models/user.model.js';
 
 export const followUser = async (followerId, followedId) => {
   if (followerId === followedId) {
