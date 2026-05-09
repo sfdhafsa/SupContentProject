@@ -8,6 +8,7 @@ import userRoutes from "./routes/users/user.routes.js";
 import followRoutes from "./routes/social/follows.routes.js";
 import movieRoutes from "./routes/movies/movies.routes.js";
 import reviewsRoutes from "./routes/reviews/reviews.routes.js";
+import libraryRoutes from "./routes/library/library.routes.js";
 import "./config/passport.js";
 import "./config/google.strategy.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
@@ -15,23 +16,19 @@ import { errorHandler } from "./middlewares/error.middleware.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/social/follow", followRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/reviews",reviewsRoutes);
+app.use("/api", libraryRoutes);
 
-// Health check
 app.get("/api/health", (_, res) => res.json({ status: "ok" }));
-
-// Error handler
 app.use(errorHandler);
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
