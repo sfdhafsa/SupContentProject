@@ -27,6 +27,8 @@ app.use("/api/social/follow", followRoutes);
 app.use("/api/social/comment",commentRouter);
 app.use("/api/social/like",likeRouter);
 app.use("/api/movies", movieRoutes);
+app.use("/api/reviews",reviewsRoutes);
+app.use("/api", libraryRoutes);
 
 app.get("/api/health", (_, res) => res.json({ status: "ok" }));
 app.use(errorHandler);
