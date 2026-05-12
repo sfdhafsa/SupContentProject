@@ -4,8 +4,8 @@ import api from "../services/api/axios";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [user, setUser]       = useState(null);
+  const [token, setToken]     = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
 
   // =========================
@@ -13,36 +13,44 @@ export const AuthProvider = ({ children }) => {
   // =========================
   useEffect(() => {
     const initAuth = async () => {
-      if (!token) {
+      const savedToken = localStorage.getItem("token");
+
+      // Pas de token → utilisateur non connecté
+      if (!savedToken) {
         setLoading(false);
         return;
       }
 
       try {
-        const res = await api.get("/users/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        // L'interceptor axios ajoute automatiquement le header Authorization
+        const res = await api.get("/users/me");
 
-        setUser(res.data.data);
+        // Ton backend renvoie { user: { ... } }
+        setUser(res.data.user);
       } catch (err) {
-        console.log("Auth error:", err);
-        logout();
+        if (err?.response?.status === 401) {
+          console.warn("Session expirée, déconnexion automatique.");
+        } else {
+          console.error("Auth error:", err);
+        }
+        // Token invalide ou expiré → on nettoie
+        localStorage.removeItem("token");
+        setToken(null);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
     initAuth();
-  }, [token]);
+  }, []); // ← [] : une seule fois au démarrage, pas de boucle infinie
 
   // =========================
   // LOGIN
   // =========================
-  const login = (token, userData) => {
-    localStorage.setItem("token", token);
-    setToken(token);
+  const login = (newToken, userData) => {
+    localStorage.setItem("token", newToken);
+    setToken(newToken);
     setUser(userData);
   };
 
@@ -74,5 +82,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Hook custom
 export const useAuth = () => useContext(AuthContext);
