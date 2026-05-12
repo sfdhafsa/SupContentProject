@@ -64,8 +64,9 @@ export default function Login() {
       // Adapte selon la réponse de ton backend
       const token = res.data?.token || res.data?.access_token;
       const userData = res.data?.user || res.data?.data;
-
-      login(token, userData); // ← met à jour le contexte + localStorage
+      console.log("RESPONSE DATA:", res.data);
+      
+     login(userData, token); // ← met à jour le contexte + localStorage
       navigate("/");
     } catch (error) {
       const message =

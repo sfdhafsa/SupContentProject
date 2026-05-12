@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 /* ── Icons ── */
 const FilmIcon = () => (
@@ -27,10 +28,10 @@ const MoonIcon = () => (
     <path d="M19 12.5A8 8 0 119.5 3a6 6 0 009.5 9.5z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-const BellIcon = () => (
+const SunIcon = () => (
   <svg viewBox="0 0 22 22" fill="none" className="w-5 h-5">
-    <path d="M11 2a7 7 0 00-7 7v3l-1.5 2.5h17L18 12V9a7 7 0 00-7-7z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M9 18a2 2 0 004 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <circle cx="11" cy="11" r="4" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M11 2v2M11 18v2M2 11h2M18 11h2M4.22 4.22l1.42 1.42M16.36 16.36l1.42 1.42M4.22 17.78l1.42-1.42M16.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
   </svg>
 );
 const LogoutIcon = () => (
@@ -51,41 +52,48 @@ const CloseIcon = () => (
   </svg>
 );
 
-const NAV_LINKS = [
-  { label: "Home", to: "/" },
+const NAV_LINKS_PUBLIC = [
+  { label: "Home",     to: "/" },
   { label: "Discover", to: "/discover" },
-  { label: "Library", to: "/library" },
-  { label: "Lists", to: "/lists" },
+  { label: "Library",  to: "/library" },
+];
+const NAV_LINKS_AUTH = [
+  { label: "Home",     to: "/" },
+  { label: "Discover", to: "/discover" },
+  { label: "Library",  to: "/library" },
+  { label: "Lists",    to: "/lists" },
 ];
 
 const navLinkClass = ({ isActive }) =>
   `text-sm font-medium transition-colors ${
-    isActive ? "text-gray-900 font-semibold" : "text-gray-500 hover:text-gray-900"
+    isActive
+      ? "text-gray-900 dark:text-white font-semibold"
+      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
   }`;
 
 function UserDropdown({ user, onLogout }) {
   return (
-    <div className="absolute right-0 top-[calc(100%+10px)] w-48 bg-white border border-gray-100 rounded-2xl shadow-lg py-1.5 z-50">
-      <div className="px-4 py-2 border-b border-gray-100 mb-1">
-        <p className="text-sm font-semibold text-gray-900 truncate">{user?.username}</p>
-        <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+    <div className="absolute right-0 top-[calc(100%+10px)] w-48 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-lg py-1.5 z-50">
+      <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 mb-1">
+        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user?.username}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{user?.email}</p>
       </div>
-      <Link to="/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+      <Link to="/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
         <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-400">
           <circle cx="10" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5" />
           <path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
         My profile
       </Link>
-      <Link to="/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+      <Link to="/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
         <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-400">
           <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
           <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
         Settings
       </Link>
-      <div className="h-px bg-gray-100 my-1" />
-      <button onClick={onLogout} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+      <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
+      <button onClick={onLogout} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
         <LogoutIcon />
         Sign out
       </button>
@@ -94,25 +102,26 @@ function UserDropdown({ user, onLogout }) {
 }
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
+  const { darkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const initials = user?.username
-    ? user.username.slice(0, 2).toUpperCase()
-    : "U";
+  const [search, setSearch]         = useState("");
+  const [dropdownOpen, setDropdown] = useState(false);
+  const [mobileOpen, setMobile]     = useState(false);
+
+  const navLinks = isAuthenticated ? NAV_LINKS_AUTH : NAV_LINKS_PUBLIC;
+  const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "U";
 
   const handleLogout = () => {
     logout();
-    setDropdownOpen(false);
-    setMobileOpen(false);
+    setDropdown(false);
+    setMobile(false);
     navigate("/login");
   };
 
   return (
-    <nav className="sticky top-0 z-40 w-full bg-white border-b border-gray-100">
+    <nav className="sticky top-0 z-40 w-full bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 transition-colors duration-300">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 flex items-center h-16 gap-4">
 
         {/* Logo */}
@@ -120,14 +129,14 @@ export default function Navbar() {
           <div className="w-9 h-9 bg-[#D0021B] rounded-lg flex items-center justify-center">
             <FilmIcon />
           </div>
-          <span className="font-bold text-sm tracking-widest text-gray-900 hidden sm:block">
+          <span className="font-bold text-sm tracking-widest text-gray-900 dark:text-white hidden sm:block">
             SUPMOVIES
           </span>
         </Link>
 
         {/* Nav links — desktop */}
         <div className="hidden md:flex items-center gap-6">
-          {NAV_LINKS.map((l) => (
+          {navLinks.map((l) => (
             <NavLink key={l.to} to={l.to} className={navLinkClass} end={l.to === "/"}>
               {l.label}
             </NavLink>
@@ -143,109 +152,163 @@ export default function Navbar() {
               placeholder="Search movies..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-[#D0021B] focus:ring-2 focus:ring-red-50 transition-all"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-[#D0021B] focus:ring-2 focus:ring-red-50 dark:focus:ring-red-900/20 transition-all"
             />
           </div>
         </div>
 
         {/* Right icons — desktop */}
         <div className="hidden md:flex items-center gap-1">
-          <button className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-all">
+
+          {/* Help */}
+          <button className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all">
             <HelpIcon />
           </button>
-          <button className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-all">
-            <MoonIcon />
-          </button>
-          <button className="relative w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-all">
-            <BellIcon />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#D0021B] rounded-full border-2 border-white" />
-          </button>
 
-          {/* Logout icon */}
+          {/* Dark mode toggle */}
           <button
-            onClick={handleLogout}
-            title="Sign out"
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all"
+            onClick={toggleTheme}
+            title={darkMode ? "Light mode" : "Dark mode"}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all"
           >
-            <LogoutIcon />
+            {darkMode ? <SunIcon /> : <MoonIcon />}
           </button>
 
-          {/* Avatar + dropdown */}
-          <div className="relative ml-1">
-            <button
-              onClick={() => setDropdownOpen((o) => !o)}
-              className="w-9 h-9 rounded-xl overflow-hidden border-2 border-transparent hover:border-[#D0021B] transition-all focus:outline-none"
-            >
-              {user?.avatar ? (
-                <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
-                  {initials}
-                </div>
-              )}
-            </button>
+          {/* ── CONNECTED ── */}
+          {isAuthenticated ? (
+            <>
+              <button
+                onClick={handleLogout}
+                title="Sign out"
+                className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all"
+              >
+                <LogoutIcon />
+              </button>
 
-            {dropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-                <div className="relative z-50">
-                  <UserDropdown user={user} onLogout={handleLogout} />
-                </div>
-              </>
-            )}
-          </div>
+              {/* Avatar + dropdown */}
+              <div className="relative ml-1">
+                <button
+                  onClick={() => setDropdown((o) => !o)}
+                  className="w-9 h-9 rounded-xl overflow-hidden border-2 border-transparent hover:border-[#D0021B] transition-all focus:outline-none"
+                >
+                  {user?.avatar_url ? (
+                    <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                      {initials}
+                    </div>
+                  )}
+                </button>
+
+                {dropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setDropdown(false)} />
+                    <div className="relative z-50">
+                      <UserDropdown user={user} onLogout={handleLogout} />
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            /* ── NOT CONNECTED ── */
+            <Link
+              to="/login"
+              className="ml-2 flex items-center gap-2 px-4 py-2 bg-[#D0021B] hover:bg-[#b30218] text-white text-sm font-semibold rounded-xl transition-all"
+            >
+              <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
+                <circle cx="10" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              Hello, Sign in
+            </Link>
+          )}
         </div>
 
         {/* Mobile burger */}
         <button
-          className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 transition-all ml-auto"
-          onClick={() => setMobileOpen((o) => !o)}
+          className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all ml-auto"
+          onClick={() => setMobile((o) => !o)}
         >
           {mobileOpen ? <CloseIcon /> : <MenuIcon />}
         </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* ── Mobile menu ── */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 flex flex-col gap-1">
-          {NAV_LINKS.map((l) => (
+        <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-4 flex flex-col gap-1">
+          {navLinks.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
               end={l.to === "/"}
-              onClick={() => setMobileOpen(false)}
+              onClick={() => setMobile(false)}
               className={({ isActive }) =>
                 `px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  isActive ? "bg-red-50 text-[#D0021B]" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  isActive
+                    ? "bg-red-50 dark:bg-red-900/20 text-[#D0021B]"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                 }`
               }
             >
               {l.label}
             </NavLink>
           ))}
-          <div className="h-px bg-gray-100 my-2" />
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-9 h-9 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-              {user?.avatar ? (
-                <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
-                  {initials}
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{user?.username}</p>
-              <p className="text-xs text-gray-400">{user?.email}</p>
-            </div>
-          </div>
+
+          <div className="h-px bg-gray-100 dark:bg-gray-800 my-2" />
+
+          {/* Dark mode toggle mobile */}
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+            onClick={toggleTheme}
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
-            <LogoutIcon />
-            Sign out
+            {darkMode ? <SunIcon /> : <MoonIcon />}
+            {darkMode ? "Light mode" : "Dark mode"}
           </button>
+
+          <div className="h-px bg-gray-100 dark:bg-gray-800 my-1" />
+
+          {isAuthenticated ? (
+            <>
+              <div className="flex items-center gap-3 px-3 py-2">
+                <div className="w-9 h-9 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                  {user?.avatar_url ? (
+                    <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                      {initials}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.username}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{user?.email}</p>
+                </div>
+              </div>
+              <Link
+                to="/profile"
+                onClick={() => setMobile(false)}
+                className="px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                My profile
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <LogoutIcon />
+                Sign out
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              onClick={() => setMobile(false)}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold bg-[#D0021B] text-white hover:bg-[#b30218] transition-colors"
+            >
+              Hello, Sign in
+            </Link>
+          )}
         </div>
       )}
     </nav>

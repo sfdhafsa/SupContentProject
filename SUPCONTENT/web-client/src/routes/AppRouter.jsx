@@ -5,8 +5,8 @@ import MainLayout from "../layouts/MainLayout";
 import Register from "../pages/auth/Register";
 import Login from "../pages/auth/Login";
 import Home from "../pages/home/Home";
-;
-
+import Profile from "../pages/user/Profile.jsx";
+import Settings from "../pages/user/Settings.jsx";
 // ── Route protégée : redirige vers /login si non connecté ──
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -53,6 +53,8 @@ export default function AppRouter() {
       }>
         {/* <Route path="/library" element={<Library />} />
         <Route path="/lists" element={<Lists />} /> */}
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       {/* Fallback */}

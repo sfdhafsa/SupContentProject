@@ -2,7 +2,9 @@ import pool from '../config/db.js';
 
 export const UserModel = {
 
-  //  Get user by email
+  // =====================
+  // GET USER BY EMAIL
+  // =====================
   async findByEmail(email) {
     const { rows } = await pool.query(
       'SELECT * FROM users WHERE email = $1',
@@ -11,7 +13,9 @@ export const UserModel = {
     return rows[0] || null;
   },
 
-  // Get user by ID + roles
+  // =====================
+  // GET USER BY ID + ROLES
+  // =====================
   async findById(id) {
     const { rows } = await pool.query(
       `SELECT 
@@ -36,11 +40,12 @@ export const UserModel = {
        GROUP BY u.id`,
       [id]
     );
-
     return rows[0] || null;
   },
 
-  //  Get user by username
+  // =====================
+  // GET USER BY USERNAME
+  // =====================
   async findByUsername(username) {
     const { rows } = await pool.query(
       'SELECT * FROM users WHERE username = $1',
@@ -49,31 +54,27 @@ export const UserModel = {
     return rows[0] || null;
   },
 
-  //  Create user + assign default role "user"
+  // =====================
+  // CREATE LOCAL USER
+  // =====================
   async createLocal({ email, username, passwordHash }) {
     const client = await pool.connect();
-
     try {
       await client.query('BEGIN');
 
-      // 1. Create user
       const { rows } = await client.query(
         `INSERT INTO users (email, username, password_hash)
          VALUES ($1, $2, $3)
          RETURNING id, email, username, created_at`,
         [email, username || null, passwordHash]
       );
-
       const user = rows[0];
 
-      // 2. Get default role
       const { rows: roleRows } = await client.query(
         `SELECT id FROM roles WHERE name = 'user'`
       );
-
       const roleId = roleRows[0]?.id;
 
-      // 3. Assign role
       if (roleId) {
         await client.query(
           `INSERT INTO user_roles (user_id, role_id)
@@ -85,7 +86,6 @@ export const UserModel = {
 
       await client.query('COMMIT');
       return user;
-
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -94,7 +94,9 @@ export const UserModel = {
     }
   },
 
-  // Get roles of user only
+  // =====================
+  // GET ROLES BY USER ID
+  // =====================
   async findRolesByUserId(userId) {
     const { rows } = await pool.query(
       `SELECT r.name
@@ -103,10 +105,10 @@ export const UserModel = {
        WHERE ur.user_id = $1`,
       [userId]
     );
-
     return rows.map(r => r.name);
   },
-    // =====================
+
+  // =====================
   // UPDATE USER PROFILE
   // =====================
   async updateById(id, data) {
@@ -114,59 +116,67 @@ export const UserModel = {
     const values = [];
     let index = 1;
 
-    if (data.username !== undefined) {
-      fields.push(`username = $${index++}`);
-      values.push(data.username);
-    }
+    const allowed = [
+      'username', 'avatar_url', 'bio',
+      'website_url', 'theme_preference', 'language_preference'
+    ];
 
-    if (data.avatar_url !== undefined) {
-      fields.push(`avatar_url = $${index++}`);
-      values.push(data.avatar_url);
-    }
-
-    if (data.bio !== undefined) {
-      fields.push(`bio = $${index++}`);
-      values.push(data.bio);
-    }
-
-    if (data.website_url !== undefined) {
-      fields.push(`website_url = $${index++}`);
-      values.push(data.website_url);
-    }
-
-    if (data.theme_preference !== undefined) {
-      fields.push(`theme_preference = $${index++}`);
-      values.push(data.theme_preference);
-    }
-
-    if (data.language_preference !== undefined) {
-      fields.push(`language_preference = $${index++}`);
-      values.push(data.language_preference);
+    for (const key of allowed) {
+      if (data[key] !== undefined) {
+        fields.push(`${key} = $${index++}`);
+        values.push(data[key]);
+      }
     }
 
     if (fields.length === 0) {
-      throw new Error("Aucune donnée à mettre à jour");
+      throw new Error('Aucune donnée à mettre à jour');
     }
 
     values.push(id);
 
     const query = `
       UPDATE users
-      SET ${fields.join(", ")}
+      SET ${fields.join(', ')}, updated_at = NOW()
       WHERE id = $${index}
       RETURNING 
-        id,
-        email,
-        username,
-        avatar_url,
-        bio,
-        website_url,
-        theme_preference,
-        language_preference,
-        created_at
+        id, email, username, avatar_url, bio,
+        website_url, theme_preference, language_preference, created_at
     `;
 
     const { rows } = await pool.query(query, values);
     return rows[0];
-  }
+  },
+
+  // =====================
+  // GET USER WITH PASSWORD HASH
+  // =====================
+  async findByIdWithPassword(id) {
+    const { rows } = await pool.query(        
+      `SELECT * FROM users WHERE id = $1`,
+      [id]
+    );
+    return rows[0] || null;
+  },
+
+  // =====================
+  // UPDATE PASSWORD
+  // =====================
+  async updatePassword(id, newHash) {
+    await pool.query(                         // ← pool, pas db
+      `UPDATE users
+       SET password_hash = $1, updated_at = NOW()
+       WHERE id = $2`,
+      [newHash, id]
+    );
+  },
+
+  // =====================
+  // DELETE USER
+  // =====================
+  async deleteById(id) {
+    await pool.query(                         
+      `DELETE FROM users WHERE id = $1`,
+      [id]
+    );
+  },
 };
