@@ -1,80 +1,108 @@
 // src/services/reviews/reviews.service.js
 
-import ReviewModel from "../../models/review.model.js";
-import ReviewLikeModel from "../../models/reviewLike.model.js";
-import {MovieModel} from "../../models/movie.model.js";
+import { ReviewModel } from "../../models/review.model.js";
+import { MovieModel } from "../../models/movie.model.js";
+import { getMovieById } from "../movies/movies.service.js";
 
-const ReviewsService = {
-  async createReview({ userId, tmdbId, rating, text, containsSpoiler }) {
-    // 1. récupérer le film (via TMDB mapping)
-    const movie = await MovieModel.findOrCreateByTmdbId(tmdbId);
-
-    // 2. vérifier si review existe déjà
-    const existing = await ReviewModel.findByUserAndMovie(userId, movie.id);
-    if (existing) {
-      throw new Error("You already reviewed this movie");
-    }
-
-    // 3. validation
-    if (rating < 1 || rating > 5) {
-      throw new Error("Invalid rating");
-    }
-
-    // 4. création
-    return await ReviewModel.create({
-      user_id: userId,
-      movie_id: movie.id,
-      rating,
-      text,
-      contains_spoiler: containsSpoiler || false,
+export const createReview = async ({
+  userId,
+  tmdbId,
+  rating,
+  text,
+  containsSpoiler,
+}) => {
+  if (!tmdbId || isNaN(tmdbId)) {
+    throw Object.assign(new Error("Invalid TMDB id"), {
+      status: 400,
     });
-  },
+  }
 
-  async getReviewsByMovie(tmdbId) {
-    const movie = await MovieModel.findByTmdbId(tmdbId);
-    if (!movie) return [];
+  if (!rating || rating < 1 || rating > 5) {
+    throw Object.assign(new Error("Rating must be between 1 and 5"), {
+      status: 400,
+    });
+  }
 
-    return await ReviewModel.findByMovieId(movie.id);
-  },
+  // Ensure movie exists in local DB cache
+  await getMovieById(tmdbId);
 
-  async updateReview({ userId, reviewId, rating, text, containsSpoiler }) {
-    const review = await ReviewModel.findById(reviewId);
+  const movie = await MovieModel.findByExternalId(tmdbId);
 
-    if (!review) throw new Error("Review not found");
-    if (review.user_id !== userId) throw new Error("Unauthorized");
+  if (!movie) {
+    throw Object.assign(new Error("Movie not found"), {
+      status: 404,
+    });
+  }
 
-    const updatedData = {
-      rating: rating ?? review.rating,
-      text: text ?? review.text,
-      contains_spoiler: containsSpoiler ?? review.contains_spoiler,
-    };
+  const existing = await ReviewModel.findByUserAndMovie(userId, movie.id);
 
-    if (updatedData.rating < 1 || updatedData.rating > 5) {
-      throw new Error("Invalid rating");
-    }
+  if (existing) {
+    throw Object.assign(new Error("You already reviewed this movie"), {
+      status: 409,
+    });
+  }
 
-    return await ReviewModel.update(reviewId, userId, updatedData);
-  },
-
-  async deleteReview(userId, reviewId) {
-    const review = await ReviewModel.findById(reviewId);
-
-    if (!review) throw new Error("Review not found");
-    if (review.user_id !== userId) throw new Error("Unauthorized");
-
-    return await ReviewModel.softDelete(reviewId, userId);
-  },
-
-  async likeReview(userId, reviewId) {
-    const exists = await ReviewLikeModel.exists(userId, reviewId);
-    if (exists) return;
-
-    return await ReviewLikeModel.create(userId, reviewId);
-  },
-
-  async unlikeReview(userId, reviewId) {
-    return await ReviewLikeModel.delete(userId, reviewId);
-  },
+  return await ReviewModel.create({
+    user_id: userId,
+    movie_id: movie.id,
+    rating,
+    text,
+    contains_spoiler: containsSpoiler,
+  });
 };
 
-export default ReviewsService;
+export const getReviewsByMovie = async (tmdbId) => {
+  const movie = await MovieModel.findByExternalId(tmdbId);
+
+  if (!movie) {
+    return [];
+  }
+
+  return await ReviewModel.findByMovieId(movie.id);
+};
+
+export const updateReview = async ({
+  userId,
+  reviewId,
+  rating,
+  text,
+  containsSpoiler,
+}) => {
+  const review = await ReviewModel.findById(reviewId);
+
+  if (!review) {
+    throw Object.assign(new Error("Review not found"), {
+      status: 404,
+    });
+  }
+
+  if (review.user_id !== userId) {
+    throw Object.assign(new Error("Unauthorized"), {
+      status: 403,
+    });
+  }
+
+  return await ReviewModel.update(reviewId, userId, {
+    rating: rating ?? review.rating,
+    text: text ?? review.text,
+    contains_spoiler: containsSpoiler ?? review.contains_spoiler,
+  });
+};
+
+export const deleteReview = async (userId, reviewId) => {
+  const review = await ReviewModel.findById(reviewId);
+
+  if (!review) {
+    throw Object.assign(new Error("Review not found"), {
+      status: 404,
+    });
+  }
+
+  if (review.user_id !== userId) {
+    throw Object.assign(new Error("Unauthorized"), {
+      status: 403,
+    });
+  }
+
+  return await ReviewModel.softDelete(reviewId, userId);
+};

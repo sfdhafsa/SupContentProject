@@ -2,7 +2,7 @@
 
 import db from "../config/db.js";
 
-const ReviewLikeModel = {
+export const ReviewLikeModel = {
   // 🔹 CREATE like
   async create(userId, reviewId) {
     const query = `
@@ -53,4 +53,3 @@ const ReviewLikeModel = {
   },
 };
 
-export default ReviewLikeModel;
