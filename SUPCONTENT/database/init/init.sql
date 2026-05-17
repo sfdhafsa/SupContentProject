@@ -138,7 +138,7 @@ CREATE TABLE notifications (
   actor_user_id UUID,
   type VARCHAR(50) NOT NULL,
   entity_type VARCHAR(50),
-  entity_id BIGINT,
+  entity_id TEXT,
   is_read BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

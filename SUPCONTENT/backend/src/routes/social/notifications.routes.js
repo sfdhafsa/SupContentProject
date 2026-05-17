@@ -4,9 +4,9 @@ import {
   markAsRead,
   markAllAsRead,
   getUnreadCount,
-} from '../controllers/social/notifications/notifications.controller.js';
+} from '../../controllers/social/notifications/notifications.controller.js';
 
-import { protect } from '../middlewares/protect.js';
+import { protect } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router();
 

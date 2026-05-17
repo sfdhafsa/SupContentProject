@@ -11,6 +11,7 @@ import followRoutes from "./routes/social/follows.routes.js";
 import movieRoutes from "./routes/movies/movies.routes.js";
 import reviewsRoutes from "./routes/reviews/reviews.routes.js";
 import libraryRoutes from "./routes/library/library.routes.js";
+import notificationRoutes from './routes/social/notifications.routes.js';
 import "./config/passport.js";
 import "./config/google.strategy.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
@@ -35,10 +36,12 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/social/notifications", notificationRoutes);
 app.use("/api/social/follow", followRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/reviews", reviewsRoutes);
 app.use("/api", libraryRoutes);
+
 
 app.get("/api/health", (_, res) => res.json({ status: "ok" }));
 app.use(errorHandler);

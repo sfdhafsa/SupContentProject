@@ -3,7 +3,7 @@
   * Chaque type correspond à une action utilisateur dans l'app
   */
 
-export const NOTIFICATION_TYPES = {
+export const notificationTypes = {
   FOLLOW: 'FOLLOW',
   REVIEW_LIKE: 'REVIEW_LIKE',
   REVIEW_COMMENT: 'REVIEW_COMMENT',
