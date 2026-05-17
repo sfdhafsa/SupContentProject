@@ -1,5 +1,7 @@
 import { FollowModel } from '../../../models/follow.model.js';
 import { UserModel } from '../../../models/user.model.js';
+import { createNotification } from '../notifications/notifications.service.js';
+import { notificationTypes } from '../../../utils/notificationTypes.js';
 
 export const followUser = async (followerId, followedId) => {
   if (followerId === followedId) {
@@ -10,6 +12,13 @@ export const followUser = async (followerId, followedId) => {
   }
 
   const targetUser = await UserModel.findById(followedId);
+  await createNotification({
+    userId: followedId,        // receiver
+    actorUserId: followerId,   // sender
+    type: notificationTypes.FOLLOW,
+    entityType: 'USER',
+    entityId: followerId,
+  });
   if (!targetUser) {
     return {
       status: 404,
