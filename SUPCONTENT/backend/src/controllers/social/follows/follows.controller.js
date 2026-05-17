@@ -4,7 +4,11 @@ import {
   getFollowers as getFollowersService,
   getFollowing as getFollowingService,
   getFollowStatus as getFollowStatusService,
+<<<<<<< HEAD
 } from "../../../services/social/follows/follows.service.js";
+=======
+} from '../../../services/social/follows/follows.service.js';
+>>>>>>> feat/movie-reviews
 
 // POST /api/users/:id/follow
 export const followUser = async (req, res, next) => {

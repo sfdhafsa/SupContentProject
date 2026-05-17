@@ -2,31 +2,26 @@ import js from "@eslint/js";
 import unicorn from "eslint-plugin-unicorn";
 
 export default [
+  js.configs.recommended,
 
-js.configs.recommended,
+  {
+    files: ["src/**/*.js"],
 
-{
-files:["src/**/*.js"],
+    plugins: {
+      unicorn,
+    },
 
-plugins:{
-unicorn
-},
+    rules: {
+      "no-unused-vars": "warn",
 
-rules:{
+      eqeqeq: "warn",
 
-"no-unused-vars":"warn",
-
-"eqeqeq":"warn",
-
-"unicorn/filename-case":[
-"warn",
-{
-case:"kebabCase"
-}
-]
-
-}
-
-}
-
+      "unicorn/filename-case": [
+        "warn",
+        {
+          case: "camelCase",
+        },
+      ],
+    },
+  },
 ];
