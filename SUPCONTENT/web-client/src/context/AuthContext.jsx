@@ -4,8 +4,8 @@ import api from "../services/api/axios";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser]       = useState(null);
-  const [token, setToken]     = useState(localStorage.getItem("token"));
+  const [user, setUser]     = useState(null);
+  const [token, setToken]   = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
 
   // =========================
@@ -15,35 +15,36 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       const savedToken = localStorage.getItem("token");
 
-      // Pas de token → utilisateur non connecté
+      // Pas de token → pas besoin d'appeler le backend
       if (!savedToken) {
         setLoading(false);
         return;
       }
 
       try {
-        // L'interceptor axios ajoute automatiquement le header Authorization
-        const res = await api.get("/users/me");
+        const res = await api.get("/users/me", {
+          headers: {
+            Authorization: `Bearer ${savedToken}`,
+          },
+        });
 
-        // Ton backend renvoie { user: { ... } }
-        setUser(res.data.user);
+        setUser(res.data.data);
+        setToken(savedToken);
       } catch (err) {
+        // Token expiré ou invalide → on nettoie silencieusement
         if (err?.response?.status === 401) {
           console.warn("Session expirée, déconnexion automatique.");
         } else {
           console.error("Auth error:", err);
         }
-        // Token invalide ou expiré → on nettoie
-        localStorage.removeItem("token");
-        setToken(null);
-        setUser(null);
+        logout(); // nettoie le localStorage et reset le state
       } finally {
         setLoading(false);
       }
     };
 
     initAuth();
-  }, []); // ← [] : une seule fois au démarrage, pas de boucle infinie
+  }, []); // ← on lance une seule fois au démarrage
 
   // =========================
   // LOGIN
@@ -82,4 +83,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// Hook custom
 export const useAuth = () => useContext(AuthContext);

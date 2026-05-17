@@ -21,18 +21,18 @@ const GoogleIcon = () => (
 
 const FEATURES = [
   { title: "Discover & Track", desc: "Browse millions of movies and build your watchlist" },
-  { title: "Review & Rate", desc: "Share your thoughts and rate your favorite films" },
-  { title: "Connect & Share", desc: "Follow friends and explore curated lists" },
+  { title: "Review & Rate",    desc: "Share your thoughts and rate your favorite films" },
+  { title: "Connect & Share",  desc: "Follow friends and explore curated lists" },
 ];
 
 export default function Login() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
+  const navigate    = useNavigate();
+  const { login }   = useAuth();
 
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [errors, setErrors] = useState({});
+  const [form, setForm]         = useState({ email: "", password: "" });
+  const [errors, setErrors]     = useState({});
   const [apiError, setApiError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
 
   const validate = () => {
     const e = {};
@@ -49,6 +49,7 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const validationErrors = validate();
     if (Object.keys(validationErrors).length) { setErrors(validationErrors); return; }
 
@@ -57,21 +58,21 @@ export default function Login() {
 
     try {
       const res = await api.post("/auth/login", {
-        email: form.email,
+        email:    form.email,
         password: form.password,
       });
 
-      // Adapte selon la réponse de ton backend
-      const token = res.data?.token || res.data?.access_token;
-      const userData = res.data?.user || res.data?.data;
-      console.log("RESPONSE DATA:", res.data);
-      
-     login(userData, token); // ← met à jour le contexte + localStorage
+      const token    = res.data.token;  // ← string JWT
+      const userData = res.data.user;   // ← objet user (fallback)
+
+      // ✅ token EN PREMIER, userData en second
+      await login(token, userData);
       navigate("/");
+
     } catch (error) {
       const message =
         error?.response?.data?.message ||
-        error?.response?.data?.error ||
+        error?.response?.data?.error   ||
         "Invalid email or password.";
       setApiError(message);
     } finally {
@@ -142,7 +143,7 @@ export default function Login() {
           {/* Google */}
           <button
             type="button"
-            onClick={() => window.location.href = "http://localhost:3000/api/auth/google"}
+            onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/auth/google`}
             className="w-full flex items-center justify-center gap-2.5 py-3 px-4 mb-5 border border-gray-200 rounded-xl bg-white text-sm font-medium text-gray-800 hover:border-gray-400 hover:shadow-sm transition-all"
           >
             <GoogleIcon />
