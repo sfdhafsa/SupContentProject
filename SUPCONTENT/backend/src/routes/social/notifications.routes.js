@@ -16,10 +16,10 @@ router.get('/', protect, getNotifications);
 // unread count
 router.get('/unread-count', protect, getUnreadCount);
 
-// mark one as read
-router.patch('/:id/read', protect, markAsRead);
-
 // mark all as read
 router.patch('/read-all', protect, markAllAsRead);
+
+// mark one as read
+router.patch('/:id/read', protect, markAsRead);
 
 export default router;
