@@ -25,6 +25,9 @@ const FEATURES = [
   { title: "Connect & Share",  desc: "Follow friends and explore curated lists" },
 ];
 
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const authBaseUrl = apiUrl.endsWith("/api") ? apiUrl : `${apiUrl}/api`;
+
 export default function Login() {
   const navigate    = useNavigate();
   const { login }   = useAuth();
@@ -143,7 +146,7 @@ export default function Login() {
           {/* Google */}
           <button
             type="button"
-            onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/auth/google`}
+            onClick={() => window.location.href = `${authBaseUrl}/auth/google`}
             className="w-full flex items-center justify-center gap-2.5 py-3 px-4 mb-5 border border-gray-200 rounded-xl bg-white text-sm font-medium text-gray-800 hover:border-gray-400 hover:shadow-sm transition-all"
           >
             <GoogleIcon />

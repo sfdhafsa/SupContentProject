@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import MainLayout from "../layouts/MainLayout";
 import Register from "../pages/auth/Register";
 import Login from "../pages/auth/Login";
+import OAuthCallback from "../pages/auth/OAuthCallback.jsx";
 import Home from "../pages/home/Home";
 import Profile from "../pages/user/Profile.jsx";
 import Settings from "../pages/user/Settings.jsx";
@@ -41,6 +42,7 @@ export default function AppRouter() {
       <Route path="/register" element={
         <PublicRoute><Register /></PublicRoute>
       } />
+      <Route path="/auth/callback" element={<OAuthCallback />} />
 
       {/* Pages PUBLIQUES avec Navbar — accessibles sans connexion */}
       <Route element={<MainLayout />}>
