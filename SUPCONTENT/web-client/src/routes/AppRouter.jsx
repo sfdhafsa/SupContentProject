@@ -7,6 +7,7 @@ import Login from "../pages/auth/Login";
 import Home from "../pages/home/Home";
 import Profile from "../pages/user/Profile.jsx";
 import Settings from "../pages/user/Settings.jsx";
+import PublicProfile from "../pages/user/PublicProfile.jsx";
 // ── Route protégée : redirige vers /login si non connecté ──
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -44,7 +45,7 @@ export default function AppRouter() {
       {/* Pages PUBLIQUES avec Navbar — accessibles sans connexion */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
-     
+        <Route path="/profile/:id" element={<PublicProfile />} />
       </Route>
 
       {/* Pages PROTÉGÉES avec Navbar — connexion requise */}
