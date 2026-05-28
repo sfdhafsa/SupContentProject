@@ -7,18 +7,11 @@ export const followUser = async (followerId, followedId) => {
   if (followerId === followedId) {
     return {
       status: 400,
-      data: { message: 'Vous ne pouvez pas vous suivre vous-même.' },
+      data: { message: 'Vous ne pouvez pas vous suivre vous-meme.' },
     };
   }
 
   const targetUser = await UserModel.findById(followedId);
-  await createNotification({
-    userId: followedId,        // receiver
-    actorUserId: followerId,   // sender
-    type: notificationTypes.FOLLOW,
-    entityType: 'USER',
-    entityId: followerId,
-  });
   if (!targetUser) {
     return {
       status: 404,
@@ -28,52 +21,34 @@ export const followUser = async (followerId, followedId) => {
 
   const existingFollow = await FollowModel.findFollow(followerId, followedId);
   if (existingFollow) {
+    await FollowModel.deleteFollow(followerId, followedId);
+
     return {
-      status: 409,
-      data: { message: 'Vous suivez déjà cet utilisateur.' },
+      status: 200,
+      data: {
+        status: 'unfollowed',
+        message: 'Utilisateur unfollow avec succes.',
+      },
     };
   }
 
   const follow = await FollowModel.createFollow(followerId, followedId);
 
+  await createNotification({
+    userId: followedId,
+    actorUserId: followerId,
+    type: notificationTypes.FOLLOW,
+    entityType: 'USER',
+    entityId: followerId,
+  });
+
   return {
     status: 201,
     data: {
-      message: 'Utilisateur suivi avec succès.',
+      status: 'followed',
+      message: 'Utilisateur suivi avec succes.',
       follow,
     },
-  };
-};
-
-export const unfollowUser = async (followerId, followedId) => {
-  if (followerId === followedId) {
-    return {
-      status: 400,
-      data: { message: 'Action invalide.' },
-    };
-  }
-
-  const targetUser = await UserModel.findById(followedId);
-  if (!targetUser) {
-    return {
-      status: 404,
-      data: { message: 'Utilisateur introuvable.' },
-    };
-  }
-
-  const existingFollow = await FollowModel.findFollow(followerId, followedId);
-  if (!existingFollow) {
-    return {
-      status: 404,
-      data: { message: 'Vous ne suivez pas cet utilisateur.' },
-    };
-  }
-
-  await FollowModel.deleteFollow(followerId, followedId);
-
-  return {
-    status: 200,
-    data: { message: 'Utilisateur unfollow avec succès.' },
   };
 };
 
