@@ -2,6 +2,8 @@
 
 import {CommentModel} from "../../../models/comment.model.js";
 import {ReviewModel} from "../../../models/review.model.js";
+import { createNotification } from "../notifications/notifications.service.js";
+import { notificationTypes } from "../../../utils/notificationTypes.js";
 
 // CREATE COMMENT
 export const createComment = async ({
@@ -24,12 +26,54 @@ export const createComment = async ({
     throw error;
   }
 
-  return await CommentModel.create({
+  const parentComment = parentCommentId
+    ? await CommentModel.findById(parentCommentId)
+    : null;
+
+  if (parentCommentId && !parentComment) {
+    const error = new Error("Parent comment not found");
+    error.status = 404;
+    throw error;
+  }
+
+  if (parentComment && String(parentComment.review_id) !== String(reviewId)) {
+    const error = new Error("Parent comment does not belong to this review");
+    error.status = 400;
+    throw error;
+  }
+
+  const comment = await CommentModel.create({
     review_id: reviewId,
     user_id: userId,
     text: text.trim(),
     parent_comment_id: parentCommentId,
   });
+
+  if (!comment) {
+    const error = new Error("Parent comment does not belong to this review");
+    error.status = 400;
+    throw error;
+  }
+
+  if (parentComment) {
+    await createNotification({
+      userId: parentComment.user_id,
+      actorUserId: userId,
+      type: notificationTypes.COMMENT_REPLY,
+      entityType: "COMMENT",
+      entityId: comment.id.toString(),
+    });
+  } else {
+    await createNotification({
+      userId: review.user_id,
+      actorUserId: userId,
+      type: notificationTypes.REVIEW_COMMENT,
+      entityType: "REVIEW",
+      entityId: reviewId.toString(),
+    });
+  }
+
+  return comment;
 };
 
 // GET COMMENTS

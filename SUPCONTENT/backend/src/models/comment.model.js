@@ -17,7 +17,15 @@ export const CommentModel = {
         text,
         parent_comment_id
       )
-      VALUES ($1, $2, $3, $4)
+      SELECT $1, $2, $3, $4
+      WHERE $4::BIGINT IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM comments parent
+        WHERE parent.id = $4
+        AND parent.review_id = $1
+        AND parent.deleted_at IS NULL
+      )
       RETURNING *;
     `;
 
