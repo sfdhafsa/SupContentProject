@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
   followUser,
-  unfollowUser,
   getFollowers,
   getFollowing,
   getFollowStatus,
@@ -12,7 +11,6 @@ import { validateUUIDParam } from "../../middlewares/validation.middleware.js";
 const router = Router();
 
 router.post("/:id", validateUUIDParam("id"), protect, followUser);
-router.delete("/:id/unfollow", validateUUIDParam("id"), protect, unfollowUser);
 router.get("/:id/followers", validateUUIDParam("id"), getFollowers);
 router.get("/:id/following", validateUUIDParam("id"), getFollowing);
 router.get(
