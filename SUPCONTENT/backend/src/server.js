@@ -22,6 +22,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const uploadRoot = path.join(__dirname, "..", "uploads");
 
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
@@ -36,10 +37,7 @@ app.get("/auth/google", (_, res) => {
 });
 
 // ← Sert les fichiers uploadés (avatars, etc.) publiquement
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// ← Sert les fichiers uploadés (avatars, etc.) publiquement
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(uploadRoot));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

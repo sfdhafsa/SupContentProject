@@ -1,7 +1,133 @@
 import bcrypt from 'bcrypt';
+import { validationResult } from 'express-validator';
 import path from 'path';
 import fs from 'fs';
 import { UserModel } from '../../models/user.model.js';
+import pool from '../../config/db.js';
+
+const getPublicBaseUrl = (req) =>
+  process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+
+const getLocalAvatarPath = (avatarUrl) => {
+  if (!avatarUrl?.includes('/uploads/avatars/')) return null;
+
+  return path.join('uploads', 'avatars', path.basename(avatarUrl));
+};
+
+const csvEscape = (value) => {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return `"${value.toISOString()}"`;
+  if (Array.isArray(value)) return `"${value.join(';').replace(/"/g, '""')}"`;
+  if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+
+  return `"${String(value).replace(/"/g, '""')}"`;
+};
+
+const toCsvSection = (title, rows) => {
+  if (!rows.length) return `${title}\n`;
+
+  const headers = Object.keys(rows[0]);
+  const lines = rows.map((row) =>
+    headers.map((header) => csvEscape(row[header])).join(',')
+  );
+
+  return `${title}\n${headers.join(',')}\n${lines.join('\n')}\n`;
+};
+
+const getExportData = async (userId) => {
+  const user = await UserModel.findById(userId);
+
+  if (!user) return null;
+
+  const { password_hash, is_banned, ...profile } = user;
+
+  const [library, customLists, reviews] = await Promise.all([
+    pool.query(
+      `SELECT
+         ul.id,
+         ul.status,
+         ul.started_at,
+         ul.completed_at,
+         ul.last_interaction_at,
+         ul.created_at,
+         ul.updated_at,
+         m.id AS movie_id,
+         m.external_id,
+         m.source_api,
+         m.title,
+         m.poster_url,
+         m.release_date,
+         m.runtime_minutes
+       FROM user_library ul
+       JOIN movies m ON m.id = ul.movie_id
+       WHERE ul.user_id = $1
+       ORDER BY ul.updated_at DESC`,
+      [userId]
+    ),
+    pool.query(
+      `SELECT
+         cl.id,
+         cl.name,
+         cl.description,
+         cl.is_public,
+         cl.created_at,
+         cl.updated_at,
+         COALESCE(
+           json_agg(
+             json_build_object(
+               'id', m.id,
+               'external_id', m.external_id,
+               'source_api', m.source_api,
+               'title', m.title,
+               'poster_url', m.poster_url,
+               'release_date', m.release_date,
+               'runtime_minutes', m.runtime_minutes,
+               'added_at', clm.added_at,
+               'position', clm.position
+             )
+             ORDER BY clm.added_at DESC
+           ) FILTER (WHERE m.id IS NOT NULL),
+           '[]'
+         ) AS movies
+       FROM custom_lists cl
+       LEFT JOIN custom_list_movies clm ON clm.list_id = cl.id
+       LEFT JOIN movies m ON m.id = clm.movie_id
+       WHERE cl.user_id = $1
+       GROUP BY cl.id
+       ORDER BY cl.updated_at DESC`,
+      [userId]
+    ),
+    pool.query(
+      `SELECT
+         r.id,
+         r.rating,
+         r.text,
+         r.contains_spoiler,
+         r.created_at,
+         r.updated_at,
+         r.deleted_at,
+         m.id AS movie_id,
+         m.external_id,
+         m.source_api,
+         m.title,
+         m.poster_url,
+         m.release_date
+       FROM reviews r
+       JOIN movies m ON m.id = r.movie_id
+       WHERE r.user_id = $1
+       ORDER BY r.created_at DESC`,
+      [userId]
+    ),
+  ]);
+
+  return {
+    exported_at: new Date().toISOString(),
+    profile,
+    library: library.rows,
+    custom_lists: customLists.rows,
+    reviews: reviews.rows,
+  };
+};
 
 // =====================
 // GET /api/users/me
@@ -27,6 +153,11 @@ export const getMe = async (req, res, next) => {
 // =====================
 export const updateMe = async (req, res, next) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const userId = req.user.userId;
     const updatedUser = await UserModel.updateById(userId, req.body);
 
@@ -45,6 +176,11 @@ export const updateMe = async (req, res, next) => {
 // =====================
 export const updatePassword = async (req, res, next) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const { current_password, new_password } = req.body;
 
     if (!current_password || !new_password) {
@@ -93,16 +229,13 @@ export const updateAvatar = async (req, res, next) => {
 
     // Récupère l'ancien avatar pour le supprimer
     const user = await UserModel.findById(userId);
-    if (user?.avatar_url) {
-      const oldPath = path.join('uploads', 'avatars', path.basename(user.avatar_url));
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
+    const oldPath = getLocalAvatarPath(user?.avatar_url);
+    if (oldPath && fs.existsSync(oldPath)) {
+      fs.unlinkSync(oldPath);
     }
 
     // URL publique de l'avatar
-     const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
-     const avatarUrl = `${BASE_URL}/uploads/avatars/${req.file.filename}`;
+    const avatarUrl = `${getPublicBaseUrl(req)}/uploads/avatars/${req.file.filename}`;
 
     const updatedUser = await UserModel.updateById(userId, { avatar_url: avatarUrl });
 
@@ -124,36 +257,29 @@ export const updateAvatar = async (req, res, next) => {
 export const exportMyData = async (req, res, next) => {
   try {
     const format = req.query.format === 'csv' ? 'csv' : 'json';
-    const user = await UserModel.findById(req.user.userId);
+    const exportData = await getExportData(req.user.userId);
 
-    if (!user) {
+    if (!exportData) {
       return res.status(404).json({ message: 'Utilisateur introuvable.' });
     }
 
-    const { password_hash, ...safeUser } = user;
-
     if (format === 'csv') {
-      const headers = Object.keys(safeUser).join(',');
-      const values = Object.values(safeUser)
-        .map((v) => {
-          if (v === null || v === undefined) return '';
-          if (Array.isArray(v)) return `"${v.join(';')}"`;
-          return `"${String(v).replace(/"/g, '""')}"`;
-        })
-        .join(',');
-
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="supmovies-data.csv"');
-      return res.send(`${headers}\n${values}`);
+
+      const csv = [
+        toCsvSection('profile', [exportData.profile]),
+        toCsvSection('library', exportData.library),
+        toCsvSection('custom_lists', exportData.custom_lists),
+        toCsvSection('reviews', exportData.reviews),
+      ].join('\n');
+
+      return res.send(csv);
     }
 
-    // JSON
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', 'attachment; filename="supmovies-data.json"');
-    res.json({
-      exported_at: new Date().toISOString(),
-      data: safeUser,
-    });
+    res.json(exportData);
 
   } catch (err) {
     next(err);
@@ -169,11 +295,9 @@ export const deleteMe = async (req, res, next) => {
 
     // Supprime l'avatar si existant
     const user = await UserModel.findById(userId);
-    if (user?.avatar_url) {
-      const avatarPath = path.join('uploads', 'avatars', path.basename(user.avatar_url));
-      if (fs.existsSync(avatarPath)) {
-        fs.unlinkSync(avatarPath);
-      }
+    const avatarPath = getLocalAvatarPath(user?.avatar_url);
+    if (avatarPath && fs.existsSync(avatarPath)) {
+      fs.unlinkSync(avatarPath);
     }
 
     await UserModel.deleteById(userId);

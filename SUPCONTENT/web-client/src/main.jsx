@@ -7,11 +7,11 @@ import { ThemeProvider } from "./context/ThemeContext";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <ThemeProvider>
-    <AuthProvider>
+  <AuthProvider>
+    <ThemeProvider>
       <BrowserRouter>
         <App />
       </BrowserRouter>
-    </AuthProvider>
-  </ThemeProvider>
+    </ThemeProvider>
+  </AuthProvider>
 );

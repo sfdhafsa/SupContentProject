@@ -31,6 +31,9 @@ const FEATURES = [
   { title: "Connect with fans", desc: "Follow other movie lovers and share your passion" },
 ];
 
+const hasStrongPassword = (password) =>
+  password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
+
 export default function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -42,9 +45,9 @@ export default function Register() {
 
   const validate = () => {
     const e = {};
-    if (!form.username.trim()) e.username = "Username is required";
+    if (form.username.trim().length < 3) e.username = "Minimum 3 characters";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email";
-    if (form.password.length < 8) e.password = "Minimum 8 characters";
+    if (!hasStrongPassword(form.password)) e.password = "Minimum 8 characters, 1 uppercase and 1 number";
     if (form.password !== form.confirm) e.confirm = "Passwords do not match";
     return e;
   };
@@ -82,6 +85,7 @@ export default function Register() {
       }
     } catch (error) {
       const message =
+        error?.response?.data?.errors?.[0]?.msg ||
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         "Registration failed. Please try again.";
