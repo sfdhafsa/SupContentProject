@@ -164,6 +164,12 @@ CREATE TABLE reports (
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE token_blacklist (
+  token TEXT PRIMARY KEY,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 -- =========================
 -- INDEXES
 -- =========================

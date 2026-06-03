@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import { UserModel } from '../../models/user.model.js';
 import { RoleModel } from '../../models/role.model.js';
 import { signToken } from '../../utils/jwt.utils.js';
+import { TokenBlacklistModel } from '../../models/tokenBlacklist.model.js';
 
 const SALT_ROUNDS = 12;
 
@@ -119,6 +120,22 @@ export const login = async (req, res, next) => {
   }
 };
 
+// =====================
+// LOGOUT
+// =====================
+export const logout = async (req, res, next) => {
+  try {
+    if (!req.user?.token || !req.user?.tokenExpiresAt) {
+      return res.status(400).json({ message: 'Token manquant.' });
+    }
+
+    await TokenBlacklistModel.add(req.user.token, req.user.tokenExpiresAt);
+
+    return res.json({ message: 'Déconnexion réussie.' });
+  } catch (err) {
+    next(err);
+  }
+};
 
 // =====================
 // OAUTH CALLBACK

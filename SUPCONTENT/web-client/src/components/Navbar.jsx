@@ -113,8 +113,8 @@ export default function Navbar() {
   const navLinks = isAuthenticated ? NAV_LINKS_AUTH : NAV_LINKS_PUBLIC;
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "U";
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setDropdown(false);
     setMobile(false);
     navigate("/login");

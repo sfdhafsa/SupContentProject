@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import api from "../../services/api/axios.js";
 
@@ -93,6 +93,10 @@ function RedButton({ loading, success, successLabel = "Saved!", label, icon, onC
 
 /* ── Tab bar — underline style comme Figma ── */
 const TABS = ["Profile", "Account", "Notifications", "Privacy"];
+const LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "fr", label: "Français" },
+];
 const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 
@@ -156,6 +160,16 @@ export default function Settings() {
   const [pwErr, setPwErr] = useState({});
   const [pwLoading, setPwLoading] = useState(false);
   const [pwSuccess, setPwSuccess] = useState(false);
+
+  /* â”€â”€ Preferences â”€â”€ */
+  const [language, setLanguage] = useState(user?.language_preference || "en");
+  const [languageLoading, setLanguageLoading] = useState(false);
+  const [languageSuccess, setLanguageSuccess] = useState(false);
+  const [languageErr, setLanguageErr] = useState("");
+
+  useEffect(() => {
+    setLanguage(user?.language_preference || "en");
+  }, [user?.language_preference]);
 
   /* ── Notifications ── */
   const [notifs, setNotifs] = useState({
@@ -246,6 +260,27 @@ export default function Settings() {
       setPwErr({ api: err?.response?.data?.errors?.[0]?.msg || err?.response?.data?.message || "Failed" });
     } finally {
       setPwLoading(false);
+    }
+  };
+
+  /* â”€â”€ Save language â”€â”€ */
+  const handleSaveLanguage = async () => {
+    setLanguageLoading(true);
+    setLanguageSuccess(false);
+    setLanguageErr("");
+
+    try {
+      const res = await api.put("/users/me", {
+        language_preference: language,
+      });
+
+      login(token, res.data.user ?? res.data.data ?? res.data);
+      setLanguageSuccess(true);
+      setTimeout(() => setLanguageSuccess(false), 3000);
+    } catch (err) {
+      setLanguageErr(err?.response?.data?.errors?.[0]?.msg || err?.response?.data?.message || "Failed to save language");
+    } finally {
+      setLanguageLoading(false);
     }
   };
 
@@ -353,6 +388,40 @@ export default function Settings() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
               <input className={inputCls(false)} value={user?.email || ""} disabled readOnly/>
+            </div>
+
+            <div className="h-px bg-gray-100 dark:bg-gray-800"/>
+
+            {/* Language */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Language</label>
+                <select
+                  className={inputCls(false)}
+                  value={language}
+                  onChange={(e) => {
+                    setLanguage(e.target.value);
+                    setLanguageErr("");
+                  }}
+                >
+                  {LANGUAGES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {languageErr && <p className="text-xs text-red-500">{languageErr}</p>}
+              <div>
+                <RedButton
+                  loading={languageLoading}
+                  success={languageSuccess}
+                  label="Save Language"
+                  successLabel="Saved!"
+                  icon={<SaveIcon/>}
+                  onClick={handleSaveLanguage}
+                />
+              </div>
             </div>
 
             <div className="h-px bg-gray-100 dark:bg-gray-800"/>
