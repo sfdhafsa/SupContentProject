@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import api from "../services/api/axios";
 
 const AuthContext = createContext();
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
           },
         });
 
-        setUser(res.data.data);
+        setUser(res.data.user ?? res.data.data);
         setToken(savedToken);
       } catch (err) {
         // Token expiré ou invalide → on nettoie silencieusement
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           console.error("Auth error:", err);
         }
-        logout(); // nettoie le localStorage et reset le state
+        logout({ remote: false }); // nettoie le localStorage et reset le state
       } finally {
         setLoading(false);
       }
@@ -49,16 +49,44 @@ export const AuthProvider = ({ children }) => {
   // =========================
   // LOGIN
   // =========================
-  const login = (newToken, userData) => {
+  const login = useCallback(async (newToken, userData) => {
     localStorage.setItem("token", newToken);
     setToken(newToken);
-    setUser(userData);
-  };
+
+    if (userData) {
+      setUser(userData);
+      return userData;
+    }
+
+    const res = await api.get("/users/me", {
+      headers: {
+        Authorization: `Bearer ${newToken}`,
+      },
+    });
+
+    const loadedUser = res.data.user ?? res.data.data;
+    setUser(loadedUser);
+    return loadedUser;
+  }, []);
 
   // =========================
   // LOGOUT
   // =========================
-  const logout = () => {
+  const logout = async ({ remote = true } = {}) => {
+    const savedToken = localStorage.getItem("token");
+
+    if (remote && savedToken) {
+      try {
+        await api.post("/auth/logout", null, {
+          headers: {
+            Authorization: `Bearer ${savedToken}`,
+          },
+        });
+      } catch (err) {
+        console.warn("Logout server call failed:", err);
+      }
+    }
+
     localStorage.removeItem("token");
     setToken(null);
     setUser(null);

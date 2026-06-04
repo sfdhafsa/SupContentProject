@@ -1,10 +1,10 @@
 import { verifyToken } from '../utils/jwt.utils.js';
 import { UserModel } from '../models/user.model.js';
+import { TokenBlacklistModel } from '../models/tokenBlacklist.model.js';
 
 export const protect = async (req, res, next) => {
   try {
     const header = req.headers.authorization;
-    console.log("AUTH HEADER =>", req.headers.authorization);
 
     if (!header?.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Token manquant.' });
@@ -13,6 +13,10 @@ export const protect = async (req, res, next) => {
     const token = header.split(' ')[1];
 
     const decoded = verifyToken(token);
+
+    if (await TokenBlacklistModel.has(token)) {
+      return res.status(401).json({ message: 'Token révoqué.' });
+    }
 
     // 🔥 sub = userId
     const user = await UserModel.findById(decoded.sub);
@@ -28,7 +32,9 @@ export const protect = async (req, res, next) => {
     req.user = {
       userId: user.id,  
       email: user.email,
-      roles: decoded.roles || [] 
+      roles: decoded.roles || [],
+      token,
+      tokenExpiresAt: decoded.exp ? new Date(decoded.exp * 1000) : null,
     };
 
     next();
@@ -65,3 +71,4 @@ export const optionalProtect = async (req, res, next) => {
     return next();
   }
 };
+

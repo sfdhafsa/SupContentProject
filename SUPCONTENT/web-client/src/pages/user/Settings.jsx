@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import api from "../../services/api/axios.js";
 
@@ -93,6 +93,26 @@ function RedButton({ loading, success, successLabel = "Saved!", label, icon, onC
 
 /* ── Tab bar — underline style comme Figma ── */
 const TABS = ["Profile", "Account", "Notifications", "Privacy"];
+const LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "fr", label: "Français" },
+];
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
+
+const isValidWebsiteUrl = (value) => {
+  if (!value.trim()) return true;
+
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol);
+  } catch {
+    return false;
+  }
+};
+
+const hasStrongPassword = (password) =>
+  password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
 
 function TabBar({ active, onChange }) {
   return (
@@ -141,6 +161,16 @@ export default function Settings() {
   const [pwLoading, setPwLoading] = useState(false);
   const [pwSuccess, setPwSuccess] = useState(false);
 
+  /* â”€â”€ Preferences â”€â”€ */
+  const [language, setLanguage] = useState(user?.language_preference || "en");
+  const [languageLoading, setLanguageLoading] = useState(false);
+  const [languageSuccess, setLanguageSuccess] = useState(false);
+  const [languageErr, setLanguageErr] = useState("");
+
+  useEffect(() => {
+    setLanguage(user?.language_preference || "en");
+  }, [user?.language_preference]);
+
   /* ── Notifications ── */
   const [notifs, setNotifs] = useState({
     likes: true,
@@ -162,7 +192,20 @@ export default function Settings() {
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert("Max size 2MB"); return; }
+
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      setProfileErr({ avatar: "Use JPEG, PNG, WEBP or GIF." });
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_SIZE) {
+      setProfileErr({ avatar: "Max size 2MB." });
+      e.target.value = "";
+      return;
+    }
+
+    setProfileErr((err) => ({ ...err, avatar: "", api: "" }));
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };
@@ -171,7 +214,8 @@ export default function Settings() {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!profile.username.trim()) errs.username = "Required";
+    if (profile.username.trim().length < 3) errs.username = "Minimum 3 characters";
+    if (!isValidWebsiteUrl(profile.website_url)) errs.website_url = "Enter a valid http(s) URL";
     if (Object.keys(errs).length) { setProfileErr(errs); return; }
     setProfileLoading(true);
     setProfileSuccess(false);
@@ -183,15 +227,15 @@ export default function Settings() {
         setAvatarFile(null);
       }
       const res = await api.put("/users/me", {
-        username: profile.username,
+        username: profile.username.trim(),
         bio: profile.bio,
-        website_url: profile.website_url,
+        website_url: profile.website_url.trim() || null,
       });
       login(token, res.data.user ?? res.data.data ?? res.data);
       setProfileSuccess(true);
       setTimeout(() => setProfileSuccess(false), 3000);
     } catch (err) {
-      setProfileErr({ api: err?.response?.data?.message || "Update failed" });
+      setProfileErr({ api: err?.response?.data?.errors?.[0]?.msg || err?.response?.data?.message || "Update failed" });
     } finally {
       setProfileLoading(false);
     }
@@ -202,7 +246,7 @@ export default function Settings() {
     e.preventDefault();
     const errs = {};
     if (!pw.current) errs.current = "Required";
-    if (pw.next.length < 8) errs.next = "Minimum 8 characters";
+    if (!hasStrongPassword(pw.next)) errs.next = "Minimum 8 characters, 1 uppercase and 1 number";
     if (pw.next !== pw.confirm) errs.confirm = "Passwords do not match";
     if (Object.keys(errs).length) { setPwErr(errs); return; }
     setPwLoading(true);
@@ -213,9 +257,30 @@ export default function Settings() {
       setPw({ current: "", next: "", confirm: "" });
       setTimeout(() => setPwSuccess(false), 3000);
     } catch (err) {
-      setPwErr({ api: err?.response?.data?.message || "Failed" });
+      setPwErr({ api: err?.response?.data?.errors?.[0]?.msg || err?.response?.data?.message || "Failed" });
     } finally {
       setPwLoading(false);
+    }
+  };
+
+  /* â”€â”€ Save language â”€â”€ */
+  const handleSaveLanguage = async () => {
+    setLanguageLoading(true);
+    setLanguageSuccess(false);
+    setLanguageErr("");
+
+    try {
+      const res = await api.put("/users/me", {
+        language_preference: language,
+      });
+
+      login(token, res.data.user ?? res.data.data ?? res.data);
+      setLanguageSuccess(true);
+      setTimeout(() => setLanguageSuccess(false), 3000);
+    } catch (err) {
+      setLanguageErr(err?.response?.data?.errors?.[0]?.msg || err?.response?.data?.message || "Failed to save language");
+    } finally {
+      setLanguageLoading(false);
     }
   };
 
@@ -271,7 +336,8 @@ export default function Settings() {
                   className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all w-fit">
                   <CameraIcon/> Change Avatar
                 </button>
-                <p className="text-xs text-gray-400">JPG, PNG or GIF. Max size 2MB</p>
+                <p className="text-xs text-gray-400">JPG, PNG, WEBP or GIF. Max size 2MB</p>
+                {profileErr.avatar && <p className="text-xs text-red-500">{profileErr.avatar}</p>}
                 <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange}/>
               </div>
             </div>
@@ -301,8 +367,9 @@ export default function Settings() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Website</label>
-              <input className={inputCls(false)} placeholder="https://yourwebsite.com" value={profile.website_url}
-                onChange={(e) => setProfile((f) => ({ ...f, website_url: e.target.value }))}/>
+              <input className={inputCls(profileErr.website_url)} placeholder="https://yourwebsite.com" value={profile.website_url}
+                onChange={(e) => { setProfile((f) => ({ ...f, website_url: e.target.value })); setProfileErr((err) => ({ ...err, website_url: "" })); }}/>
+              {profileErr.website_url && <p className="text-xs text-red-500">{profileErr.website_url}</p>}
             </div>
 
             <div className="pt-1">
@@ -321,6 +388,40 @@ export default function Settings() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
               <input className={inputCls(false)} value={user?.email || ""} disabled readOnly/>
+            </div>
+
+            <div className="h-px bg-gray-100 dark:bg-gray-800"/>
+
+            {/* Language */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Language</label>
+                <select
+                  className={inputCls(false)}
+                  value={language}
+                  onChange={(e) => {
+                    setLanguage(e.target.value);
+                    setLanguageErr("");
+                  }}
+                >
+                  {LANGUAGES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {languageErr && <p className="text-xs text-red-500">{languageErr}</p>}
+              <div>
+                <RedButton
+                  loading={languageLoading}
+                  success={languageSuccess}
+                  label="Save Language"
+                  successLabel="Saved!"
+                  icon={<SaveIcon/>}
+                  onClick={handleSaveLanguage}
+                />
+              </div>
             </div>
 
             <div className="h-px bg-gray-100 dark:bg-gray-800"/>

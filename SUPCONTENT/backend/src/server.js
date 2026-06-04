@@ -23,17 +23,22 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const uploadRoot = path.join(__dirname, "..", "uploads");
 
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
+app.get("/.well-known/appspecific/com.chrome.devtools.json", (_, res) => {
+  res.status(204).end();
+});
+
+app.get("/auth/google", (_, res) => {
+  res.redirect(302, "/api/auth/google");
+});
 
 // ← Sert les fichiers uploadés (avatars, etc.) publiquement
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// ← Sert les fichiers uploadés (avatars, etc.) publiquement
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(uploadRoot));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
