@@ -1,6 +1,7 @@
 import db from '../../config/db.js';
 import { CustomListModel } from '../../models/customList.model.js';
 import { CustomListMovieModel } from '../../models/customListMovie.model.js';
+import { resolveMovieId } from './movieResolver.js';
 
 const serviceError = (message, status) => Object.assign(new Error(message), { status });
 
@@ -150,7 +151,7 @@ async function deleteList(listId, userId) {
   return { message: 'Liste supprimee avec succes' };
 }
 
-async function addMovieToList(listId, userId, movieId) {
+async function addMovieToList(listId, userId, movieRef) {
   const list = await CustomListModel.findById(listId);
   if (!list) {
     throw serviceError('Liste introuvable', 404);
@@ -160,10 +161,7 @@ async function addMovieToList(listId, userId, movieId) {
     throw serviceError('Non autorise', 403);
   }
 
-  const movieCheck = await db.query('SELECT id FROM movies WHERE id = $1', [movieId]);
-  if (movieCheck.rows.length === 0) {
-    throw serviceError('Film introuvable en base locale', 404);
-  }
+  const movieId = await resolveMovieId(movieRef);
 
   const listMovie = await CustomListMovieModel.addMovie(listId, movieId);
   if (!listMovie) {

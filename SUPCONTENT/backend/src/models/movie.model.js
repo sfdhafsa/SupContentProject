@@ -3,6 +3,14 @@ import pool from "../config/db.js";
 const toStr = (id) => String(id);
 
 export const MovieModel = {
+  async findById(movieId) {
+    const { rows } = await pool.query(
+      `SELECT * FROM movies WHERE id = $1`,
+      [movieId]
+    );
+    return rows[0] || null;
+  },
+
   async findByExternalId(tmdbId) {
     const { rows } = await pool.query(
       `SELECT * FROM movies WHERE external_id = $1 AND source_api = 'tmdb'`,
