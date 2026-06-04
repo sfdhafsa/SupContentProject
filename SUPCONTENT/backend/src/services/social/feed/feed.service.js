@@ -17,12 +17,23 @@ const normalizePagination = ({ limit = 20, offset = 0 } = {}) => {
 const hasReviewText = (text) => typeof text === 'string' && text.trim() !== '';
 
 const buildActivity = (row) => {
-  if (hasReviewText(row.text)) {
+  if (row.activity_type === 'COLLECTION_MOVIE_ADDED') {
+    return {
+      type: 'COLLECTION_MOVIE_ADDED',
+      action: 'added_to_collection',
+      headline: `${row.author_username} added ${row.movie_title} to ${row.collection_name}`,
+      body: row.collection_description,
+      created_at: row.activity_created_at,
+    };
+  }
+
+  if (row.activity_type === 'REVIEW_CREATED' || hasReviewText(row.text)) {
     return {
       type: 'REVIEW_CREATED',
       action: 'reviewed',
       headline: `${row.author_username} reviewed ${row.movie_title}`,
       body: row.text,
+      created_at: row.activity_created_at,
     };
   }
 
@@ -31,11 +42,13 @@ const buildActivity = (row) => {
     action: 'rated',
     headline: `${row.author_username} rated ${row.movie_title}`,
     body: null,
+    created_at: row.activity_created_at,
   };
 };
 
 const mapFeedItem = (row) => {
   const activity = buildActivity(row);
+  const isCollectionActivity = activity.type === 'COLLECTION_MOVIE_ADDED';
 
   return {
     type: activity.type,
@@ -43,18 +56,30 @@ const mapFeedItem = (row) => {
       action: activity.action,
       headline: activity.headline,
       body: activity.body,
+      created_at: activity.created_at,
     },
-    review: {
-      id: row.review_id,
-      rating: row.rating,
-      text: hasReviewText(row.text) ? row.text : null,
-      contains_spoiler: row.contains_spoiler,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      likes_count: row.likes_count,
-      comments_count: row.comments_count,
-      has_liked: row.has_liked,
-    },
+    review: isCollectionActivity
+      ? null
+      : {
+          id: row.review_id,
+          rating: row.rating,
+          text: hasReviewText(row.text) ? row.text : null,
+          contains_spoiler: row.contains_spoiler,
+          created_at: row.review_created_at,
+          updated_at: row.review_updated_at,
+          likes_count: row.likes_count,
+          comments_count: row.comments_count,
+          has_liked: row.has_liked,
+        },
+    collection: isCollectionActivity
+      ? {
+          id: row.collection_id,
+          name: row.collection_name,
+          description: row.collection_description,
+          is_public: row.collection_is_public,
+          added_at: row.collection_movie_added_at,
+        }
+      : null,
     author: {
       id: row.author_id,
       username: row.author_username,
@@ -73,7 +98,7 @@ const mapFeedItem = (row) => {
 
 export const getFeed = async (userId, pagination = {}) => {
   const { limit, offset } = normalizePagination(pagination);
-  const rows = await FeedModel.getFollowingReviews(userId, limit, offset);
+  const rows = await FeedModel.getFollowingActivities(userId, limit, offset);
 
   return {
     status: 200,
