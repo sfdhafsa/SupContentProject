@@ -28,7 +28,7 @@ async function getPublicLists(req, res, next) {
 async function getUserLists(req, res, next) {
   try {
     const ownerId = req.params.userId;
-    const viewerId = req.user ? req.user.id : null;
+    const viewerId = req.user ? req.user.userId : null;
     const lists = await customListService.getUserLists(ownerId, viewerId);
     res.json({ success: true, data: lists });
   } catch (err) {
@@ -42,7 +42,7 @@ async function getUserLists(req, res, next) {
  */
 async function getListById(req, res, next) {
   try {
-    const viewerId = req.user ? req.user.id : null;
+    const viewerId = req.user ? req.user.userId : null;
     const list = await customListService.getListById(req.params.listId, viewerId);
     res.json({ success: true, data: list });
   } catch (err) {
@@ -64,7 +64,7 @@ async function getListById(req, res, next) {
 async function createList(req, res, next) {
   try {
     const { name, description, isPublic } = req.body;
-    const list = await customListService.createList(req.user.id, { name, description, isPublic });
+    const list = await customListService.createList(req.user.userId, { name, description, isPublic });
     res.status(201).json({ success: true, data: list });
   } catch (err) {
     next(err);
@@ -81,7 +81,7 @@ async function updateList(req, res, next) {
     const { name, description, isPublic } = req.body;
     const list = await customListService.updateList(
       req.params.listId,
-      req.user.id,
+      req.user.userId,
       { name, description, isPublic }
     );
     res.json({ success: true, data: list });
@@ -99,7 +99,7 @@ async function updateList(req, res, next) {
  */
 async function deleteList(req, res, next) {
   try {
-    const result = await customListService.deleteList(req.params.listId, req.user.id);
+    const result = await customListService.deleteList(req.params.listId, req.user.userId);
     res.json({ success: true, ...result });
   } catch (err) {
     if (err.message === 'Non autorisé à supprimer cette liste') {
@@ -122,7 +122,7 @@ async function addMovieToList(req, res, next) {
     }
     const result = await customListService.addMovieToList(
       req.params.listId,
-      req.user.id,
+      req.user.userId,
       movieId
     );
     res.status(200).json({ success: true, data: result });
@@ -139,7 +139,7 @@ async function removeMovieFromList(req, res, next) {
   try {
     const result = await customListService.removeMovieFromList(
       req.params.listId,
-      req.user.id,
+      req.user.userId,
       req.params.movieId
     );
     res.json({ success: true, ...result });

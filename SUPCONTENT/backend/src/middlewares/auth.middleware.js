@@ -43,3 +43,32 @@ export const protect = async (req, res, next) => {
     return res.status(401).json({ message: 'Token invalide ou expiré.' });
   }
 };
+
+export const optionalProtect = async (req, res, next) => {
+  try {
+    const header = req.headers.authorization;
+
+    if (!header?.startsWith('Bearer ')) {
+      return next();
+    }
+
+    const token = header.split(' ')[1];
+    const decoded = verifyToken(token);
+    const user = await UserModel.findById(decoded.sub);
+
+    if (!user || user.is_banned) {
+      return next();
+    }
+
+    req.user = {
+      userId: user.id,
+      email: user.email,
+      roles: decoded.roles || [],
+    };
+
+    return next();
+  } catch (err) {
+    return next();
+  }
+};
+
