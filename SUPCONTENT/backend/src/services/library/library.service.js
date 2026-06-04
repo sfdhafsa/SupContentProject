@@ -1,4 +1,5 @@
 import db from '../../config/db.js';
+import { resolveMovieId } from './movieResolver.js';
 
 const VALID_STATUSES = ['TO_WATCH', 'IN_PROGRESS', 'COMPLETED', 'DROPPED'];
 const serviceError = (message, status) => Object.assign(new Error(message), { status });
@@ -36,15 +37,12 @@ async function getUserLibrary(userId, status = null) {
   return rows;
 }
 
-async function upsertLibraryEntry(userId, movieId, status) {
+async function upsertLibraryEntry(userId, movieRef, status) {
   if (!VALID_STATUSES.includes(status)) {
     throw serviceError('Statut invalide', 400);
   }
 
-  const movieCheck = await db.query('SELECT id FROM movies WHERE id = $1', [movieId]);
-  if (movieCheck.rows.length === 0) {
-    throw serviceError('Film introuvable en base locale', 404);
-  }
+  const movieId = await resolveMovieId(movieRef);
 
   const { rows } = await db.query(
     `INSERT INTO user_library (user_id, movie_id, status, created_at, updated_at)

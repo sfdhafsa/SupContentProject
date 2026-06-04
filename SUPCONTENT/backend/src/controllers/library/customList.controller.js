@@ -112,18 +112,15 @@ async function deleteList(req, res, next) {
 /**
  * POST /api/lists/:listId/movies
  * Ajoute un film dans une liste.
- * Body : { movieId }
+ * Body : { movieId } or { tmdb_id }
  */
 async function addMovieToList(req, res, next) {
   try {
-    const { movieId } = req.body;
-    if (!movieId) {
-      return res.status(400).json({ success: false, message: 'movieId requis' });
-    }
+    const { movieId, tmdb_id } = req.body || {};
     const result = await customListService.addMovieToList(
       req.params.listId,
       req.user.userId,
-      movieId
+      { movieId, tmdbId: tmdb_id }
     );
     res.status(200).json({ success: true, data: result });
   } catch (err) {

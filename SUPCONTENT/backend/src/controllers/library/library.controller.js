@@ -12,11 +12,15 @@ async function getMyLibrary(req, res, next) {
 
 async function upsertEntry(req, res, next) {
   try {
-    const { movieId, status } = req.body;
-    if (!movieId || !status) {
-      return res.status(400).json({ success: false, message: 'movieId et status requis' });
+    const { movieId, tmdb_id, status } = req.body || {};
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'status requis' });
     }
-    const entry = await libraryService.upsertLibraryEntry(req.user.userId, movieId, status);
+    const entry = await libraryService.upsertLibraryEntry(
+      req.user.userId,
+      { movieId, tmdbId: tmdb_id },
+      status
+    );
     res.status(200).json({ success: true, data: entry });
   } catch (err) {
     next(err);
