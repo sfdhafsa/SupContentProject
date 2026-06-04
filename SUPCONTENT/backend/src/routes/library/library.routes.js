@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 import * as libraryController from '../../controllers/library/library.controller.js';
 import * as customListController from '../../controllers/library/customList.controller.js';
-import { protect } from '../../middlewares/auth.middleware.js';
+import { optionalProtect, protect } from '../../middlewares/auth.middleware.js';
 
 // ─── BIBLIOTHÈQUE PERSONNELLE ─────────────────────────────
 router.get('/library/stats', protect, libraryController.getStats);
@@ -15,10 +15,10 @@ router.delete('/library/:movieId', protect, libraryController.removeEntry);
 router.get('/lists/public', customListController.getPublicLists);
 
 // ─── LISTES PAR UTILISATEUR ───────────────────────────────
-router.get('/users/:userId/lists', customListController.getUserLists);
+router.get('/users/:userId/lists', optionalProtect, customListController.getUserLists);
 
 // ─── CRUD LISTES ──────────────────────────────────────────
-router.get('/lists/:listId', customListController.getListById);
+router.get('/lists/:listId', optionalProtect, customListController.getListById);
 router.post('/lists', protect, customListController.createList);
 router.put('/lists/:listId', protect, customListController.updateList);
 router.delete('/lists/:listId', protect, customListController.deleteList);

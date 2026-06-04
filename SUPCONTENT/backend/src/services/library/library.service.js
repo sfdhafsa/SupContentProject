@@ -1,6 +1,7 @@
 import db from '../../config/db.js';
 
 const VALID_STATUSES = ['TO_WATCH', 'IN_PROGRESS', 'COMPLETED', 'DROPPED'];
+const serviceError = (message, status) => Object.assign(new Error(message), { status });
 
 async function getUserLibrary(userId, status = null) {
   let query = `
@@ -22,7 +23,10 @@ async function getUserLibrary(userId, status = null) {
   const params = [userId];
 
   if (status) {
-    if (!VALID_STATUSES.includes(status)) throw new Error('Statut invalide');
+    if (!VALID_STATUSES.includes(status)) {
+      throw serviceError('Statut invalide', 400);
+    }
+
     query += ` AND ul.status = $2`;
     params.push(status);
   }
@@ -33,10 +37,14 @@ async function getUserLibrary(userId, status = null) {
 }
 
 async function upsertLibraryEntry(userId, movieId, status) {
-  if (!VALID_STATUSES.includes(status)) throw new Error('Statut invalide');
+  if (!VALID_STATUSES.includes(status)) {
+    throw serviceError('Statut invalide', 400);
+  }
 
   const movieCheck = await db.query('SELECT id FROM movies WHERE id = $1', [movieId]);
-  if (movieCheck.rows.length === 0) throw new Error('Film introuvable en base locale');
+  if (movieCheck.rows.length === 0) {
+    throw serviceError('Film introuvable en base locale', 404);
+  }
 
   const { rows } = await db.query(
     `INSERT INTO user_library (user_id, movie_id, status, created_at, updated_at)
@@ -46,6 +54,7 @@ async function upsertLibraryEntry(userId, movieId, status) {
      RETURNING *`,
     [userId, movieId, status]
   );
+
   return rows[0];
 }
 
@@ -54,7 +63,11 @@ async function removeLibraryEntry(userId, movieId) {
     `DELETE FROM user_library WHERE user_id = $1 AND movie_id = $2 RETURNING *`,
     [userId, movieId]
   );
-  if (rows.length === 0) throw new Error('Entrée introuvable');
+
+  if (rows.length === 0) {
+    throw serviceError('Entree introuvable', 404);
+  }
+
   return rows[0];
 }
 
@@ -63,6 +76,7 @@ async function getMovieStatus(userId, movieId) {
     `SELECT status FROM user_library WHERE user_id = $1 AND movie_id = $2`,
     [userId, movieId]
   );
+
   return rows[0] || null;
 }
 

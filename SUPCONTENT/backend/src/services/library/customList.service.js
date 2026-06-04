@@ -1,4 +1,8 @@
 import db from '../../config/db.js';
+import { CustomListModel } from '../../models/customList.model.js';
+import { CustomListMovieModel } from '../../models/customListMovie.model.js';
+
+const serviceError = (message, status) => Object.assign(new Error(message), { status });
 
 async function getUserLists(ownerId, viewerId = null) {
   const isOwner = viewerId && viewerId === ownerId;
@@ -36,12 +40,16 @@ async function getListById(listId, viewerId = null) {
   `;
   const { rows: listRows } = await db.query(listQuery, [listId]);
 
-  if (listRows.length === 0) throw new Error('Liste introuvable');
+  if (listRows.length === 0) {
+    throw serviceError('Liste introuvable', 404);
+  }
 
   const list = listRows[0];
   const isOwner = viewerId && viewerId === list.user_id;
 
-  if (!list.is_public && !isOwner) throw new Error('Accès refusé à cette liste privée');
+  if (!list.is_public && !isOwner) {
+    throw serviceError('Acces refuse a cette liste privee', 403);
+  }
 
   const moviesQuery = `
     SELECT
@@ -62,8 +70,13 @@ async function getListById(listId, viewerId = null) {
 }
 
 async function createList(userId, { name, description = null, isPublic = false }) {
-  if (!name || name.trim().length === 0) throw new Error('Le nom de la liste est requis');
-  if (name.trim().length > 100) throw new Error('Le nom ne peut pas dépasser 100 caractères');
+  if (!name || name.trim().length === 0) {
+    throw serviceError('Le nom de la liste est requis', 400);
+  }
+
+  if (name.trim().length > 100) {
+    throw serviceError('Le nom ne peut pas depasser 100 caracteres', 400);
+  }
 
   const { rows } = await db.query(
     `INSERT INTO custom_lists (user_id, name, description, is_public, created_at, updated_at)
@@ -71,33 +84,46 @@ async function createList(userId, { name, description = null, isPublic = false }
      RETURNING *`,
     [userId, name.trim(), description, isPublic]
   );
+
   return rows[0];
 }
 
 async function updateList(listId, userId, { name, description, isPublic }) {
-  const existing = await db.query('SELECT * FROM custom_lists WHERE id = $1', [listId]);
-  if (existing.rows.length === 0) throw new Error('Liste introuvable');
-  if (existing.rows[0].user_id !== userId) throw new Error('Non autorisé à modifier cette liste');
+  const existing = await CustomListModel.findById(listId);
+  if (!existing) {
+    throw serviceError('Liste introuvable', 404);
+  }
+
+  if (existing.user_id !== userId) {
+    throw serviceError('Non autorise a modifier cette liste', 403);
+  }
 
   const updates = [];
   const params = [];
   let paramIndex = 1;
 
   if (name !== undefined) {
-    if (name.trim().length === 0) throw new Error('Le nom ne peut pas être vide');
+    if (name.trim().length === 0) {
+      throw serviceError('Le nom ne peut pas etre vide', 400);
+    }
+
     updates.push(`name = $${paramIndex++}`);
     params.push(name.trim());
   }
+
   if (description !== undefined) {
     updates.push(`description = $${paramIndex++}`);
     params.push(description);
   }
+
   if (isPublic !== undefined) {
     updates.push(`is_public = $${paramIndex++}`);
     params.push(isPublic);
   }
 
-  if (updates.length === 0) throw new Error('Aucune donnée à mettre à jour');
+  if (updates.length === 0) {
+    throw serviceError('Aucune donnee a mettre a jour', 400);
+  }
 
   updates.push(`updated_at = NOW()`);
   params.push(listId);
@@ -106,51 +132,65 @@ async function updateList(listId, userId, { name, description, isPublic }) {
     `UPDATE custom_lists SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
     params
   );
+
   return rows[0];
 }
 
 async function deleteList(listId, userId) {
-  const existing = await db.query('SELECT * FROM custom_lists WHERE id = $1', [listId]);
-  if (existing.rows.length === 0) throw new Error('Liste introuvable');
-  if (existing.rows[0].user_id !== userId) throw new Error('Non autorisé à supprimer cette liste');
+  const existing = await CustomListModel.findById(listId);
+  if (!existing) {
+    throw serviceError('Liste introuvable', 404);
+  }
+
+  if (existing.user_id !== userId) {
+    throw serviceError('Non autorise a supprimer cette liste', 403);
+  }
 
   await db.query('DELETE FROM custom_lists WHERE id = $1', [listId]);
-  return { message: 'Liste supprimée avec succès' };
+  return { message: 'Liste supprimee avec succes' };
 }
 
 async function addMovieToList(listId, userId, movieId) {
-  const list = await db.query('SELECT * FROM custom_lists WHERE id = $1', [listId]);
-  if (list.rows.length === 0) throw new Error('Liste introuvable');
-  if (list.rows[0].user_id !== userId) throw new Error('Non autorisé');
+  const list = await CustomListModel.findById(listId);
+  if (!list) {
+    throw serviceError('Liste introuvable', 404);
+  }
+
+  if (list.user_id !== userId) {
+    throw serviceError('Non autorise', 403);
+  }
 
   const movieCheck = await db.query('SELECT id FROM movies WHERE id = $1', [movieId]);
-  if (movieCheck.rows.length === 0) throw new Error('Film introuvable en base locale');
+  if (movieCheck.rows.length === 0) {
+    throw serviceError('Film introuvable en base locale', 404);
+  }
 
-  const { rows } = await db.query(
-    `INSERT INTO custom_list_movies (list_id, movie_id, added_at)
-     VALUES ($1, $2, NOW())
-     ON CONFLICT (list_id, movie_id) DO NOTHING
-     RETURNING *`,
-    [listId, movieId]
-  );
+  const listMovie = await CustomListMovieModel.addMovie(listId, movieId);
+  if (!listMovie) {
+    return { message: 'Film deja dans la liste' };
+  }
 
-  await db.query('UPDATE custom_lists SET updated_at = NOW() WHERE id = $1', [listId]);
-  return rows[0] || { message: 'Film déjà dans la liste' };
+  await CustomListModel.touchUpdatedAt(listId);
+  return listMovie;
 }
 
 async function removeMovieFromList(listId, userId, movieId) {
-  const list = await db.query('SELECT * FROM custom_lists WHERE id = $1', [listId]);
-  if (list.rows.length === 0) throw new Error('Liste introuvable');
-  if (list.rows[0].user_id !== userId) throw new Error('Non autorisé');
+  const list = await CustomListModel.findById(listId);
+  if (!list) {
+    throw serviceError('Liste introuvable', 404);
+  }
 
-  const { rows } = await db.query(
-    `DELETE FROM custom_list_movies WHERE list_id = $1 AND movie_id = $2 RETURNING *`,
-    [listId, movieId]
-  );
-  if (rows.length === 0) throw new Error('Film non trouvé dans cette liste');
+  if (list.user_id !== userId) {
+    throw serviceError('Non autorise', 403);
+  }
 
-  await db.query('UPDATE custom_lists SET updated_at = NOW() WHERE id = $1', [listId]);
-  return { message: 'Film retiré de la liste' };
+  const removed = await CustomListMovieModel.removeMovie(listId, movieId);
+  if (!removed) {
+    throw serviceError('Film non trouve dans cette liste', 404);
+  }
+
+  await CustomListModel.touchUpdatedAt(listId);
+  return { message: 'Film retire de la liste' };
 }
 
 async function getPublicLists(page = 1, limit = 20, search = '') {
