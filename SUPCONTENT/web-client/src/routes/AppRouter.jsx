@@ -4,8 +4,11 @@ import { useAuth } from "../context/AuthContext";
 import MainLayout from "../layouts/MainLayout";
 import Register from "../pages/auth/Register";
 import Login from "../pages/auth/Login";
+import ForgotPassword from "../pages/auth/ForgotPassword.jsx";
+import ResetPassword from "../pages/auth/ResetPassword.jsx";
 import OAuthCallback from "../pages/auth/OAuthCallback.jsx";
 import Home from "../pages/home/Home";
+import Help from "../pages/help/Help.jsx";
 import Profile from "../pages/user/Profile.jsx";
 import Settings from "../pages/user/Settings.jsx";
 
@@ -36,12 +39,16 @@ export default function AppRouter() {
     <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/auth/callback" element={<OAuthCallback />} />
 
 
       {/* Pages publiques avec Navbar */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/discover" element={<Search />} />
+        <Route path="/help" element={<Help />} />
 
       </Route>
 

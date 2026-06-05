@@ -61,7 +61,7 @@ const StarIcon = ({ filled }) => (
 const NAV_LINKS_PUBLIC = [
   { label: "Home",     to: "/" },
   { label: "Discover", to: "/discover" },
-  { label: "Library",  to: "/library" },
+  { label: "Lists",  to: "/lists" },
 ];
 const NAV_LINKS_AUTH = [
   { label: "Home",     to: "/" },
@@ -204,10 +204,6 @@ export default function Navbar() {
   const navLinks = isAuthenticated ? NAV_LINKS_AUTH : NAV_LINKS_PUBLIC;
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "U";
 
-
-  const handleLogout = async () => {
-    await logout();
-
   // Debounced search
   useEffect(() => {
     if (!search.trim()) {
@@ -321,9 +317,13 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-1">
 
           {/* Help */}
-          <button className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all">
+          <Link
+            to="/help"
+            title="Help"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all"
+          >
             <HelpIcon />
-          </button>
+          </Link>
 
           {/* Dark mode toggle */}
           <button
@@ -417,6 +417,15 @@ export default function Navbar() {
 
           <div className="h-px bg-gray-100 dark:bg-gray-800 my-2" />
 
+          <Link
+            to="/help"
+            onClick={() => setMobile(false)}
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <HelpIcon />
+            Help
+          </Link>
+
           {/* Dark mode toggle mobile */}
           <button
             onClick={toggleTheme}
@@ -473,5 +482,4 @@ export default function Navbar() {
       )}
     </nav>
   );
-}
 }

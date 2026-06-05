@@ -55,8 +55,6 @@ function Skeleton() {
 // ── Cast Carousel — pleine largeur ──
 function CastCarousel({ cast }) {
   const [index, setIndex] = useState(0);
-  const itemWidth  = 112; // w-28 = 7rem = 112px
-  const gap        = 16;
   const visible    = 8;
   const canPrev    = index > 0;
   const canNext    = index + visible < cast.length;

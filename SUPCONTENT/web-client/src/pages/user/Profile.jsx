@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import api from "../../services/api/axios";
 
 /* ── Icons ── */
 const EditIcon = () => (
@@ -65,9 +64,9 @@ export default function Profile() {
 
   const [tab, setTab]       = useState("Overview");
   const [copied, setCopied] = useState(false);
-  const [reviews, setReviews] = useState([]);
-  const [lists, setLists]     = useState([]);
-  const [stats, setStats]     = useState({
+  const [reviews] = useState([]);
+  const [lists]   = useState([]);
+  const [stats]   = useState({
     followers: 0, following: 0, movies_watched: 0, reviews: 0,
   });
 

@@ -1,7 +1,14 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import rateLimit from 'express-rate-limit';
-import { register, login, logout, oauthCallback } from '../../controllers/auth/auth.controllers.js';
+import {
+  register,
+  login,
+  logout,
+  requestPasswordReset,
+  resetPassword,
+  oauthCallback,
+} from '../../controllers/auth/auth.controllers.js';
 import { protect } from '../../middlewares/auth.middleware.js';
 import passport from "passport";
 const router = Router();
@@ -25,12 +32,27 @@ const loginRules = [
   body('email').isEmail().withMessage('Email invalide.').normalizeEmail(),
   body('password').notEmpty().withMessage('Mot de passe requis.'),
 ];
+
+const forgotPasswordRules = [
+  body('email').isEmail().withMessage('Email invalide.').normalizeEmail(),
+];
+
+const resetPasswordRules = [
+  body('token').trim().notEmpty().withMessage('Token requis.'),
+  body('password')
+    .isLength({ min: 8 }).withMessage('8 caractères minimum.')
+    .matches(/[A-Z]/).withMessage('Au moins une majuscule.')
+    .matches(/[0-9]/).withMessage('Au moins un chiffre.'),
+];
+
 const oauthFailure = (provider) =>
   `${process.env.CLIENT_URL}/login?error=oauth_${provider}`;
 
 router.post('/register', authLimiter, registerRules, register);
 router.post('/login',    authLimiter, loginRules,    login);
 router.post('/logout',   protect, logout);
+router.post('/forgot-password', authLimiter, forgotPasswordRules, requestPasswordReset);
+router.post('/reset-password',  authLimiter, resetPasswordRules,  resetPassword);
 
 // ── Google ───────────────────────────────────────────────────────
 router.get('/google',

@@ -91,8 +91,8 @@ export default function PublicProfile() {
   const [following, setFollowing]   = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
-  const [reviews, setReviews] = useState([]);
-  const [lists, setLists]     = useState([]);
+  const [reviews] = useState([]);
+  const [lists]   = useState([]);
 
   /* ── Fetch public profile ── */
   useEffect(() => {
@@ -118,7 +118,7 @@ export default function PublicProfile() {
     if (currentUser && profile && currentUser.id === profile.id) {
       navigate("/profile", { replace: true });
     }
-  }, [currentUser, profile]);
+  }, [currentUser, navigate, profile]);
 
   /* ── Derived values ── */
   const username   = profile?.username   || "";
@@ -126,7 +126,6 @@ export default function PublicProfile() {
   const avatar     = profile?.avatar_url || null;
   const websiteUrl = profile?.website_url || null;
   const roles      = profile?.roles      || [];
-  const initials   = username.slice(0, 2).toUpperCase();
   const joinDate   = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : null;
