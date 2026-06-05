@@ -1,9 +1,21 @@
 import { NotificationModel } from '../../../models/notification.model.js';
 import { UserModel } from '../../../models/user.model.js';
+import { sendNotificationEmail } from './emailNotification.service.js';
 
-const shouldCreatePushNotification = async (userId) => {
+const getNotificationChannelPreferences = async (userId) => {
   const preferences = await UserModel.getNotificationPreferences(userId);
-  return preferences?.notification_push_enabled !== false;
+  return {
+    push: preferences?.notification_push_enabled !== false,
+    email: preferences?.notification_email_enabled === true,
+  };
+};
+
+const sendEmailSafely = async (payload) => {
+  try {
+    await sendNotificationEmail(payload);
+  } catch (err) {
+    globalThis.console.error('[EMAIL] Failed to send notification email:', err);
+  }
 };
 
 // CREATE NOTIFICATION (internal use only)
@@ -19,7 +31,20 @@ export const createNotification = async ({
   // prevent self notifications
   if (userId === actorUserId) return;
 
-  if (!(await shouldCreatePushNotification(userId))) return;
+  const channels = await getNotificationChannelPreferences(userId);
+  const payload = {
+    userId,
+    actorUserId,
+    type,
+    entityType,
+    entityId,
+  };
+
+  if (channels.email) {
+    await sendEmailSafely(payload);
+  }
+
+  if (!channels.push) return;
 
   return await NotificationModel.create({
     user_id: userId,
@@ -39,7 +64,20 @@ export const createSystemNotification = async ({
 }) => {
   if (!userId || !type) return;
 
-  if (!(await shouldCreatePushNotification(userId))) return;
+  const channels = await getNotificationChannelPreferences(userId);
+  const payload = {
+    userId,
+    actorUserId: null,
+    type,
+    entityType,
+    entityId,
+  };
+
+  if (channels.email) {
+    await sendEmailSafely(payload);
+  }
+
+  if (!channels.push) return;
 
   return await NotificationModel.create({
     user_id: userId,
