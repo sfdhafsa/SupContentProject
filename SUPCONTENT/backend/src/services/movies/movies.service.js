@@ -148,3 +148,23 @@ export const getPopularMovies = async (page = 1) => {
     throw Object.assign(new Error("Erreur API TMDB"), { status: err.response?.status || 502 });
   }
 };
+
+export const getSimilarMovies = async (tmdbId, page = 1) => {
+  const validId = validateTmdbId(tmdbId);
+  const pageNum = validatePage(page);
+
+  try {
+    const response = await tmdb.get(`movie/${validId}/similar`, {
+      params: { page: pageNum },
+    });
+
+    return {
+      results: response.data.results.map(formatMovieList),
+      page: response.data.page,
+      total_pages: response.data.total_pages,
+      total_results: response.data.total_results,
+    };
+  } catch (err) {
+    throw Object.assign(new Error("Erreur API TMDB"), { status: err.response?.status || 502 });
+  }
+};

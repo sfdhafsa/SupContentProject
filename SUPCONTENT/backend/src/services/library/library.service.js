@@ -1,5 +1,7 @@
 import db from '../../config/db.js';
+import { MovieModel } from '../../models/movie.model.js';
 import { resolveMovieId } from './movieResolver.js';
+import { generateMovieRecommendations } from '../recommendations/movieRecommendations.service.js';
 
 const VALID_STATUSES = ['TO_WATCH', 'IN_PROGRESS', 'COMPLETED', 'DROPPED'];
 const serviceError = (message, status) => Object.assign(new Error(message), { status });
@@ -43,6 +45,10 @@ async function upsertLibraryEntry(userId, movieRef, status) {
   }
 
   const movieId = await resolveMovieId(movieRef);
+  const existing = await db.query(
+    `SELECT id FROM user_library WHERE user_id = $1 AND movie_id = $2`,
+    [userId, movieId]
+  );
 
   const { rows } = await db.query(
     `INSERT INTO user_library (user_id, movie_id, status, created_at, updated_at)
@@ -52,6 +58,17 @@ async function upsertLibraryEntry(userId, movieRef, status) {
      RETURNING *`,
     [userId, movieId, status]
   );
+
+  if (existing.rows.length === 0) {
+    try {
+      const movie = await MovieModel.findById(movieId);
+      if (movie?.external_id) {
+        await generateMovieRecommendations(userId, movie.external_id);
+      }
+    } catch (err) {
+      globalThis.console.error('[RECOMMENDATIONS] Failed to generate library recommendations:', err);
+    }
+  }
 
   return rows[0];
 }

@@ -23,6 +23,24 @@ export const createNotification = async ({
   });
 };
 
+// CREATE SYSTEM NOTIFICATION (internal use only)
+export const createSystemNotification = async ({
+  userId,
+  type,
+  entityType = null,
+  entityId = null,
+}) => {
+  if (!userId || !type) return;
+
+  return await NotificationModel.create({
+    user_id: userId,
+    actor_user_id: null,
+    type,
+    entity_type: entityType,
+    entity_id: entityId,
+  });
+};
+
 // GET notifications
 export const getNotifications = async (userId, limit = 20, offset = 0) => {
   const user = await UserModel.findById(userId);

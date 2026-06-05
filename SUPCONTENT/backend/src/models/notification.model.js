@@ -27,9 +27,34 @@ export const NotificationModel = {
           n.*,
           u.id AS actor_id,
           u.username,
-          u.avatar_url
+          u.avatar_url,
+          COALESCE(m.id, recommended_movie.id) AS movie_id,
+          COALESCE(m.external_id, recommended_movie.external_id) AS movie_tmdb_id,
+          COALESCE(m.title, recommended_movie.title) AS movie_title,
+          COALESCE(m.poster_url, recommended_movie.poster_url) AS movie_poster_url,
+          source_movie.id AS source_movie_id,
+          source_movie.external_id AS source_movie_tmdb_id,
+          source_movie.title AS source_movie_title,
+          CASE
+            WHEN n.type = 'MOVIE_RECOMMENDATION' AND source_movie.title IS NOT NULL AND recommended_movie.title IS NOT NULL
+              THEN 'because you added "' || source_movie.title || '", you might enjoy "' || recommended_movie.title || '"'
+            ELSE NULL
+          END AS message
        FROM notifications n
        LEFT JOIN users u ON u.id = n.actor_user_id
+       LEFT JOIN movies m ON n.entity_type = 'MOVIE' AND n.entity_id = m.id::text
+       LEFT JOIN movies source_movie
+         ON source_movie.id::text = CASE
+          WHEN n.entity_type = 'MOVIE_RECOMMENDATION' AND n.entity_id LIKE '{%'
+            THEN n.entity_id::jsonb ->> 'sourceMovieId'
+          ELSE NULL
+        END
+       LEFT JOIN movies recommended_movie
+         ON recommended_movie.id::text = CASE
+          WHEN n.entity_type = 'MOVIE_RECOMMENDATION' AND n.entity_id LIKE '{%'
+            THEN n.entity_id::jsonb ->> 'recommendationMovieId'
+          ELSE NULL
+        END
        WHERE n.user_id = $1
        ORDER BY n.created_at DESC
        LIMIT $2 OFFSET $3`,

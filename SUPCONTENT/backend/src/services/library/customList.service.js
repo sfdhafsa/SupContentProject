@@ -1,7 +1,9 @@
 import db from '../../config/db.js';
 import { CustomListModel } from '../../models/customList.model.js';
 import { CustomListMovieModel } from '../../models/customListMovie.model.js';
+import { MovieModel } from '../../models/movie.model.js';
 import { resolveMovieId } from './movieResolver.js';
+import { generateMovieRecommendations } from '../recommendations/movieRecommendations.service.js';
 
 const serviceError = (message, status) => Object.assign(new Error(message), { status });
 
@@ -169,6 +171,15 @@ async function addMovieToList(listId, userId, movieRef) {
   }
 
   await CustomListModel.touchUpdatedAt(listId);
+  try {
+    const movie = await MovieModel.findById(movieId);
+    if (movie?.external_id) {
+      await generateMovieRecommendations(userId, movie.external_id);
+    }
+  } catch (err) {
+    globalThis.console.error('[RECOMMENDATIONS] Failed to generate collection recommendations:', err);
+  }
+
   return listMovie;
 }
 
