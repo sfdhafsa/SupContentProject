@@ -8,11 +8,13 @@ import OAuthCallback from "../pages/auth/OAuthCallback.jsx";
 import Home from "../pages/home/Home";
 import Profile from "../pages/user/Profile.jsx";
 import Settings from "../pages/user/Settings.jsx";
-import PublicProfile from "../pages/user/PublicProfile.jsx";
-// ── Route protégée : redirige vers /login si non connecté ──
+
+import Search from "../pages/movies/Search.jsx";
+import MovieDetail from "../pages/movies/MovieDetail.jsx";
+import MovieLayout from "../layouts/MovieLayout.jsx"; 
+
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -20,11 +22,9 @@ function ProtectedRoute({ children }) {
       </div>
     );
   }
-
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
-// ── Route publique : redirige vers / si déjà connecté ──
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return null;
@@ -34,35 +34,31 @@ function PublicRoute({ children }) {
 export default function AppRouter() {
   return (
     <Routes>
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
-      {/* Pages auth — sans Navbar, redirigent si déjà connecté */}
-      <Route path="/login" element={
-        <PublicRoute><Login /></PublicRoute>
-      } />
-      <Route path="/register" element={
-        <PublicRoute><Register /></PublicRoute>
-      } />
-      <Route path="/auth/callback" element={<OAuthCallback />} />
 
-      {/* Pages PUBLIQUES avec Navbar — accessibles sans connexion */}
+      {/* Pages publiques avec Navbar */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/profile/:id" element={<PublicProfile />} />
+        <Route path="/discover" element={<Search />} />
+
       </Route>
 
-      {/* Pages PROTÉGÉES avec Navbar — connexion requise */}
-      <Route element={
-        <ProtectedRoute><MainLayout /></ProtectedRoute>
-      }>
-        {/* <Route path="/library" element={<Library />} />
-        <Route path="/lists" element={<Lists />} /> */}
+      {/* Movie detail — layout spécial sans container limité */}
+      <Route element={<MovieLayout />}>                               {/* 👈 AJOUT */}
+        <Route path="/movies/:id" element={<MovieDetail />} />        {/* 👈 AJOUT */}
+      </Route>                                                        {/* 👈 AJOUT */}
+
+      {/* Pages protégées */}
+      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        {/* <Route path="/library" element={<Library />} /> */}
+        {/* <Route path="/lists" element={<Lists />} /> */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
 
-      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
-
     </Routes>
   );
 }

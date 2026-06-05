@@ -1,7 +1,10 @@
 import tmdb from "../../config/tmdb.js";
 import { MovieModel } from "../../models/movie.model.js";
 
-const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
+const TMDB_IMAGE_BASE_W500 = "https://image.tmdb.org/t/p/w500";
+const TMDB_IMAGE_BASE_ORIG = "https://image.tmdb.org/t/p/original";
+const TMDB_IMAGE_BASE_W300 = "https://image.tmdb.org/t/p/w300";
+const TMDB_IMAGE_BASE_FACE = "https://image.tmdb.org/t/p/w185";
 const CACHE_DURATION_HOURS = 24;
 
 const isCacheValid = (cachedAt) => {
@@ -10,31 +13,10 @@ const isCacheValid = (cachedAt) => {
   return diffHours < CACHE_DURATION_HOURS;
 };
 
-const formatPosterUrl = (posterPath) => {
-  if (!posterPath) return null;
-  return `${TMDB_IMAGE_BASE}${posterPath}`;
-};
-
-// Format uniforme pour fiche détaillée
-export const formatMovie = (movie) => ({
-  tmdb_id: String(movie.external_id),
-  title: movie.title,
-  poster_url: movie.poster_url,
-  release_date: movie.release_date,
-  overview: movie.overview,
-  runtime_minutes: movie.runtime_minutes,
-});
-
-// Format uniforme pour listes (search, popular)
-const formatMovieList = (movie) => ({
-  tmdb_id: String(movie.id),
-  title: movie.title,
-  poster_url: formatPosterUrl(movie.poster_path),
-  release_date: movie.release_date,
-  overview: movie.overview,
-  vote_average: movie.vote_average,
-  genre_ids: movie.genre_ids,
-});
+const formatPosterUrl   = (path) => path ? `${TMDB_IMAGE_BASE_W500}${path}` : null;
+const formatBackdropUrl = (path) => path ? `${TMDB_IMAGE_BASE_ORIG}${path}` : null;
+const formatFaceUrl     = (path) => path ? `${TMDB_IMAGE_BASE_FACE}${path}` : null;
+const formatThumbUrl    = (path) => path ? `${TMDB_IMAGE_BASE_W300}${path}` : null;
 
 const validatePage = (page) => {
   const parsed = parseInt(page, 10);
@@ -48,26 +30,103 @@ const validateTmdbId = (tmdbId) => {
   return String(tmdbId);
 };
 
+const formatMovieList = (movie) => ({
+  tmdb_id:      String(movie.id),
+  title:        movie.title,
+  poster_url:   formatPosterUrl(movie.poster_path),
+  backdrop_url: formatThumbUrl(movie.backdrop_path),
+  release_date: movie.release_date,
+  overview:     movie.overview,
+  vote_average: movie.vote_average,
+  genre_ids:    movie.genre_ids,
+});
+
+const formatMovie = (movie) => ({
+  tmdb_id:         String(movie.external_id),
+  title:           movie.title,
+  poster_url:      movie.poster_url,
+  release_date:    movie.release_date,
+  overview:        movie.overview,
+  runtime_minutes: movie.runtime_minutes,
+});
+
+const formatMovieDetail = (data, credits, videos, similar) => {
+  const cast = (credits?.cast || []).slice(0, 12).map((p) => ({
+    id:        p.id,
+    name:      p.name,
+    character: p.character,
+    photo_url: formatFaceUrl(p.profile_path),
+  }));
+
+  const crew      = credits?.crew || [];
+  const directors = crew.filter((p) => p.job === "Director").map((p) => ({ id: p.id, name: p.name, photo_url: formatFaceUrl(p.profile_path) }));
+  const writers   = crew.filter((p) => ["Screenplay", "Writer", "Story"].includes(p.job)).slice(0, 3).map((p) => ({ id: p.id, name: p.name, job: p.job }));
+  const producers = crew.filter((p) => p.job === "Producer").slice(0, 3).map((p) => ({ id: p.id, name: p.name }));
+
+  const trailer = (videos?.results || []).find((v) => v.type === "Trailer" && v.site === "YouTube")
+    || (videos?.results || []).find((v) => v.site === "YouTube");
+
+  const similarMovies = (similar?.results || []).slice(0, 8).map((m) => ({
+    tmdb_id:      String(m.id),
+    title:        m.title,
+    poster_url:   formatPosterUrl(m.poster_path),
+    vote_average: m.vote_average,
+    release_date: m.release_date,
+  }));
+
+  return {
+    tmdb_id:           String(data.id),
+    title:             data.title,
+    original_title:    data.original_title,
+    tagline:           data.tagline || null,
+    overview:          data.overview,
+    poster_url:        formatPosterUrl(data.poster_path),
+    backdrop_url:      formatBackdropUrl(data.backdrop_path),
+    release_date:      data.release_date,
+    runtime_minutes:   data.runtime,
+    vote_average:      data.vote_average,
+    vote_count:        data.vote_count,
+    popularity:        data.popularity,
+    original_language: data.original_language,
+    genres:            (data.genres || []).map((g) => ({ id: g.id, name: g.name })),
+    budget:            data.budget || null,
+    revenue:           data.revenue || null,
+    status:            data.status,
+    homepage:          data.homepage || null,
+    cast,
+    directors,
+    writers,
+    producers,
+    trailer: trailer ? {
+      key:   trailer.key,
+      name:  trailer.name,
+      url:   `https://www.youtube.com/watch?v=${trailer.key}`,
+      embed: `https://www.youtube.com/embed/${trailer.key}`,
+    } : null,
+    similar: similarMovies,
+  };
+};
+
+// 🔎 SEARCH
 export const searchMovies = async ({ query, page = 1, year, genre_id }) => {
   if (!query || query.trim() === "") {
     throw Object.assign(new Error("Le paramètre 'q' est requis"), { status: 400 });
   }
 
-  const pageNum = validatePage(page);
-  const params = { query: query.trim(), page: pageNum };
-
-  const yearNum = year ? parseInt(year, 10) : undefined;
-  if (yearNum && !isNaN(yearNum)) params.primary_release_year = yearNum;
-
+  const pageNum  = validatePage(page);
+  const params   = { query: query.trim(), page: pageNum };
+  const yearNum  = year ? parseInt(year, 10) : undefined;
   const genreNum = genre_id ? parseInt(genre_id, 10) : undefined;
-  if (genreNum && !isNaN(genreNum)) params.with_genres = genreNum;
+
+  if (yearNum  && !isNaN(yearNum))  params.primary_release_year = yearNum;
+  if (genreNum && !isNaN(genreNum)) params.with_genres           = genreNum;
 
   try {
     const response = await tmdb.get("search/movie", { params });
     return {
-      results: response.data.results.map(formatMovieList),
-      page: response.data.page,
-      total_pages: response.data.total_pages,
+      results:       response.data.results.map(formatMovieList),
+      page:          response.data.page,
+      total_pages:   response.data.total_pages,
       total_results: response.data.total_results,
     };
   } catch (err) {
@@ -75,73 +134,94 @@ export const searchMovies = async ({ query, page = 1, year, genre_id }) => {
   }
 };
 
+// 🎬 GET MOVIE BY ID
 export const getMovieById = async (tmdbId) => {
   const validId = validateTmdbId(tmdbId);
+  const cached  = await MovieModel.findByExternalId(validId);
 
-  // 1. Vérifier le cache
-  const cached = await MovieModel.findByExternalId(validId);
-  if (cached && isCacheValid(cached.cached_at)) {
-    return formatMovie(cached);
-  }
-
-  // 2. Appel TMDB
   try {
-    const response = await tmdb.get(`movie/${validId}`);
-    const data = response.data;
+    const [movieRes, creditsRes, videosRes, similarRes] = await Promise.all([
+      tmdb.get(`movie/${validId}`),
+      tmdb.get(`movie/${validId}/credits`),
+      tmdb.get(`movie/${validId}/videos`),
+      tmdb.get(`movie/${validId}/similar`),
+    ]);
 
+    const data      = movieRes.data;
     const movieData = {
-      external_id: validId,
-      title: data.title,
-      overview: data.overview ?? null,
-      poster_url: formatPosterUrl(data.poster_path),
-      release_date: data.release_date || null,
+      external_id:     validId,
+      title:           data.title,
+      overview:        data.overview ?? null,
+      poster_url:      formatPosterUrl(data.poster_path),
+      release_date:    data.release_date || null,
       runtime_minutes: data.runtime ?? null,
     };
 
-    // 3. Update ou create avec protection race condition
-    let movie;
     if (cached) {
-      movie = await MovieModel.update(validId, movieData);
+      await MovieModel.update(validId, movieData);
     } else {
       try {
-        movie = await MovieModel.create(movieData);
-      } catch (err) {
-        // Race condition — un autre appel a déjà créé le film
-        movie = await MovieModel.findByExternalId(validId);
+        await MovieModel.create(movieData);
+      } catch {
+        // Race condition
       }
     }
 
-    return formatMovie(movie);
+    return formatMovieDetail(data, creditsRes.data, videosRes.data, similarRes.data);
   } catch (err) {
     if (err.status === 400) throw err;
+    if (cached) return formatMovie(cached);
     throw Object.assign(new Error("Erreur API TMDB"), { status: err.response?.status || 502 });
   }
 };
 
+// 🎭 GENRES
 export const getGenres = async () => {
   try {
     const response = await tmdb.get("genre/movie/list");
-    return response.data.genres.map((g) => ({
-      id: g.id,
-      name: g.name,
-    }));
+    return response.data.genres.map((g) => ({ id: g.id, name: g.name }));
   } catch (err) {
     throw Object.assign(new Error("Erreur API TMDB"), { status: err.response?.status || 502 });
   }
 };
 
+// 🔥 POPULAR
 export const getPopularMovies = async (page = 1) => {
   const pageNum = validatePage(page);
+  try {
+    const response = await tmdb.get("movie/popular", { params: { page: pageNum } });
+    return {
+      results:       response.data.results.map(formatMovieList),
+      page:          response.data.page,
+      total_pages:   response.data.total_pages,
+      total_results: response.data.total_results,
+    };
+  } catch (err) {
+    throw Object.assign(new Error("Erreur API TMDB"), { status: err.response?.status || 502 });
+  }
+};
+
+// 🔍 DISCOVER — filtres côté serveur TMDB
+export const discoverMovies = async ({ page = 1, genre_id, year_min, year_max, min_rating, sort_by = "popularity.desc" }) => {
+  const pageNum = validatePage(page);
+
+  const params = {
+    page,
+    sort_by,
+    "vote_count.gte": 50,
+  };
+
+  if (genre_id)   params.with_genres                    = genre_id;
+  if (year_min)   params["primary_release_date.gte"]    = `${year_min}-01-01`;
+  if (year_max)   params["primary_release_date.lte"]    = `${year_max}-12-31`;
+  if (min_rating) params["vote_average.gte"]            = min_rating;
 
   try {
-    const response = await tmdb.get("movie/popular", {
-      params: { page: pageNum },
-    });
-
+    const response = await tmdb.get("discover/movie", { params });
     return {
-      results: response.data.results.map(formatMovieList),
-      page: response.data.page,
-      total_pages: response.data.total_pages,
+      results:       response.data.results.map(formatMovieList),
+      page:          response.data.page,
+      total_pages:   response.data.total_pages,
       total_results: response.data.total_results,
     };
   } catch (err) {

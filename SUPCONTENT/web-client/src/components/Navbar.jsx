@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { moviesApi } from "../services/api/movies.api";
 
 /* ── Icons ── */
 const FilmIcon = () => (
@@ -49,6 +50,11 @@ const MenuIcon = () => (
 const CloseIcon = () => (
   <svg viewBox="0 0 22 22" fill="none" className="w-5 h-5">
     <path d="M5 5l12 12M17 5L5 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+const StarIcon = ({ filled }) => (
+  <svg viewBox="0 0 20 20" className={`w-3 h-3 ${filled ? "text-yellow-400" : "text-gray-300"}`} fill="currentColor">
+    <path d="M10 1l2.39 4.84L18 6.76l-4 3.9.94 5.5L10 13.77l-4.94 2.39.94-5.5-4-3.9 5.61-.92z" />
   </svg>
 );
 
@@ -101,23 +107,156 @@ function UserDropdown({ user, onLogout }) {
   );
 }
 
+// ── Search Dropdown ──
+function SearchDropdown({ results, loading, query, onSelect, onSeeAll }) {
+  if (!query.trim()) return null;
+
+  return (
+    <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl z-50 overflow-hidden">
+      {loading && (
+        <div className="flex items-center justify-center py-6">
+          <div className="w-5 h-5 border-2 border-[#D0021B] border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!loading && results.length === 0 && (
+        <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+          Aucun film trouvé pour "{query}"
+        </div>
+      )}
+
+      {!loading && results.length > 0 && (
+        <>
+          <div className="max-h-80 overflow-y-auto">
+            {results.map((movie) => (
+              <button
+                key={movie.tmdb_id}
+                onClick={() => onSelect(movie.tmdb_id)}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+              >
+                {/* Poster mini */}
+                <div className="w-10 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                  {movie.poster_url ? (
+                    <img src={movie.poster_url} alt={movie.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-gray-400">
+                        <rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                    {movie.title}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      {movie.release_date ? movie.release_date.slice(0, 4) : "—"}
+                    </span>
+                    {movie.vote_average > 0 && (
+                      <div className="flex items-center gap-1">
+                        <StarIcon filled />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {movie.vote_average.toFixed(1)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0">
+                  <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            ))}
+          </div>
+
+          {/* See all */}
+          <button
+            onClick={onSeeAll}
+            className="w-full px-4 py-3 text-sm font-semibold text-[#D0021B] hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-t border-gray-100 dark:border-gray-700"
+          >
+            Voir tous les résultats pour "{query}" →
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const { darkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
-  const [search, setSearch]         = useState("");
-  const [dropdownOpen, setDropdown] = useState(false);
-  const [mobileOpen, setMobile]     = useState(false);
+  const [search, setSearch]           = useState("");
+  const [dropdownOpen, setDropdown]   = useState(false);
+  const [mobileOpen, setMobile]       = useState(false);
+  const [searchResults, setResults]   = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchOpen, setSearchOpen]   = useState(false);
+  const searchRef                     = useRef(null);
 
   const navLinks = isAuthenticated ? NAV_LINKS_AUTH : NAV_LINKS_PUBLIC;
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "U";
 
+
   const handleLogout = async () => {
     await logout();
+
+  // Debounced search
+  useEffect(() => {
+    if (!search.trim()) {
+      setResults([]);
+      setSearchOpen(false);
+      return;
+    }
+
+    setSearchOpen(true);
+    setSearchLoading(true);
+
+    const timer = setTimeout(() => {
+      moviesApi.search(search, 1)
+        .then((res) => setResults(res.data.data.results.slice(0, 6)))
+        .catch(() => setResults([]))
+        .finally(() => setSearchLoading(false));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
     setDropdown(false);
     setMobile(false);
     navigate("/login");
+  };
+
+  const handleSelectMovie = (tmdbId) => {
+    setSearch("");
+    setSearchOpen(false);
+    navigate(`/movies/${tmdbId}`);
+  };
+
+  const handleSeeAll = () => {
+    setSearchOpen(false);
+    navigate(`/discover?q=${encodeURIComponent(search)}`);
+    setSearch("");
   };
 
   return (
@@ -143,8 +282,8 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="flex-1 mx-2 md:mx-4">
+        {/* Search avec dropdown */}
+        <div className="flex-1 mx-2 md:mx-4 relative" ref={searchRef}>
           <div className="relative flex items-center">
             <span className="absolute left-3"><SearchIcon /></span>
             <input
@@ -152,9 +291,30 @@ export default function Navbar() {
               placeholder="Search movies..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => search.trim() && setSearchOpen(true)}
+              onKeyDown={(e) => e.key === "Enter" && search.trim() && handleSeeAll()}
               className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-[#D0021B] focus:ring-2 focus:ring-red-50 dark:focus:ring-red-900/20 transition-all"
             />
+            {search && (
+              <button
+                onClick={() => { setSearch(""); setSearchOpen(false); }}
+                className="absolute right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <CloseIcon />
+              </button>
+            )}
           </div>
+
+          {/* Dropdown résultats */}
+          {searchOpen && (
+            <SearchDropdown
+              results={searchResults}
+              loading={searchLoading}
+              query={search}
+              onSelect={handleSelectMovie}
+              onSeeAll={handleSeeAll}
+            />
+          )}
         </div>
 
         {/* Right icons — desktop */}

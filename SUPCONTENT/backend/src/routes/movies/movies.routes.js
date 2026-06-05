@@ -4,14 +4,16 @@ import {
   getMovie,
   genres,
   popular,
+  discover,
 } from "../../controllers/movies/movies.controllers.js";
+import { protect } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-// Toutes publiques — library c'est le rôle de la personne 3
-router.get("/search", search);
-router.get("/genres", genres);
-router.get("/popular", popular);
-router.get("/:id", getMovie);
+router.get("/search",   search);
+router.get("/genres",   genres);
+router.get("/popular",  popular);
+router.get("/discover", discover);
+router.get("/:id",      getMovie);
 
 export default router;
