@@ -1,6 +1,13 @@
 import pool from '../config/db.js';
 
 export const UserModel = {
+  async ensureNotificationPreferenceColumns() {
+    await pool.query(
+      `ALTER TABLE users
+       ADD COLUMN IF NOT EXISTS notification_push_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+       ADD COLUMN IF NOT EXISTS notification_email_enabled BOOLEAN NOT NULL DEFAULT FALSE`
+    );
+  },
 
   // =====================
   // GET USER BY EMAIL
@@ -17,6 +24,8 @@ export const UserModel = {
   // GET USER BY ID + ROLES
   // =====================
   async findById(id) {
+    await this.ensureNotificationPreferenceColumns();
+
     const { rows } = await pool.query(
       `SELECT 
           u.id,
@@ -27,6 +36,8 @@ export const UserModel = {
           u.website_url,
           u.theme_preference,
           u.language_preference,
+          COALESCE(u.notification_push_enabled, TRUE) AS notification_push_enabled,
+          COALESCE(u.notification_email_enabled, FALSE) AS notification_email_enabled,
           u.is_banned,
           u.created_at,
           COALESCE(
@@ -118,7 +129,8 @@ export const UserModel = {
 
     const allowed = [
       'username', 'avatar_url', 'bio',
-      'website_url', 'theme_preference', 'language_preference'
+      'website_url', 'theme_preference', 'language_preference',
+      'notification_push_enabled', 'notification_email_enabled'
     ];
 
     for (const key of allowed) {
@@ -140,7 +152,8 @@ export const UserModel = {
       WHERE id = $${index}
       RETURNING 
         id, email, username, avatar_url, bio,
-        website_url, theme_preference, language_preference, created_at
+        website_url, theme_preference, language_preference,
+        notification_push_enabled, notification_email_enabled, created_at
     `;
 
     const { rows } = await pool.query(query, values);
@@ -168,6 +181,58 @@ export const UserModel = {
        WHERE id = $2`,
       [newHash, id]
     );
+  },
+
+  // =====================
+  // GET NOTIFICATION PREFERENCES
+  // =====================
+  async getNotificationPreferences(id) {
+    await this.ensureNotificationPreferenceColumns();
+
+    const { rows } = await pool.query(
+      `SELECT notification_push_enabled, notification_email_enabled
+       FROM users
+       WHERE id = $1`,
+      [id]
+    );
+
+    return rows[0] || null;
+  },
+
+  // =====================
+  // UPDATE NOTIFICATION PREFERENCES
+  // =====================
+  async updateNotificationPreferences(id, data) {
+    await this.ensureNotificationPreferenceColumns();
+
+    const fields = [];
+    const values = [];
+    let index = 1;
+
+    const allowed = ['notification_push_enabled', 'notification_email_enabled'];
+
+    for (const key of allowed) {
+      if (data[key] !== undefined) {
+        fields.push(`${key} = $${index++}`);
+        values.push(data[key]);
+      }
+    }
+
+    if (fields.length === 0) {
+      throw Object.assign(new Error('Aucune preference de notification a mettre a jour'), { status: 400 });
+    }
+
+    values.push(id);
+
+    const { rows } = await pool.query(
+      `UPDATE users
+       SET ${fields.join(', ')}, updated_at = NOW()
+       WHERE id = $${index}
+       RETURNING notification_push_enabled, notification_email_enabled`,
+      values
+    );
+
+    return rows[0] || null;
   },
 
   // =====================

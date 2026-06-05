@@ -5,6 +5,8 @@ import {
   updateMe,
   updatePassword,
   updateAvatar,
+  getNotificationPreferences,
+  updateNotificationPreferences,
   exportMyData,
   deleteMe,
   getUserById,
@@ -48,6 +50,19 @@ const passwordRules = [
     .withMessage('Au moins un chiffre.'),
 ];
 
+const notificationPreferenceRules = [
+  body('notification_push_enabled')
+    .optional()
+    .isBoolean()
+    .withMessage('notification_push_enabled doit etre un booleen.')
+    .toBoolean(),
+  body('notification_email_enabled')
+    .optional()
+    .isBoolean()
+    .withMessage('notification_email_enabled doit etre un booleen.')
+    .toBoolean(),
+];
+
 // ⚠️ IMPORTANT : les routes /me/* doivent être AVANT /:id
 // sinon Express interprète "me" comme un :id
 
@@ -61,6 +76,8 @@ router.put('/me',              protect, updateMeRules, updateMe);
 
 // Mot de passe
 router.patch('/me/password',   protect, passwordRules, updatePassword);
+router.get('/me/notification-preferences', protect, getNotificationPreferences);
+router.patch('/me/notification-preferences', protect, notificationPreferenceRules, updateNotificationPreferences);
 
 // Avatar — multer traite le fichier avant le controller
 router.patch('/me/avatar',     protect, uploadAvatarFile, updateAvatar);

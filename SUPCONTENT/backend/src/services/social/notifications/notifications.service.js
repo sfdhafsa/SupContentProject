@@ -1,6 +1,11 @@
 import { NotificationModel } from '../../../models/notification.model.js';
 import { UserModel } from '../../../models/user.model.js';
 
+const shouldCreatePushNotification = async (userId) => {
+  const preferences = await UserModel.getNotificationPreferences(userId);
+  return preferences?.notification_push_enabled !== false;
+};
+
 // CREATE NOTIFICATION (internal use only)
 export const createNotification = async ({
   userId,
@@ -13,6 +18,8 @@ export const createNotification = async ({
 
   // prevent self notifications
   if (userId === actorUserId) return;
+
+  if (!(await shouldCreatePushNotification(userId))) return;
 
   return await NotificationModel.create({
     user_id: userId,
@@ -31,6 +38,8 @@ export const createSystemNotification = async ({
   entityId = null,
 }) => {
   if (!userId || !type) return;
+
+  if (!(await shouldCreatePushNotification(userId))) return;
 
   return await NotificationModel.create({
     user_id: userId,

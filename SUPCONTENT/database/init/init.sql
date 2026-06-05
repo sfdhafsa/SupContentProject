@@ -17,6 +17,8 @@ CREATE TABLE users (
   website_url VARCHAR(500),
   theme_preference VARCHAR(20) NOT NULL DEFAULT 'light',
   language_preference VARCHAR(20) NOT NULL DEFAULT 'en',
+  notification_push_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  notification_email_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   is_banned BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()

@@ -172,6 +172,51 @@ export const updateMe = async (req, res, next) => {
 };
 
 // =====================
+// GET /api/users/me/notification-preferences
+// =====================
+export const getNotificationPreferences = async (req, res, next) => {
+  try {
+    const preferences = await UserModel.getNotificationPreferences(req.user.userId);
+
+    if (!preferences) {
+      return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    }
+
+    res.json({ preferences });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// =====================
+// PATCH /api/users/me/notification-preferences
+// =====================
+export const updateNotificationPreferences = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const preferences = await UserModel.updateNotificationPreferences(
+      req.user.userId,
+      req.body || {}
+    );
+
+    if (!preferences) {
+      return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    }
+
+    res.json({
+      message: 'Preferences de notification mises a jour.',
+      preferences,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// =====================
 // PATCH /api/users/me/password
 // =====================
 export const updatePassword = async (req, res, next) => {
