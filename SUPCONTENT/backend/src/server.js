@@ -13,6 +13,7 @@ import movieRoutes from "./routes/movies/movies.routes.js";
 import reviewsRoutes from "./routes/reviews/reviews.routes.js";
 import libraryRoutes from "./routes/library/library.routes.js";
 import notificationRoutes from './routes/social/notifications.routes.js';
+import moderationRoutes from "./routes/moderation/moderation.routes.js";
 import "./config/passport.js";
 import "./config/google.strategy.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
@@ -47,6 +48,7 @@ app.use("/api/social/follow", followRoutes);
 app.use("/api/social/feed", feedRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/reviews", reviewsRoutes);
+app.use("/api/moderation", moderationRoutes);
 app.use("/api", libraryRoutes);
 
 
