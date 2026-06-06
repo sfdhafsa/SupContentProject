@@ -10,8 +10,10 @@ import OAuthCallback from "../pages/auth/OAuthCallback.jsx";
 import Home from "../pages/home/Home";
 import Help from "../pages/help/Help.jsx";
 import Profile from "../pages/user/Profile.jsx";
+import PublicProfile from "../pages/user/PublicProfile.jsx";
 import Settings from "../pages/user/Settings.jsx";
-
+import Feed from "../pages/social/feed.jsx";
+import Notifications from "../pages/social/Notifications.jsx";
 import Search from "../pages/movies/Search.jsx";
 import MovieDetail from "../pages/movies/MovieDetail.jsx";
 import MovieLayout from "../layouts/MovieLayout.jsx"; 
@@ -34,6 +36,12 @@ function PublicRoute({ children }) {
   return !isAuthenticated ? children : <Navigate to="/" replace />;
 }
 
+function HomeRedirect() {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  return <Navigate to={isAuthenticated ? "/home" : "/discover"} replace />;
+}
+
 export default function AppRouter() {
   return (
     <Routes>
@@ -45,20 +53,24 @@ export default function AppRouter() {
 
 
       {/* Pages publiques avec Navbar */}
+      <Route path="/" element={<HomeRedirect />} />
       <Route element={<MainLayout />}>
-        <Route path="/" element={<Home />} />
         <Route path="/discover" element={<Search />} />
+        <Route path="/profile/:id" element={<PublicProfile />} />
         <Route path="/help" element={<Help />} />
 
       </Route>
 
       {/* Movie detail — layout spécial sans container limité */}
-      <Route element={<MovieLayout />}>                               {/* 👈 AJOUT */}
-        <Route path="/movies/:id" element={<MovieDetail />} />        {/* 👈 AJOUT */}
-      </Route>                                                        {/* 👈 AJOUT */}
+      <Route element={<MovieLayout />}>                              
+        <Route path="/movies/:id" element={<MovieDetail />} />     
+      </Route>                                                        
 
       {/* Pages protégées */}
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        <Route path="/home" element={<Home />} />
+        <Route path="/feed" element={<Feed />} />
+        <Route path="/notifications" element={<Notifications />} />
         {/* <Route path="/library" element={<Library />} /> */}
         {/* <Route path="/lists" element={<Lists />} /> */}
         <Route path="/profile" element={<Profile />} />

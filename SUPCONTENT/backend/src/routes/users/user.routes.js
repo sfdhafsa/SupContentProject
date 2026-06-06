@@ -9,6 +9,7 @@ import {
   updateNotificationPreferences,
   exportMyData,
   deleteMe,
+  getPublicUserActivity,
   getUserById,
 } from '../../controllers/users/user.controllers.js';
 
@@ -91,6 +92,7 @@ router.delete('/me',           protect, deleteMe);
 // =====================
 // 🌍 Routes publiques
 // =====================
+router.get('/:id/activity',    getPublicUserActivity);
 router.get('/:id',             getUserById);
 
 export default router;

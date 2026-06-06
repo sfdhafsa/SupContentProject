@@ -373,3 +373,91 @@ export const getUserById = async (req, res, next) => {
     next(err);
   }
 };
+
+// =====================
+// GET /api/users/:id/activity (PUBLIC)
+// =====================
+export const getPublicUserActivity = async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    }
+
+    const [reviews, publicLists, followers, following, watched] = await Promise.all([
+      pool.query(
+        `SELECT
+           r.id,
+           r.rating,
+           r.text,
+           r.contains_spoiler,
+           r.created_at,
+           r.updated_at,
+           m.id AS movie_id,
+           m.external_id,
+           m.source_api,
+           m.title,
+           m.poster_url,
+           m.release_date,
+           COUNT(DISTINCT rl.user_id)::INT AS likes_count,
+           COUNT(DISTINCT c.id)::INT AS comments_count
+         FROM reviews r
+         JOIN movies m ON m.id = r.movie_id
+         LEFT JOIN review_likes rl ON rl.review_id = r.id
+         LEFT JOIN comments c ON c.review_id = r.id AND c.deleted_at IS NULL
+         WHERE r.user_id = $1
+           AND r.deleted_at IS NULL
+         GROUP BY r.id, m.id
+         ORDER BY r.created_at DESC`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+           cl.id,
+           cl.name,
+           cl.description,
+           cl.is_public,
+           cl.created_at,
+           cl.updated_at,
+           COUNT(clm.movie_id)::INT AS movie_count
+         FROM custom_lists cl
+         LEFT JOIN custom_list_movies clm ON clm.list_id = cl.id
+         WHERE cl.user_id = $1
+           AND cl.is_public = TRUE
+         GROUP BY cl.id
+         ORDER BY cl.updated_at DESC`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(*)::INT AS count FROM follows WHERE followed_id = $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(*)::INT AS count FROM follows WHERE follower_id = $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(*)::INT AS count
+         FROM user_library
+         WHERE user_id = $1
+           AND status = 'COMPLETED'`,
+        [userId]
+      ),
+    ]);
+
+    res.json({
+      reviews: reviews.rows,
+      lists: publicLists.rows,
+      stats: {
+        followers: followers.rows[0]?.count || 0,
+        following: following.rows[0]?.count || 0,
+        movies_watched: watched.rows[0]?.count || 0,
+        reviews: reviews.rows.length,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
