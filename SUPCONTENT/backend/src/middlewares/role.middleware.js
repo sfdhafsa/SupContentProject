@@ -18,3 +18,17 @@ export const requireRole = (...allowedRoles) => {
     next();
   };
 };
+
+export const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Non authentifie.' });
+  }
+
+  const userRoles = (req.user.roles || []).map(role => String(role).toLowerCase());
+
+  if (!userRoles.includes('admin')) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+
+  next();
+};

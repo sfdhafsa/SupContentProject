@@ -103,7 +103,7 @@ passport.use(
 
             // 4. DEFAULT ROLE
             const role = await pool.query(
-              `SELECT id FROM roles WHERE name='USER'`
+              `SELECT id FROM roles WHERE LOWER(name) = 'user'`
             );
 
             if (role.rows[0]?.id) {
@@ -127,7 +127,7 @@ passport.use(
 
         // 5. LOAD ROLES
         const roles = await pool.query(
-          `SELECT r.name
+          `SELECT LOWER(r.name) AS name
            FROM roles r
            JOIN user_roles ur ON ur.role_id = r.id
            WHERE ur.user_id=$1`,
