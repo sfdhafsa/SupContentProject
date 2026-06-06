@@ -83,20 +83,27 @@ function ReviewForm({ initialReview, submitting, error, onCancel, onSubmit }) {
     setContainsSpoiler(!!initialReview?.contains_spoiler);
   }, [initialReview]);
 
-  const canSubmit = rating > 0 && text.trim().length > 0 && !submitting;
+  const trimmedText = text.trim();
+  const canSubmit = rating > 0 && !submitting;
 
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        if (canSubmit) onSubmit({ rating, text: text.trim(), contains_spoiler: containsSpoiler });
+        if (canSubmit) {
+          onSubmit({
+            rating,
+            text: trimmedText || null,
+            contains_spoiler: trimmedText ? containsSpoiler : false,
+          });
+        }
       }}
       className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"
     >
       <div className="flex items-center justify-between gap-4 mb-4">
         <div>
           <h3 className="text-base font-bold text-white">{initialReview ? "Edit your review" : "Write a review"}</h3>
-          <p className="text-xs text-gray-500 mt-1">Share your rating and thoughts with the community.</p>
+          <p className="text-xs text-gray-500 mt-1">Share a rating, with or without written thoughts.</p>
         </div>
         <RatingPicker value={rating} onChange={setRating} />
       </div>
@@ -106,7 +113,7 @@ function ReviewForm({ initialReview, submitting, error, onCancel, onSubmit }) {
         onChange={(event) => setText(event.target.value)}
         rows={4}
         maxLength={1200}
-        placeholder="What did you think of this movie?"
+        placeholder="What did you think of this movie? Optional."
         className="w-full rounded-xl border border-white/10 bg-gray-950/70 px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#D0021B] focus:ring-2 focus:ring-red-900/20 resize-none"
       />
 
@@ -118,6 +125,7 @@ function ReviewForm({ initialReview, submitting, error, onCancel, onSubmit }) {
             type="checkbox"
             checked={containsSpoiler}
             onChange={(event) => setContainsSpoiler(event.target.checked)}
+            disabled={!trimmedText}
             className="w-4 h-4 rounded border-white/20 bg-gray-950 accent-[#D0021B]"
           />
           Contains spoilers
@@ -133,7 +141,7 @@ function ReviewForm({ initialReview, submitting, error, onCancel, onSubmit }) {
             disabled={!canSubmit}
             className="px-4 py-2 rounded-xl bg-[#D0021B] text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#b30218] transition-colors"
           >
-            {submitting ? "Saving..." : initialReview ? "Save changes" : "Post review"}
+            {submitting ? "Saving..." : initialReview ? "Save changes" : trimmedText ? "Post review" : "Post rating"}
           </button>
         </div>
       </div>
@@ -149,6 +157,7 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
   const [commentsCount, setCommentsCount] = useState(review.comments_count || 0);
   const isMine = String(review.user_id) === String(currentUserId);
   const initials = review.username ? review.username.slice(0, 2).toUpperCase() : "U";
+  const hasText = typeof review.text === "string" && review.text.trim().length > 0;
 
   const toggleLike = async () => {
     if (!isAuthenticated || likeLoading) return;
@@ -199,7 +208,7 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
           </div>
 
           <div className="mt-4">
-            {review.contains_spoiler && !showSpoiler ? (
+            {hasText && review.contains_spoiler && !showSpoiler ? (
               <button
                 type="button"
                 onClick={() => setShowSpoiler(true)}
@@ -207,8 +216,10 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
               >
                 This review contains spoilers. Click to reveal.
               </button>
-            ) : (
+            ) : hasText ? (
               <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{review.text}</p>
+            ) : (
+              <p className="text-sm text-gray-500 leading-relaxed">Rated this movie.</p>
             )}
           </div>
 

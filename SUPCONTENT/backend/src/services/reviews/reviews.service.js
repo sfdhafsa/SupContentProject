@@ -11,6 +11,8 @@ export const createReview = async ({
   text,
   containsSpoiler,
 }) => {
+  const normalizedText = typeof text === "string" ? text.trim() : null;
+
   if (!tmdbId || isNaN(tmdbId)) {
     throw Object.assign(new Error("Invalid TMDB id"), {
       status: 400,
@@ -46,8 +48,8 @@ export const createReview = async ({
     user_id: userId,
     movie_id: movie.id,
     rating,
-    text,
-    contains_spoiler: containsSpoiler,
+    text: normalizedText || null,
+    contains_spoiler: normalizedText ? containsSpoiler : false,
   });
 };
 
@@ -61,13 +63,17 @@ export const getReviewsByMovie = async (tmdbId) => {
   return await ReviewModel.findByMovieId(movie.id);
 };
 
-export const updateReview = async ({
-  userId,
-  reviewId,
-  rating,
-  text,
-  containsSpoiler,
-}) => {
+export const updateReview = async (payload) => {
+  const {
+    userId,
+    reviewId,
+    rating,
+    text,
+    containsSpoiler,
+  } = payload;
+  const hasTextField = Object.prototype.hasOwnProperty.call(payload, "text");
+  const normalizedText = typeof text === "string" ? text.trim() : null;
+
   const review = await ReviewModel.findById(reviewId);
 
   if (!review) {
@@ -84,8 +90,8 @@ export const updateReview = async ({
 
   return await ReviewModel.update(reviewId, userId, {
     rating: rating ?? review.rating,
-    text: text ?? review.text,
-    contains_spoiler: containsSpoiler ?? review.contains_spoiler,
+    text: hasTextField ? normalizedText || null : review.text,
+    contains_spoiler: hasTextField && !normalizedText ? false : containsSpoiler ?? review.contains_spoiler,
   });
 };
 
