@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api/axios";
 
 /* ── Icons ── */
 const EditIcon = () => (
@@ -58,15 +59,29 @@ function Skeleton({ className }) {
   return <div className={`animate-pulse bg-gray-100 dark:bg-gray-800 rounded-xl ${className}`}/>;
 }
 
+const formatReview = (review) => ({
+  id: review.id,
+  movieId: review.external_id,
+  poster: review.poster_url,
+  movie: review.title,
+  year: review.release_date ? new Date(review.release_date).getFullYear() : null,
+  rating: Number(review.rating || 0),
+  date: review.created_at
+    ? new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null,
+  review: review.text || "Rated this movie.",
+});
+
 export default function Profile() {
   const { user, loading } = useAuth(); // ← données complètes depuis AuthContext
   const navigate = useNavigate();
 
   const [tab, setTab]       = useState("Overview");
   const [copied, setCopied] = useState(false);
-  const [reviews] = useState([]);
-  const [lists]   = useState([]);
-  const [stats]   = useState({
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [reviews, setReviews] = useState([]);
+  const [lists, setLists]   = useState([]);
+  const [stats, setStats]   = useState({
     followers: 0, following: 0, movies_watched: 0, reviews: 0,
   });
 
@@ -94,6 +109,42 @@ export default function Profile() {
     // TODO: décommenter quand l'endpoint sera prêt (Personne 3)
     // api.get("/lists/me").then(res => setLists(res.data.lists));
   }, [tab, user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchProfileData = async () => {
+      setProfileLoading(true);
+      try {
+        const [exportRes, libraryRes, followersRes, followingRes] = await Promise.all([
+          api.get("/users/me/export"),
+          api.get("/library/stats"),
+          api.get(`/social/follow/${user.id}/followers`),
+          api.get(`/social/follow/${user.id}/following`),
+        ]);
+
+        const exportData = exportRes.data || {};
+        const activeReviews = (exportData.reviews || []).filter((review) => !review.deleted_at);
+        const customLists = exportData.custom_lists || [];
+        const libraryStats = libraryRes.data?.data || {};
+
+        setReviews(activeReviews.map(formatReview));
+        setLists(customLists);
+        setStats({
+          followers: followersRes.data?.count || 0,
+          following: followingRes.data?.count || 0,
+          movies_watched: libraryStats.counts?.COMPLETED || libraryStats.totalMovies || 0,
+          reviews: activeReviews.length,
+        });
+      } catch (err) {
+        console.error("Profile activity error:", err);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [user?.id]);
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -244,7 +295,11 @@ export default function Profile() {
 
           {/* Recent activity */}
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Activity</h2>
-          {reviews.length === 0 ? (
+          {profileLoading ? (
+            <div className="flex flex-col gap-4">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40"/>)}
+            </div>
+          ) : reviews.length === 0 ? (
             <EmptyState message="No recent activity yet." sub="Start reviewing movies to see them here."/>
           ) : (
             reviews.slice(0, 3).map((item) => (
@@ -258,7 +313,9 @@ export default function Profile() {
       {tab === "Reviews" && (
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">All Reviews</h2>
-          {reviews.length === 0
+          {profileLoading
+            ? <div className="flex flex-col gap-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-40"/>)}</div>
+            : reviews.length === 0
             ? <EmptyState message="No reviews yet." sub="Rate and review movies to see them here."/>
             : reviews.map((item) => <ReviewCard key={item.id} item={item} user={user} initials={initials} compact/>)
           }
@@ -269,7 +326,9 @@ export default function Profile() {
       {tab === "Lists" && (
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">My Lists</h2>
-          {lists.length === 0
+          {profileLoading
+            ? <div className="flex flex-col gap-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-20"/>)}</div>
+            : lists.length === 0
             ? <EmptyState message="No lists yet." sub="Create lists to organise your movies."/>
             : lists.map((list) => (
               <div key={list.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 flex items-center justify-between">
@@ -279,7 +338,7 @@ export default function Profile() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{list.name}</p>
-                    <p className="text-xs text-gray-400">{list.movie_count ?? 0} films</p>
+                    <p className="text-xs text-gray-400">{list.movie_count ?? list.movies?.length ?? 0} films</p>
                   </div>
                 </div>
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
@@ -367,6 +426,26 @@ export default function Profile() {
 function ReviewCard({ item, user, initials, compact = false }) {
   const avatar = user?.avatar_url || null;
   const username = user?.username || "";
+  const movieHref = item.movieId ? `/movies/${item.movieId}` : null;
+  const movieContent = (
+    <>
+      <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+        {item.poster ? (
+          <img src={item.poster} alt={item.movie} className="w-full h-full object-cover"
+            onError={(e) => { e.target.style.display = "none"; }}/>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <FilmIcon/>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col justify-center">
+        <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-[#D0021B] transition-colors">{item.movie}</p>
+        {item.year && <p className="text-xs text-gray-400 mt-0.5">{item.year}</p>}
+      </div>
+    </>
+  );
+
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
       {!compact && (
@@ -385,16 +464,13 @@ function ReviewCard({ item, user, initials, compact = false }) {
           <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><DotsIcon/></button>
         </div>
       )}
-      {item.poster && (
+      {movieHref ? (
+        <Link to={movieHref} className="group flex gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-3 hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors">
+          {movieContent}
+        </Link>
+      ) : (
         <div className="flex gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-3">
-          <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
-            <img src={item.poster} alt={item.movie} className="w-full h-full object-cover"
-              onError={(e) => { e.target.style.display = "none"; }}/>
-          </div>
-          <div className="flex flex-col justify-center">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.movie}</p>
-            {item.year && <p className="text-xs text-gray-400 mt-0.5">{item.year}</p>}
-          </div>
+          {movieContent}
         </div>
       )}
       <div className="flex items-center gap-2 mb-2">

@@ -1,108 +1,686 @@
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api/axios.js";
+import ReviewComments from "../../components/reviews/ReviewComments.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
-const featuredMovies = [
-  { title: "Dune", year: "2021", tone: "from-amber-600 to-stone-900" },
-  { title: "Interstellar", year: "2014", tone: "from-sky-700 to-gray-950" },
-  { title: "Parasite", year: "2019", tone: "from-emerald-700 to-gray-950" },
-  { title: "Whiplash", year: "2014", tone: "from-red-700 to-zinc-950" },
-];
+/* ══════════════════════════════════════
+   ICONS
+══════════════════════════════════════ */
+const StarIcon = ({ filled }) => (
+  <svg viewBox="0 0 14 14" fill={filled ? "#F59E0B" : "none"} className="w-3.5 h-3.5 flex-shrink-0">
+    <path d="M7 1l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 9 3.8 10.7l.6-3.5L2 4.7l3.5-.5L7 1z"
+      stroke="#F59E0B" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const HeartIcon = ({ filled }) => (
+  <svg viewBox="0 0 20 20" fill={filled ? "#D0021B" : "none"} className="w-4 h-4">
+    <path d="M10 17s-7-4.5-7-9a4 4 0 017-2.65A4 4 0 0117 8c0 4.5-7 9-7 9z"
+      stroke={filled ? "#D0021B" : "currentColor"} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const CommentIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5">
+    <path d="M4 4h12a1 1 0 011 1v7a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z"
+      stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const ShareIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5">
+    <path d="M2.8 9.5L17 3l-3.8 14-3.5-6L2.8 9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9.7 11L17 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+const FeedBookmarkIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5">
+    <path d="M5.5 3.5A1.5 1.5 0 017 2h6a1.5 1.5 0 011.5 1.5V17L10 13.8 5.5 17V3.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+  </svg>
+);
+const FilmIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-400">
+    <rect x="2" y="4" width="16" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+    <path d="M2 7h16M2 13h16M6 4v3M6 13v3M10 4v3M10 13v3M14 4v3M14 13v3"
+      stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+  </svg>
+);
+const CollectionIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-400">
+    <rect x="2" y="6" width="16" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+    <path d="M6 6V4.5A1.5 1.5 0 017.5 3h5A1.5 1.5 0 0114 4.5V6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    <path d="M2 10h16" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+  </svg>
+);
+const BookmarkIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
+    <path d="M5 3h10a1 1 0 011 1v13l-6-4-6 4V4a1 1 0 011-1z"
+      stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const RefreshIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
+    <path d="M4 4v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4.06 13A7 7 0 1010 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+const UserIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-gray-400">
+    <circle cx="10" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.3"/>
+    <path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+  </svg>
+);
 
-const stats = [
-  { value: "TMDB", label: "movie metadata" },
-  { value: "OAuth", label: "Google login ready" },
-  { value: "Profile", label: "avatar and settings" },
-];
+/* ══════════════════════════════════════
+   FEED COMPONENTS
+══════════════════════════════════════ */
 
-function PosterCard({ movie }) {
+/* Skeleton */
+function FeedSkeleton() {
   return (
-    <div className={`aspect-[2/3] rounded-2xl bg-gradient-to-br ${movie.tone} p-4 flex flex-col justify-between shadow-xl ring-1 ring-white/10`}>
-      <div className="w-10 h-1.5 rounded-full bg-white/50" />
-      <div>
-        <p className="text-white text-lg font-bold leading-tight">{movie.title}</p>
-        <p className="text-white/70 text-sm mt-1">{movie.year}</p>
-      </div>
+    <div className="flex flex-col gap-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 animate-pulse">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800"/>
+            <div className="flex flex-col gap-1.5 flex-1">
+              <div className="h-3.5 bg-gray-100 dark:bg-gray-800 rounded-lg w-56"/>
+              <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-lg w-24"/>
+            </div>
+          </div>
+          <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-3/4 mb-3"/>
+          <div className="flex gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+            <div className="w-16 h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex-shrink-0"/>
+            <div className="flex flex-col gap-2 flex-1 justify-center">
+              <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded-lg w-32"/>
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-lg w-20"/>
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-lg w-16"/>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-export default function Home() {
-  const { isAuthenticated, user } = useAuth();
+/* Avatar */
+function Avatar({ user }) {
+  const initials = user?.username?.slice(0, 2).toUpperCase() || "?";
+  return (
+    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+      {user?.avatar_url
+        ? <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover"
+            onError={(e) => { e.target.style.display = "none"; }}/>
+        : <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{initials}</span>
+      }
+    </div>
+  );
+}
+
+/* Headline avec parties en gras */
+function Headline({ item }) {
+  const author = item.author?.username || "";
+  const movie  = item.movie?.title     || "";
+
+  if (item.type === "REVIEW_CREATED") {
+    return (
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        <Link to={`/profile/${item.author?.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+          {author}
+        </Link>
+        {" reviewed "}
+        <span className="font-bold text-gray-900 dark:text-white">{movie}</span>
+      </p>
+    );
+  }
+  if (item.type === "RATING_GIVEN") {
+    return (
+      <p className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1.5 flex-wrap">
+        <Link to={`/profile/${item.author?.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+          {author}
+        </Link>
+        {" rated "}
+        <span className="font-bold text-gray-900 dark:text-white">{movie}</span>
+        {item.review?.rating && (
+          <span className="flex items-center gap-0.5">
+            {item.review.rating}
+            <StarIcon filled={true} />
+          </span>
+        )}
+      </p>
+    );
+  }
+  if (item.type === "COLLECTION_MOVIE_ADDED") {
+    return (
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        <Link to={`/profile/${item.author?.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+          {author}
+        </Link>
+        {" added "}
+        <span className="font-bold text-gray-900 dark:text-white">{movie}</span>
+        {" to "}
+        <span className="font-bold text-gray-900 dark:text-white">{item.collection?.name}</span>
+      </p>
+    );
+  }
+  return <p className="text-sm text-gray-700 dark:text-gray-300">{item.activity?.headline}</p>;
+}
+
+/* Movie card — style Figma avec grand poster */
+function MovieCard({ movie, rating }) {
+  if (!movie) return null;
+  const movieHref = movie.external_id ? `/movies/${movie.external_id}` : null;
+  const content = (
+    <>
+      {/* Poster */}
+      <div className="w-16 h-[88px] rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center">
+        {movie.poster_url
+          ? <img src={movie.poster_url} alt={movie.title} className="w-full h-full object-cover"/>
+          : <FilmIcon />
+        }
+      </div>
+      {/* Info */}
+      <div className="flex flex-col justify-center gap-1">
+        <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight group-hover:text-[#D0021B] transition-colors">{movie.title}</p>
+        {movie.release_date && (
+          <p className="text-xs text-gray-400 dark:text-gray-500">{new Date(movie.release_date).getFullYear()}</p>
+        )}
+        {rating && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <StarIcon filled={true} />
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{rating}</span>
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  if (movieHref) {
+    return (
+      <Link to={movieHref} className="group flex gap-4 bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        {content}
+      </Link>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-10">
-      <section className="grid lg:grid-cols-[1.05fr_0.95fr] gap-8 items-center">
-        <div className="py-6">
-          <p className="text-xs font-bold tracking-[0.22em] text-[#D0021B] mb-4">
-            SUPMOVIES SOCIAL NETWORK
-          </p>
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-950 dark:text-white leading-tight max-w-3xl">
-            Discover movies, manage your profile, and share your taste.
-          </h1>
-          <p className="mt-5 text-base text-gray-500 dark:text-gray-400 leading-7 max-w-2xl">
-            SUPMOVIES connects movie discovery with user profiles, personal settings, reviews, lists, and community activity.
-          </p>
+    <div className="flex gap-4 bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-3">
+      {content}
+    </div>
+  );
+}
 
-          <div className="mt-7 flex flex-wrap gap-3">
-            <Link
-              to="/discover"
-              className="px-5 py-3 rounded-2xl bg-[#D0021B] hover:bg-[#b30218] text-white text-sm font-bold transition-colors"
-            >
-              Discover movies
-            </Link>
-            {isAuthenticated ? (
-              <Link
-                to="/profile"
-                className="px-5 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+/* Feed Item — style Figma */
+function FeedItem({ item }) {
+  const [liked, setLiked]           = useState(item.review?.has_liked || false);
+  const [likesCount, setLikesCount] = useState(item.review?.likes_count || 0);
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [showSpoiler, setShowSpoiler] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(item.review?.comments_count || 0);
+
+  const isReview     = item.type === "REVIEW_CREATED";
+  const isRating     = item.type === "RATING_GIVEN";
+  const isCollection = item.type === "COLLECTION_MOVIE_ADDED";
+
+  const timeAgo = (dateStr) => {
+    const diff  = Date.now() - new Date(dateStr).getTime();
+    const mins  = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days  = Math.floor(diff / 86400000);
+    if (mins < 1)   return "just now";
+    if (mins < 60)  return `${mins}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7)   return `${days}d ago`;
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const handleLike = async () => {
+    if (likeLoading || !item.review?.id) return;
+    setLikeLoading(true);
+    try {
+      const res = await api.post(`/reviews/${item.review.id}/likes`);
+      const nextLiked = res.data.status === "liked";
+      setLiked(nextLiked);
+      setLikesCount((count) => Math.max(0, count + (nextLiked ? 1 : -1)));
+    } catch (err) {
+      console.error("Like error:", err);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 transition-all">
+
+      {/* Header — Avatar + infos + icon */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <Link to={`/profile/${item.author?.id}`}>
+            <Avatar user={item.author} />
+          </Link>
+          <div>
+            <Headline item={item} />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              {timeAgo(item.activity?.created_at)}
+            </p>
+          </div>
+        </div>
+
+        {/* Icon droite — couleur selon type */}
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+          isReview     ? "text-blue-400"  :
+          isRating     ? "text-amber-400" :
+          isCollection ? "text-purple-400": "text-gray-400"
+        }`}>
+          {isReview     ? <CommentIcon /> :
+           isRating     ? <StarIcon filled={true} /> :
+           isCollection ? <CollectionIcon /> : null
+          }
+        </div>
+      </div>
+
+      {/* Review text */}
+      {isReview && item.review?.text && (
+        <div className="mb-3 ml-[52px]">
+          {item.review.contains_spoiler && !showSpoiler ? (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5 flex items-center justify-between">
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">⚠️ Contains spoilers</p>
+              <button onClick={() => setShowSpoiler(true)}
+                className="text-xs font-semibold text-amber-700 dark:text-amber-300 hover:underline">
+                Show anyway
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">
+              {item.review.text}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Movie card */}
+      <div className="ml-[52px] mb-4">
+        <MovieCard movie={item.movie} rating={item.review?.rating} />
+      </div>
+
+      {/* Collection badge */}
+      {isCollection && item.collection && (
+        <div className="ml-[52px] flex items-center gap-2 mb-4 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+          <CollectionIcon />
+          <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">{item.collection.name}</p>
+        </div>
+      )}
+
+      {/* Actions */}
+      {(isReview || isRating) && item.review?.id && (
+        <div className="ml-[52px]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleLike}
+                disabled={likeLoading}
+                className={`transition-all ${
+                  liked ? "text-[#D0021B]" : "text-gray-700 dark:text-gray-300 hover:text-[#D0021B]"
+                } disabled:opacity-50`}
+                title="Like"
               >
-                My profile
-              </Link>
-            ) : (
-              <Link
-                to="/register"
-                className="px-5 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                <HeartIcon filled={liked} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCommentsOpen((value) => !value)}
+                className={`transition-colors ${
+                  commentsOpen ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
+                title="Comment"
               >
-                Create account
-              </Link>
+                <CommentIcon />
+              </button>
+              <button type="button" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors" title="Share">
+                <ShareIcon />
+              </button>
+            </div>
+            <button type="button" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors" title="Save">
+              <FeedBookmarkIcon />
+            </button>
+          </div>
+
+          <div className="mt-2 space-y-1">
+            {likesCount > 0 && (
+              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                {likesCount} {likesCount === 1 ? "like" : "likes"}
+              </p>
+            )}
+            {commentsCount > 0 && !commentsOpen && (
+              <button
+                type="button"
+                onClick={() => setCommentsOpen(true)}
+                className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                View {commentsCount === 1 ? "1 comment" : `all ${commentsCount} comments`}
+              </button>
             )}
           </div>
-        </div>
 
-        <div className="rounded-3xl bg-gray-950 p-5 sm:p-6 shadow-2xl overflow-hidden relative">
-          <div className="absolute -top-20 -right-20 w-56 h-56 rounded-full bg-[#D0021B]/30 blur-2xl" />
-          <div className="relative grid grid-cols-4 gap-3">
-            {featuredMovies.map((movie) => (
-              <PosterCard key={movie.title} movie={movie} />
-            ))}
-          </div>
+          <ReviewComments
+            reviewId={item.review.id}
+            initialCount={commentsCount}
+            open={commentsOpen}
+            onCountChange={setCommentsCount}
+          />
         </div>
-      </section>
+      )}
+    </div>
+  );
+}
 
-      <section className="grid md:grid-cols-3 gap-4">
-        {stats.map((item) => (
-          <div key={item.label} className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-5">
-            <p className="text-2xl font-black text-gray-950 dark:text-white">{item.value}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{item.label}</p>
+/* Empty feed */
+function EmptyFeed() {
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-16 text-center flex flex-col items-center gap-3">
+      <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+        <UserIcon />
+      </div>
+      <p className="text-sm font-semibold text-gray-900 dark:text-white">Your feed is empty</p>
+      <p className="text-sm text-gray-400 dark:text-gray-500 max-w-xs">
+        Follow other users to see their reviews, ratings and collections here.
+      </p>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
+   TRENDING SECTION (sidebar droite)
+══════════════════════════════════════ */
+function TrendingCard({ movie }) {
+  const movieId = movie.tmdb_id || movie.external_id || movie.id;
+  const movieHref = movieId ? `/movies/${movieId}` : "#";
+
+  return (
+    <Link to={movieHref} aria-label={`Open ${movie.title}`} className="relative block rounded-2xl overflow-hidden aspect-[2/3] bg-gray-200 dark:bg-gray-800 group cursor-pointer hover:ring-2 hover:ring-[#D0021B] transition-all">
+      {movie.poster_url
+        ? <img src={movie.poster_url} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
+        : <div className="w-full h-full flex items-center justify-center"><FilmIcon /></div>
+      }
+      {/* Rating badge */}
+      <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-lg">
+        <StarIcon filled={true} />
+        <span className="text-white text-xs font-bold">{movie.vote_average?.toFixed(1) || "—"}</span>
+      </div>
+      {/* Bookmark */}
+      <button
+        type="button"
+        onClick={(event) => event.preventDefault()}
+        className="absolute top-2 right-2 w-7 h-7 bg-black/60 backdrop-blur-sm rounded-lg flex items-center justify-center hover:bg-black/80 transition-all"
+      >
+        <BookmarkIcon />
+      </button>
+    </Link>
+  );
+}
+
+function TrendingSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {[1,2,3,4].map(i => (
+        <div key={i} className="aspect-[2/3] rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse"/>
+      ))}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
+   HOME PAGE
+══════════════════════════════════════ */
+const formatStat = (value) => Number(value || 0).toLocaleString("en-US");
+
+function StatsCard({ stats, loading }) {
+  const rows = [
+    { label: "Movies Watched", value: stats.moviesWatched },
+    { label: "Reviews Written", value: stats.reviewsWritten },
+    { label: "Lists Created", value: stats.listsCreated },
+    { label: "Followers", value: stats.followers },
+  ];
+
+  return (
+    <section className="mt-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Stats</h2>
+
+      <div className="mt-6 space-y-4">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between gap-4">
+            <span className="text-sm text-gray-500 dark:text-gray-400">{row.label}</span>
+            {loading ? (
+              <span className="h-4 w-12 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+            ) : (
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatStat(row.value)}</span>
+            )}
           </div>
         ))}
-      </section>
+      </div>
 
-      {isAuthenticated && (
-        <section className="rounded-3xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Welcome back</p>
-          <h2 className="text-2xl font-black text-gray-950 dark:text-white mt-1">
-            {user?.username || "Movie fan"}
-          </h2>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link to="/settings" className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-sm font-bold text-gray-800 dark:text-gray-200">
-              Settings
-            </Link>
-            <Link to="/discover" className="px-4 py-2.5 rounded-xl bg-[#D0021B] text-sm font-bold text-white">
-              Search films
+      <Link
+        to="/profile"
+        className="mt-6 flex h-11 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+      >
+        View Profile
+      </Link>
+    </section>
+  );
+}
+
+export default function Home() {
+  const { user } = useAuth();
+
+  /* Feed state */
+  const [items, setItems]               = useState([]);
+  const [feedLoading, setFeedLoading]   = useState(true);
+  const [loadingMore, setLoadingMore]   = useState(false);
+  const [feedError, setFeedError]       = useState("");
+  const [offset, setOffset]             = useState(0);
+  const [hasMore, setHasMore]           = useState(true);
+  const [refreshing, setRefreshing]     = useState(false);
+
+  /* Trending state */
+  const [trending, setTrending]         = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+  const [stats, setStats] = useState({
+    moviesWatched: 0,
+    reviewsWritten: 0,
+    listsCreated: 0,
+    followers: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  const LIMIT     = 20;
+  const loaderRef = useRef(null);
+
+  /* ── Fetch feed ── */
+  const fetchFeed = useCallback(async (reset = false) => {
+    const currentOffset = reset ? 0 : offset;
+    if (reset) setFeedLoading(true);
+    else setLoadingMore(true);
+
+    try {
+      const res = await api.get("/social/feed", {
+        params: { limit: LIMIT, offset: currentOffset },
+      });
+      const newItems = res.data.items || [];
+
+      if (reset) {
+        setItems(newItems);
+        setOffset(LIMIT);
+      } else {
+        setItems((prev) => [...prev, ...newItems]);
+        setOffset((prev) => prev + LIMIT);
+      }
+      setHasMore(newItems.length === LIMIT);
+    } catch (err) {
+      setFeedError("Failed to load feed.");
+      console.error("Feed error:", err);
+    } finally {
+      setFeedLoading(false);
+      setLoadingMore(false);
+      setRefreshing(false);
+    }
+  }, [offset]);
+
+  /* ── Fetch popular movies ── */
+  useEffect(() => {
+    const fetchTrending = async () => {
+      try {
+        const res = await api.get("/movies/popular");
+        setTrending(res.data.data?.results || res.data.results || res.data.movies || []);
+      } catch (err) {
+        console.error("Trending error:", err);
+      } finally {
+        setTrendingLoading(false);
+      }
+    };
+    const fetchStats = async () => {
+      if (!user?.id) {
+        setStatsLoading(false);
+        return;
+      }
+
+      setStatsLoading(true);
+      try {
+        const [libraryRes, exportRes, followersRes] = await Promise.all([
+          api.get("/library/stats"),
+          api.get("/users/me/export"),
+          api.get(`/social/follow/${user.id}/followers`),
+        ]);
+
+        const libraryStats = libraryRes.data.data || {};
+        setStats({
+          moviesWatched: libraryStats.counts?.COMPLETED || libraryStats.totalMovies || 0,
+          reviewsWritten: exportRes.data.reviews?.filter((review) => !review.deleted_at).length || 0,
+          listsCreated: exportRes.data.custom_lists?.length || 0,
+          followers: followersRes.data.count || 0,
+        });
+      } catch (err) {
+        console.error("Stats error:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchTrending();
+    fetchStats();
+    fetchFeed(true);
+  }, [user?.id]);
+
+  /* ── Infinite scroll ── */
+  useEffect(() => {
+    if (!loaderRef.current || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore && hasMore) fetchFeed(false);
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(loaderRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, fetchFeed]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setOffset(0);
+    setHasMore(true);
+    setFeedError("");
+    await fetchFeed(true);
+  };
+
+  return (
+    <div className="max-w-screen-xl mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
+
+        {/* ══ LEFT — ACTIVITY FEED ══ */}
+        <div>
+          {/* Feed header */}
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Activity Feed</h1>
+            <button onClick={handleRefresh} disabled={refreshing}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all ${
+                refreshing ? "opacity-50 cursor-not-allowed" : ""
+              }`}>
+              <span className={refreshing ? "animate-spin" : ""}><RefreshIcon /></span>
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+
+          {/* Error */}
+          {feedError && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 text-sm text-red-600 flex items-center justify-between">
+              {feedError}
+              <button onClick={handleRefresh} className="font-semibold hover:underline ml-2">Retry</button>
+            </div>
+          )}
+
+          {/* Skeleton */}
+          {feedLoading && <FeedSkeleton />}
+
+          {/* Items */}
+          {!feedLoading && (
+            <>
+              {items.length === 0
+                ? <EmptyFeed />
+                : (
+                  <div className="flex flex-col gap-4">
+                    {items.map((item, idx) => (
+                      <FeedItem
+                        key={`${item.type}-${item.review?.id || item.collection?.id}-${idx}`}
+                        item={item}
+                      />
+                    ))}
+                  </div>
+                )
+              }
+
+              {/* Infinite scroll */}
+              {hasMore && (
+                <div ref={loaderRef} className="flex justify-center py-8">
+                  {loadingMore && (
+                    <div className="w-6 h-6 border-2 border-[#D0021B] border-t-transparent rounded-full animate-spin"/>
+                  )}
+                </div>
+              )}
+
+              {!hasMore && items.length > 0 && (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-400 dark:text-gray-500">You're all caught up 🎉</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ══ RIGHT — TRENDING NOW ══ */}
+        <div className="sticky top-24">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Popular Movies</h2>
+            <Link to="/discover" className="text-sm font-semibold text-[#D0021B] hover:underline">
+              See all
             </Link>
           </div>
-        </section>
-      )}
+
+          {trendingLoading ? (
+            <TrendingSkeleton />
+          ) : trending.length === 0 ? (
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-8 text-center">
+              <p className="text-sm text-gray-400">No popular movies available</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {trending.slice(0, 6).map((movie, idx) => (
+                <TrendingCard key={movie.id || idx} movie={movie} />
+              ))}
+            </div>
+          )}
+
+          <StatsCard stats={stats} loading={statsLoading} />
+        </div>
+
+      </div>
     </div>
   );
 }

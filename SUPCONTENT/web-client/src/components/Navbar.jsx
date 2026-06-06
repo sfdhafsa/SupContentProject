@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import api from "../services/api/axios";
 import { moviesApi } from "../services/api/movies.api";
 
 /* ── Icons ── */
@@ -42,6 +43,12 @@ const LogoutIcon = () => (
     <path d="M9 4H5a1 1 0 00-1 1v12a1 1 0 001 1h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const BellIcon = () => (
+  <svg viewBox="0 0 22 22" fill="none" className="w-5 h-5">
+    <path d="M6 8.5a5 5 0 0110 0v3.4l1.5 2.4a.7.7 0 01-.6 1.05H5.1a.7.7 0 01-.6-1.05L6 11.9V8.5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="M9 17a2 2 0 004 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
 const MenuIcon = () => (
   <svg viewBox="0 0 22 22" fill="none" className="w-5 h-5">
     <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -59,12 +66,11 @@ const StarIcon = ({ filled }) => (
 );
 
 const NAV_LINKS_PUBLIC = [
-  { label: "Home",     to: "/" },
   { label: "Discover", to: "/discover" },
   { label: "Lists",  to: "/lists" },
 ];
 const NAV_LINKS_AUTH = [
-  { label: "Home",     to: "/" },
+  { label: "Home",     to: "/home" },
   { label: "Discover", to: "/discover" },
   { label: "Library",  to: "/library" },
   { label: "Lists",    to: "/lists" },
@@ -199,6 +205,7 @@ export default function Navbar() {
   const [searchResults, setResults]   = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const searchRef                     = useRef(null);
 
   const navLinks = isAuthenticated ? NAV_LINKS_AUTH : NAV_LINKS_PUBLIC;
@@ -235,6 +242,17 @@ export default function Navbar() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadNotifications(0);
+      return;
+    }
+
+    api.get("/social/notifications/unread-count")
+      .then((res) => setUnreadNotifications(res.data.count || 0))
+      .catch(() => setUnreadNotifications(0));
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     logout();
@@ -337,6 +355,19 @@ export default function Navbar() {
           {/* ── CONNECTED ── */}
           {isAuthenticated ? (
             <>
+              <Link
+                to="/notifications"
+                title="Notifications"
+                className="relative w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all"
+              >
+                <BellIcon />
+                {unreadNotifications > 0 && (
+                  <span className="absolute right-1.5 top-1.5 min-w-4 h-4 px-1 rounded-full bg-[#D0021B] text-[10px] leading-4 text-white font-bold text-center">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                )}
+              </Link>
+
               <button
                 onClick={handleLogout}
                 title="Sign out"
@@ -454,6 +485,22 @@ export default function Navbar() {
                   <p className="text-xs text-gray-400 dark:text-gray-500">{user?.email}</p>
                 </div>
               </div>
+              <Link
+                to="/notifications"
+                onClick={() => setMobile(false)}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <span className="relative">
+                  <BellIcon />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -right-1 -top-1 w-2.5 h-2.5 rounded-full bg-[#D0021B]" />
+                  )}
+                </span>
+                Notifications
+                {unreadNotifications > 0 && (
+                  <span className="ml-auto text-xs font-bold text-[#D0021B]">{unreadNotifications}</span>
+                )}
+              </Link>
               <Link
                 to="/profile"
                 onClick={() => setMobile(false)}

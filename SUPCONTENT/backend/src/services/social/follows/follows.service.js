@@ -39,7 +39,7 @@ export const followUser = async (followerId, followedId) => {
     actorUserId: followerId,
     type: notificationTypes.FOLLOW,
     entityType: 'USER',
-    entityId: followerId,
+    entityId: null,
   });
 
   return {
