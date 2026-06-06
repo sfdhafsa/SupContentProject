@@ -78,11 +78,11 @@ function FeedSkeleton() {
   return (
     <div className="flex flex-col gap-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 animate-pulse">
+        <div key={i} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 animate-pulse">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800"/>
             <div className="flex flex-col gap-1.5 flex-1">
-              <div className="h-3.5 bg-gray-100 dark:bg-gray-800 rounded-lg w-56"/>
+              <div className="h-3.5 bg-gray-100 dark:bg-gray-800 rounded-lg w-36 sm:w-56"/>
               <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-lg w-24"/>
             </div>
           </div>
@@ -275,15 +275,15 @@ function FeedItem({ item, currentUser }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 transition-all">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 transition-all">
 
       {/* Header — Avatar + infos + icon */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Link to={`/profile/${item.author?.id}`}>
             <Avatar user={item.author} />
           </Link>
-          <div>
+          <div className="min-w-0">
             <Headline item={item} currentUser={currentUser} />
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
               {timeAgo(item.activity?.created_at)}
@@ -308,9 +308,9 @@ function FeedItem({ item, currentUser }) {
 
       {/* Review or comment text */}
       {((isReview && item.review?.text) || (isComment && item.comment?.text)) && (
-        <div className="mb-3 ml-[52px]">
+        <div className="mb-3 sm:ml-[52px]">
           {isReview && item.review.contains_spoiler && !showSpoiler ? (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5 flex items-center justify-between">
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:px-4">
               <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">⚠️ Contains spoilers</p>
               <button onClick={() => setShowSpoiler(true)}
                 className="text-xs font-semibold text-amber-700 dark:text-amber-300 hover:underline">
@@ -326,13 +326,13 @@ function FeedItem({ item, currentUser }) {
       )}
 
       {/* Movie card */}
-      <div className="ml-[52px] mb-4">
+      <div className="sm:ml-[52px] mb-4">
         <MovieCard movie={item.movie} rating={item.review?.rating} />
       </div>
 
       {/* Collection badge */}
       {isCollection && item.collection && (
-        <div className="ml-[52px] flex items-center gap-2 mb-4 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+        <div className="sm:ml-[52px] flex items-center gap-2 mb-4 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
           <CollectionIcon />
           <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">{item.collection.name}</p>
         </div>
@@ -340,7 +340,7 @@ function FeedItem({ item, currentUser }) {
 
       {/* Actions */}
       {(isReview || isRating || isComment) && item.review?.id && (
-        <div className="ml-[52px]">
+        <div className="sm:ml-[52px]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -404,7 +404,7 @@ function FeedItem({ item, currentUser }) {
 /* Empty feed */
 function EmptyFeed() {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-16 text-center flex flex-col items-center gap-3">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-8 sm:p-16 text-center flex flex-col items-center gap-3">
       <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
         <UserIcon />
       </div>
@@ -470,7 +470,7 @@ function StatsCard({ stats, loading }) {
   ];
 
   return (
-    <section className="mt-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+    <section className="mt-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-6">
       <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Stats</h2>
 
       <div className="mt-6 space-y-4">
@@ -619,16 +619,16 @@ export default function Home() {
   };
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 pt-4 pb-8">
+    <div className="max-w-screen-xl mx-auto px-0 sm:px-4 py-0 sm:py-8">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
 
         {/* ══ LEFT — ACTIVITY FEED ══ */}
         <div>
           {/* Feed header */}
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Activity Feed</h1>
+          <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Activity Feed</h1>
             <button onClick={handleRefresh} disabled={refreshing}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all ${
+              className={`flex shrink-0 items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all ${
                 refreshing ? "opacity-50 cursor-not-allowed" : ""
               }`}>
               <span className={refreshing ? "animate-spin" : ""}><RefreshIcon /></span>
@@ -684,7 +684,7 @@ export default function Home() {
         </div>
 
         {/* ══ RIGHT — TRENDING NOW ══ */}
-        <div className="sticky top-24">
+        <div className="lg:sticky lg:top-24">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Popular Movies</h2>
             <Link to="/discover" className="text-sm font-semibold text-[#D0021B] hover:underline">

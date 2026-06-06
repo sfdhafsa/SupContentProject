@@ -39,10 +39,10 @@ function Skeleton() {
   return (
     <div className="animate-pulse bg-gray-950 min-h-screen">
       <div className="h-[65vh] bg-gray-800 w-full" />
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 -mt-48 relative z-10">
-        <div className="flex gap-8">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 -mt-40 sm:-mt-48 relative z-10">
+        <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
           <div className="w-56 aspect-[2/3] rounded-2xl bg-gray-700 flex-shrink-0" />
-          <div className="flex-1 pt-32 space-y-4">
+          <div className="flex-1 pt-0 sm:pt-32 space-y-4">
             <div className="h-8 w-2/3 bg-gray-700 rounded-xl" />
             <div className="h-4 w-1/3 bg-gray-700 rounded" />
             <div className="h-20 bg-gray-700 rounded-xl" />
@@ -73,7 +73,7 @@ function CastCarousel({ cast }) {
       )}
 
       {/* Cards — pleine largeur */}
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4 px-6">
+      <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 gap-3 sm:gap-4 px-0 sm:px-6">
         {cast.slice(index, index + visible).map((person) => (
           <div key={person.id} className="text-center">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gray-700 mx-auto mb-2 ring-2 ring-white/10 hover:ring-[#D0021B] transition-all">
@@ -224,7 +224,7 @@ export default function MovieDetail() {
     <div className="min-h-screen bg-gray-950 text-white">
 
       {/* ── HERO BACKDROP — pleine largeur, pas de container ── */}
-      <div className="relative w-full h-[65vh] overflow-hidden">
+      <div className="relative w-full h-[58vh] min-h-[420px] overflow-hidden sm:h-[65vh]">
         {movie.backdrop_url && (
           <img
             src={movie.backdrop_url}
@@ -238,7 +238,7 @@ export default function MovieDetail() {
         <div className="absolute inset-0 bg-gradient-to-r from-gray-950/70 via-transparent to-transparent" />
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-black/40 backdrop-blur-sm text-white text-sm hover:bg-black/60 transition-all border border-white/10"
+          className="absolute top-4 left-3 sm:top-6 sm:left-6 flex items-center gap-2 px-3 py-2 sm:px-4 rounded-xl bg-black/40 backdrop-blur-sm text-white text-sm hover:bg-black/60 transition-all border border-white/10"
         >
           <BackIcon />
           Retour
@@ -246,12 +246,12 @@ export default function MovieDetail() {
       </div>
 
       {/* ── CONTENT — container centré ── */}
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 -mt-48 relative z-10">
-        <div className="flex flex-col md:flex-row gap-8">
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 -mt-56 sm:-mt-48 relative z-10">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8">
 
           {/* Poster avec glow */}
           <div className="flex-shrink-0 w-full md:w-56">
-            <div className="relative">
+            <div className="relative mx-auto w-40 sm:w-48 md:w-full">
               <div
                 className="absolute -inset-3 rounded-2xl opacity-50 blur-xl"
                 style={{ background: "radial-gradient(ellipse, rgba(208,2,27,0.6) 0%, rgba(120,0,120,0.4) 50%, transparent 70%)" }}
@@ -282,10 +282,10 @@ export default function MovieDetail() {
               </div>
             )}
 
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-1 leading-tight">{movie.title}</h1>
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-1 leading-tight">{movie.title}</h1>
 
             {movie.tagline && (
-              <p className="text-lg text-gray-400 italic mb-4">"{movie.tagline}"</p>
+              <p className="text-base sm:text-lg text-gray-400 italic mb-4">"{movie.tagline}"</p>
             )}
 
             <div className="flex flex-wrap items-center gap-3 mb-5 text-sm text-gray-400">
@@ -306,7 +306,7 @@ export default function MovieDetail() {
             </div>
 
             {rating && (
-              <div className="flex items-center gap-4 mb-5">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-5">
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, i) => <StarIcon key={i} filled={i < stars} />)}
                 </div>
@@ -321,7 +321,7 @@ export default function MovieDetail() {
             )}
 
             {(budget || revenue) && (
-              <div className="flex gap-6 mb-6">
+              <div className="flex flex-wrap gap-6 mb-6">
                 {budget && <div><p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Budget</p><p className="text-sm font-semibold text-white">{budget}</p></div>}
                 {revenue && <div><p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Revenus</p><p className="text-sm font-semibold text-green-400">{revenue}</p></div>}
               </div>
@@ -336,14 +336,14 @@ export default function MovieDetail() {
               </div>
             )}
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {movie.trailer && (
-                <button onClick={() => setTrailer(true)} className="flex items-center gap-2 px-6 py-2.5 bg-white text-gray-900 text-sm font-bold rounded-xl hover:bg-gray-100 transition-all shadow-lg">
+                <button onClick={() => setTrailer(true)} className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-gray-900 text-sm font-bold rounded-xl hover:bg-gray-100 transition-all shadow-lg">
                   <PlayIcon />Bande-annonce
                 </button>
               )}
               <button
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#D0021B] hover:bg-[#b30218] text-white text-sm font-semibold rounded-xl transition-all"
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#D0021B] hover:bg-[#b30218] text-white text-sm font-semibold rounded-xl transition-all"
                 onClick={() => {/* personne 3 branchera ici */}}
               >
                 <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
@@ -365,7 +365,7 @@ export default function MovieDetail() {
           <div className="max-w-screen-xl mx-auto px-4 sm:px-6 mb-4">
             <h2 className="text-lg font-bold text-white">Casting</h2>
           </div>
-          <div className="max-w-screen-xl mx-auto relative px-8">
+          <div className="max-w-screen-xl mx-auto relative px-4 sm:px-8">
             <CastCarousel cast={movie.cast} />
           </div>
         </div>
@@ -399,7 +399,7 @@ export default function MovieDetail() {
       {movie.similar?.length > 0 && (
         <div className="mt-12 mb-12 max-w-screen-xl mx-auto px-4 sm:px-6">
           <h2 className="text-lg font-bold text-white mb-4">Films similaires</h2>
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {movie.similar.map((m) => (
               <SimilarCard key={m.tmdb_id} movie={m} onClick={(tmdbId) => navigate(`/movies/${tmdbId}`)} />
             ))}
