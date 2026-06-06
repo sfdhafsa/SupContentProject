@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { moviesApi } from "../../services/api/movies.api";
+import ReviewsSection from "./ReviewsSection.jsx";
 
 const BackIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
@@ -405,6 +406,8 @@ export default function MovieDetail() {
           </div>
         </div>
       )}
+
+      <ReviewsSection tmdbId={id} />
 
       {trailer && movie.trailer && (
         <TrailerModal trailer={movie.trailer} onClose={() => setTrailer(false)} />
