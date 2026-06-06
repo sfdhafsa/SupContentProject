@@ -116,9 +116,10 @@ function Avatar({ user }) {
 }
 
 /* Headline avec parties en gras */
-function Headline({ item }) {
+function Headline({ item, currentUser }) {
   const author = item.author?.username || "";
   const movie  = item.movie?.title     || "";
+  const isViewerReviewAuthor = String(item.review_author?.id) === String(currentUser?.id);
 
   if (item.type === "REVIEW_CREATED") {
     return (
@@ -158,6 +159,30 @@ function Headline({ item }) {
         <span className="font-bold text-gray-900 dark:text-white">{movie}</span>
         {" to "}
         <span className="font-bold text-gray-900 dark:text-white">{item.collection?.name}</span>
+      </p>
+    );
+  }
+  if (item.type === "REVIEW_COMMENTED") {
+    return (
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        <Link to={`/profile/${item.author?.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+          {author}
+        </Link>
+        {" commented on "}
+        {isViewerReviewAuthor ? (
+          <span className="font-bold text-gray-900 dark:text-white">your</span>
+        ) : item.review_author?.id ? (
+          <>
+            <Link to={`/profile/${item.review_author.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+              {item.review_author.username}
+            </Link>
+            {"'s"}
+          </>
+        ) : (
+          <span className="font-bold text-gray-900 dark:text-white">a user's</span>
+        )}
+        {" review of "}
+        <span className="font-bold text-gray-900 dark:text-white">{movie}</span>
       </p>
     );
   }
@@ -209,7 +234,7 @@ function MovieCard({ movie, rating }) {
 }
 
 /* Feed Item — style Figma */
-function FeedItem({ item }) {
+function FeedItem({ item, currentUser }) {
   const [liked, setLiked]           = useState(item.review?.has_liked || false);
   const [likesCount, setLikesCount] = useState(item.review?.likes_count || 0);
   const [likeLoading, setLikeLoading] = useState(false);
@@ -220,6 +245,7 @@ function FeedItem({ item }) {
   const isReview     = item.type === "REVIEW_CREATED";
   const isRating     = item.type === "RATING_GIVEN";
   const isCollection = item.type === "COLLECTION_MOVIE_ADDED";
+  const isComment    = item.type === "REVIEW_COMMENTED";
 
   const timeAgo = (dateStr) => {
     const diff  = Date.now() - new Date(dateStr).getTime();
@@ -258,7 +284,7 @@ function FeedItem({ item }) {
             <Avatar user={item.author} />
           </Link>
           <div>
-            <Headline item={item} />
+            <Headline item={item} currentUser={currentUser} />
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
               {timeAgo(item.activity?.created_at)}
             </p>
@@ -269,19 +295,21 @@ function FeedItem({ item }) {
         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
           isReview     ? "text-blue-400"  :
           isRating     ? "text-amber-400" :
+          isComment    ? "text-blue-400"  :
           isCollection ? "text-purple-400": "text-gray-400"
         }`}>
           {isReview     ? <CommentIcon /> :
            isRating     ? <StarIcon filled={true} /> :
+           isComment    ? <CommentIcon /> :
            isCollection ? <CollectionIcon /> : null
           }
         </div>
       </div>
 
-      {/* Review text */}
-      {isReview && item.review?.text && (
+      {/* Review or comment text */}
+      {((isReview && item.review?.text) || (isComment && item.comment?.text)) && (
         <div className="mb-3 ml-[52px]">
-          {item.review.contains_spoiler && !showSpoiler ? (
+          {isReview && item.review.contains_spoiler && !showSpoiler ? (
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5 flex items-center justify-between">
               <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">⚠️ Contains spoilers</p>
               <button onClick={() => setShowSpoiler(true)}
@@ -291,7 +319,7 @@ function FeedItem({ item }) {
             </div>
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">
-              {item.review.text}
+              {isComment ? item.comment.text : item.review.text}
             </p>
           )}
         </div>
@@ -311,7 +339,7 @@ function FeedItem({ item }) {
       )}
 
       {/* Actions */}
-      {(isReview || isRating) && item.review?.id && (
+      {(isReview || isRating || isComment) && item.review?.id && (
         <div className="ml-[52px]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -630,6 +658,7 @@ export default function Home() {
                       <FeedItem
                         key={`${item.type}-${item.review?.id || item.collection?.id}-${idx}`}
                         item={item}
+                        currentUser={user}
                       />
                     ))}
                   </div>

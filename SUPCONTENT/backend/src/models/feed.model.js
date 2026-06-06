@@ -141,7 +141,7 @@ export const FeedModel = {
           NULL::BIGINT AS parent_comment_id,
           NULL::TIMESTAMP AS comment_created_at,
           NULL::TIMESTAMP AS comment_updated_at,
-          NULL::BIGINT AS review_author_id,
+          NULL::UUID AS review_author_id,
           NULL::VARCHAR(255) AS review_author_username,
           NULL::TEXT AS review_author_avatar_url,
           cl.id AS collection_id,
