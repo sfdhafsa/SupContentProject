@@ -69,7 +69,6 @@ app.use("/api/movies", movieRoutes);
 app.use("/api/reviews", reviewsRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/moderation", moderationRoutes);
-app.use("/api/admin", adminRoutes);
 app.use("/api", libraryRoutes);
 
 

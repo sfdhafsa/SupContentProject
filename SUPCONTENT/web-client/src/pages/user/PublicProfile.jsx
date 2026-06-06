@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api/axios";
 
@@ -78,6 +78,19 @@ function EmptyState({ message, sub }) {
 
 const TABS = ["Overview", "Reviews", "Lists"];
 
+const formatReview = (review) => ({
+  id: review.id,
+  movieId: review.external_id,
+  poster: review.poster_url,
+  movie: review.title,
+  year: review.release_date ? new Date(review.release_date).getFullYear() : null,
+  rating: Number(review.rating || 0),
+  date: review.created_at
+    ? new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null,
+  review: review.text || "Rated this movie.",
+});
+
 export default function PublicProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -90,9 +103,16 @@ export default function PublicProfile() {
   const [copied, setCopied]         = useState(false);
   const [following, setFollowing]   = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [activityLoading, setActivityLoading] = useState(true);
 
-  const [reviews] = useState([]);
-  const [lists]   = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [lists, setLists]   = useState([]);
+  const [stats, setStats] = useState({
+    followers: 0,
+    following: 0,
+    movies_watched: 0,
+    reviews: 0,
+  });
 
   /* ── Fetch public profile ── */
   useEffect(() => {
@@ -120,6 +140,39 @@ export default function PublicProfile() {
     }
   }, [currentUser, navigate, profile]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !id || currentUser?.id === id) return;
+
+    api.get(`/social/follow/${id}/follow-status`)
+      .then((res) => setFollowing(!!res.data.isFollowing))
+      .catch((err) => console.error("Follow status error:", err));
+  }, [currentUser, id, isAuthenticated]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchActivity = async () => {
+      setActivityLoading(true);
+      try {
+        const res = await api.get(`/users/${id}/activity`);
+        setReviews((res.data.reviews || []).map(formatReview));
+        setLists(res.data.lists || []);
+        setStats({
+          followers: res.data.stats?.followers || 0,
+          following: res.data.stats?.following || 0,
+          movies_watched: res.data.stats?.movies_watched || 0,
+          reviews: res.data.stats?.reviews || 0,
+        });
+      } catch (err) {
+        console.error("Public profile activity error:", err);
+      } finally {
+        setActivityLoading(false);
+      }
+    };
+
+    fetchActivity();
+  }, [id]);
+
   /* ── Derived values ── */
   const username   = profile?.username   || "";
   const bio        = profile?.bio        || "";
@@ -144,13 +197,12 @@ export default function PublicProfile() {
     if (!isAuthenticated) { navigate("/login"); return; }
     setFollowLoading(true);
     try {
-      if (following) {
-        await api.delete(`/social/follow/${id}`);
-        setFollowing(false);
-      } else {
-        await api.post(`/social/follow/${id}`);
-        setFollowing(true);
-      }
+      const res = await api.post(`/social/follow/${id}`);
+      setFollowing(res.data.status === "followed");
+      setStats((current) => ({
+        ...current,
+        followers: Math.max(0, current.followers + (res.data.status === "followed" ? 1 : -1)),
+      }));
     } catch (err) {
       console.error("Follow error:", err);
     } finally {
@@ -286,13 +338,13 @@ export default function PublicProfile() {
           {/* Stats */}
           <div className="flex items-center gap-6 flex-wrap">
             {[
-              { value: 0, label: "Followers" },
-              { value: 0, label: "Following" },
-              { value: 0, label: "Movies Watched" },
-              { value: 0, label: "Reviews" },
+              { value: stats.followers, label: "Followers" },
+              { value: stats.following, label: "Following" },
+              { value: stats.movies_watched, label: "Movies Watched" },
+              { value: stats.reviews, label: "Reviews" },
             ].map(({ value, label }) => (
               <div key={label} className="flex items-baseline gap-1.5">
-                <span className="text-base font-bold text-gray-900 dark:text-white">{value}</span>
+                <span className="text-base font-bold text-gray-900 dark:text-white">{value.toLocaleString()}</span>
                 <span className="text-sm text-gray-400 dark:text-gray-500">{label}</span>
               </div>
             ))}
@@ -341,7 +393,15 @@ export default function PublicProfile() {
           </div>
 
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Activity</h2>
-          <EmptyState message="No activity yet." sub="This user hasn't reviewed any movies yet."/>
+          {activityLoading ? (
+            <div className="flex flex-col gap-4">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40"/>)}
+            </div>
+          ) : reviews.length === 0 ? (
+            <EmptyState message="No activity yet." sub="This user hasn't reviewed any movies yet."/>
+          ) : (
+            reviews.slice(0, 3).map((item) => <ReviewCard key={item.id} item={item}/>)
+          )}
         </div>
       )}
 
@@ -349,27 +409,11 @@ export default function PublicProfile() {
       {tab === "Reviews" && (
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Reviews</h2>
-          {reviews.length === 0
+          {activityLoading
+            ? <div className="flex flex-col gap-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-40"/>)}</div>
+            : reviews.length === 0
             ? <EmptyState message="No reviews yet." sub="This user hasn't reviewed any movies yet."/>
-            : reviews.map((item) => (
-              <div key={item.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
-                <div className="flex gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-3">
-                  <div className="flex flex-col justify-center">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.movie}</p>
-                    {item.year && <p className="text-xs text-gray-400 mt-0.5">{item.year}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex gap-0.5">
-                    {[1,2,3,4,5].map((s) => <StarIcon key={s} filled={s <= item.rating}/>)}
-                  </div>
-                  {item.date && <span className="text-xs text-gray-400">{item.date}</span>}
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-3">
-                  {item.review}
-                </p>
-              </div>
-            ))
+            : reviews.map((item) => <ReviewCard key={item.id} item={item}/>)
           }
         </div>
       )}
@@ -378,9 +422,11 @@ export default function PublicProfile() {
       {tab === "Lists" && (
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Public Lists</h2>
-          {lists.length === 0
+          {activityLoading
+            ? <div className="flex flex-col gap-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-20"/>)}</div>
+            : lists.length === 0
             ? <EmptyState message="No public lists." sub="This user hasn't created any public lists yet."/>
-            : lists.filter(l => l.is_public).map((list) => (
+            : lists.map((list) => (
               <div key={list.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -399,6 +445,62 @@ export default function PublicProfile() {
           }
         </div>
       )}
+    </div>
+  );
+}
+
+function ReviewCard({ item }) {
+  const movieHref = item.movieId ? `/movies/${item.movieId}` : null;
+  const movieContent = (
+    <>
+      <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+        {item.poster ? (
+          <img
+            src={item.poster}
+            alt={item.movie}
+            className="w-full h-full object-cover"
+            onError={(e) => { e.target.style.display = "none"; }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <FilmIcon/>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col justify-center">
+        <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-[#D0021B] transition-colors">
+          {item.movie}
+        </p>
+        {item.year && <p className="text-xs text-gray-400 mt-0.5">{item.year}</p>}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
+      {movieHref ? (
+        <Link
+          to={movieHref}
+          className="group flex gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-3 hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors"
+        >
+          {movieContent}
+        </Link>
+      ) : (
+        <div className="flex gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-3">
+          {movieContent}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex gap-0.5">
+          {[1,2,3,4,5].map((s) => <StarIcon key={s} filled={s <= item.rating}/>)}
+        </div>
+        {item.date && <span className="text-xs text-gray-400">{item.date}</span>}
+      </div>
+
+      <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-3">
+        {item.review}
+      </p>
     </div>
   );
 }
