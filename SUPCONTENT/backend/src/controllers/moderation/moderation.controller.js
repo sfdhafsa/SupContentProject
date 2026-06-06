@@ -1,31 +1,38 @@
 import {
-  createReport,
+  deleteReportedContent,
+  dismissReport,
   getReports,
   updateReportStatus,
 } from "../../services/moderation/moderation.service.js";
-
-export const reportContent = async (req, res, next) => {
-  try {
-    const report = await createReport({
-      reporterUserId: req.user.userId,
-      targetType: req.body.target_type,
-      targetId: req.body.target_id,
-      reason: req.body.reason,
-    });
-
-    return res.status(201).json({
-      message: "Signalement envoye.",
-      report,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
 
 export const listReports = async (req, res, next) => {
   try {
     const reports = await getReports({
       status: req.query.status,
+    });
+
+    return res.json({ reports });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listPendingReports = async (req, res, next) => {
+  try {
+    const reports = await getReports({
+      status: "PENDING",
+    });
+
+    return res.json({ reports });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listResolvedReports = async (req, res, next) => {
+  try {
+    const reports = await getReports({
+      status: "RESOLVED",
     });
 
     return res.json({ reports });
@@ -43,8 +50,40 @@ export const handleReport = async (req, res, next) => {
     });
 
     return res.json({
-      message: "Signalement traite.",
+      message: "Report handled.",
       report,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const dismissReportedContent = async (req, res, next) => {
+  try {
+    const report = await dismissReport({
+      reportId: req.params.id,
+      handledBy: req.user.userId,
+    });
+
+    return res.json({
+      message: "Report dismissed.",
+      report,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteReportedTarget = async (req, res, next) => {
+  try {
+    const result = await deleteReportedContent({
+      reportId: req.params.id,
+      handledBy: req.user.userId,
+    });
+
+    return res.json({
+      message: "Reported content deleted.",
+      ...result,
     });
   } catch (err) {
     next(err);
