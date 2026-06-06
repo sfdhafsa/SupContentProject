@@ -1,12 +1,49 @@
 import pool from "../config/db.js";
 
+let reportStatusConstraintReady = false;
+
 export const ReportModel = {
+  async ensureStatusConstraint() {
+    if (reportStatusConstraintReady) return;
+
+    await pool.query(
+      `
+      UPDATE reports
+      SET status = CASE
+        WHEN status = 'APPROVED' THEN 'RESOLVED'
+        WHEN status = 'REJECTED' THEN 'REVIEWED'
+        ELSE status
+      END
+      WHERE status IN ('APPROVED', 'REJECTED');
+      `
+    );
+
+    await pool.query(
+      `
+      ALTER TABLE reports
+      DROP CONSTRAINT IF EXISTS reports_status_check;
+      `
+    );
+
+    await pool.query(
+      `
+      ALTER TABLE reports
+      ADD CONSTRAINT reports_status_check
+      CHECK (status IN ('PENDING', 'REVIEWED', 'RESOLVED'));
+      `
+    );
+
+    reportStatusConstraintReady = true;
+  },
+
   async create({
     reporter_user_id,
     target_type,
     target_id,
     reason,
   }) {
+    await this.ensureStatusConstraint();
+
     const { rows } = await pool.query(
       `
       INSERT INTO reports (
@@ -34,6 +71,8 @@ export const ReportModel = {
     target_type,
     target_id,
   }) {
+    await this.ensureStatusConstraint();
+
     const { rows } = await pool.query(
       `
       SELECT *
@@ -55,6 +94,8 @@ export const ReportModel = {
   },
 
   async findAll({ status } = {}) {
+    await this.ensureStatusConstraint();
+
     const values = [];
     const statusFilter = status ? "WHERE r.status = $1" : "";
 
@@ -94,11 +135,28 @@ export const ReportModel = {
     return rows;
   },
 
+  async findById(reportId) {
+    await this.ensureStatusConstraint();
+
+    const { rows } = await pool.query(
+      `
+      SELECT *
+      FROM reports
+      WHERE id = $1;
+      `,
+      [reportId]
+    );
+
+    return rows[0] || null;
+  },
+
   async updateStatus({
     report_id,
     status,
     handled_by,
   }) {
+    await this.ensureStatusConstraint();
+
     const { rows } = await pool.query(
       `
       UPDATE reports

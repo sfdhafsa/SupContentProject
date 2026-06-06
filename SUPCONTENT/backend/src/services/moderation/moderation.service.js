@@ -1,116 +1,56 @@
 import { CommentModel } from "../../models/comment.model.js";
 import { ReportModel } from "../../models/report.model.js";
 import { ReviewModel } from "../../models/review.model.js";
-
-const REPORT_TARGET_TYPES = ["REVIEW", "COMMENT"];
-const REPORT_REASONS = ["UNMARKED_SPOILER", "INSULT", "OTHER"];
-const REPORT_STATUSES = ["PENDING", "APPROVED", "REJECTED"];
+import {
+  getReports,
+  updateReportStatus,
+} from "../reports/reports.service.js";
 
 const normalizeUpper = (value) => String(value || "").trim().toUpperCase();
 
-const assertTargetExists = async (targetType, targetId) => {
-  if (targetType === "REVIEW") {
-    return ReviewModel.findById(targetId);
-  }
+export { getReports, updateReportStatus };
 
-  if (targetType === "COMMENT") {
-    return CommentModel.findById(targetId);
-  }
-
-  return null;
-};
-
-export const createReport = async ({
-  reporterUserId,
-  targetType,
-  targetId,
-  reason,
-}) => {
-  const normalizedTargetType = normalizeUpper(targetType);
-  const normalizedReason = normalizeUpper(reason);
-
-  if (!REPORT_TARGET_TYPES.includes(normalizedTargetType)) {
-    const error = new Error("Type de contenu invalide.");
-    error.status = 400;
-    throw error;
-  }
-
-  if (!Number.isInteger(Number(targetId)) || Number(targetId) <= 0) {
-    const error = new Error("Identifiant de contenu invalide.");
-    error.status = 400;
-    throw error;
-  }
-
-  if (!REPORT_REASONS.includes(normalizedReason)) {
-    const error = new Error("Motif de signalement invalide.");
-    error.status = 400;
-    throw error;
-  }
-
-  const target = await assertTargetExists(normalizedTargetType, targetId);
-
-  if (!target) {
-    const error = new Error("Contenu introuvable.");
-    error.status = 404;
-    throw error;
-  }
-
-  const existingReport = await ReportModel.findOpenByReporterAndTarget({
-    reporter_user_id: reporterUserId,
-    target_type: normalizedTargetType,
-    target_id: targetId,
+export const dismissReport = async ({ reportId, handledBy }) =>
+  updateReportStatus({
+    reportId,
+    status: "REVIEWED",
+    handledBy,
   });
 
-  if (existingReport) {
-    const error = new Error("Ce contenu a deja ete signale par cet utilisateur.");
-    error.status = 409;
-    throw error;
-  }
-
-  return ReportModel.create({
-    reporter_user_id: reporterUserId,
-    target_type: normalizedTargetType,
-    target_id: targetId,
-    reason: normalizedReason,
-  });
-};
-
-export const getReports = async ({ status } = {}) => {
-  const normalizedStatus = status ? normalizeUpper(status) : undefined;
-
-  if (normalizedStatus && !REPORT_STATUSES.includes(normalizedStatus)) {
-    const error = new Error("Statut de signalement invalide.");
-    error.status = 400;
-    throw error;
-  }
-
-  return ReportModel.findAll({ status: normalizedStatus });
-};
-
-export const updateReportStatus = async ({
-  reportId,
-  status,
-  handledBy,
-}) => {
-  const normalizedStatus = normalizeUpper(status);
-
-  if (!["APPROVED", "REJECTED"].includes(normalizedStatus)) {
-    const error = new Error("Le statut doit etre APPROVED ou REJECTED.");
-    error.status = 400;
-    throw error;
-  }
-
-  const report = await ReportModel.updateStatus({
-    report_id: reportId,
-    status: normalizedStatus,
-    handled_by: handledBy,
-  });
+export const deleteReportedContent = async ({ reportId, handledBy }) => {
+  const report = await ReportModel.findById(reportId);
 
   if (!report) {
-    const error = new Error("Signalement introuvable.");
-    error.status = 404;
-    throw error;
+    throw Object.assign(new Error("Report not found."), { status: 404 });
   }
 
-  return report;
+  if (normalizeUpper(report.status) !== "PENDING") {
+    throw Object.assign(new Error("This report has already been handled."), { status: 409 });
+  }
+
+  let deletedTarget = null;
+
+  if (report.target_type === "REVIEW") {
+    deletedTarget = await ReviewModel.softDeleteById(report.target_id);
+  } else if (report.target_type === "COMMENT") {
+    deletedTarget = await CommentModel.softDeleteById(report.target_id);
+  }
+
+  if (!deletedTarget) {
+    throw Object.assign(
+      new Error("Reported content was not found or has already been deleted."),
+      { status: 404 }
+    );
+  }
+
+  const updatedReport = await updateReportStatus({
+    reportId,
+    status: "RESOLVED",
+    handledBy,
+  });
+
+  return {
+    report: updatedReport,
+    deletedTarget,
+  };
 };

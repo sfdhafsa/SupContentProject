@@ -130,5 +130,21 @@ export const ReviewModel = {
 
     return rows[0] || null;
   },
+
+  async softDeleteById(reviewId) {
+    const { rows } = await pool.query(
+      `
+      UPDATE reviews
+      SET deleted_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $1
+      AND deleted_at IS NULL
+      RETURNING *;
+      `,
+      [reviewId]
+    );
+
+    return rows[0] || null;
+  },
 };
 
