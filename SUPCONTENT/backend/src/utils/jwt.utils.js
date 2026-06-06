@@ -9,11 +9,12 @@ import jwt from 'jsonwebtoken';
  */
 export const signToken = ({ userId, roles = [] }) => {
   if (!userId) throw new Error("userId is required");
+  const tokenRoles = roles.length ? roles.map(role => String(role).toLowerCase()) : ['user'];
 
   return jwt.sign(
     {
       sub: userId,      // user id
-      roles: roles      // ["user", "admin"]
+      roles: tokenRoles
     },
     process.env.JWT_SECRET,
     {

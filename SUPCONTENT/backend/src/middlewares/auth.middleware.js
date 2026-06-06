@@ -29,10 +29,13 @@ export const protect = async (req, res, next) => {
       return res.status(403).json({ message: 'Compte suspendu.' });
     }
 
+    const roles = (user.roles || []).map(role => String(role).toLowerCase());
+
     req.user = {
-      userId: user.id,  
+      id: user.id,
+      userId: user.id,
       email: user.email,
-      roles: decoded.roles || [],
+      roles,
       token,
       tokenExpiresAt: decoded.exp ? new Date(decoded.exp * 1000) : null,
     };
@@ -60,10 +63,13 @@ export const optionalProtect = async (req, res, next) => {
       return next();
     }
 
+    const roles = (user.roles || []).map(role => String(role).toLowerCase());
+
     req.user = {
+      id: user.id,
       userId: user.id,
       email: user.email,
-      roles: decoded.roles || [],
+      roles,
     };
 
     return next();
@@ -71,4 +77,6 @@ export const optionalProtect = async (req, res, next) => {
     return next();
   }
 };
+
+export const authenticate = protect;
 

@@ -47,13 +47,12 @@ export const register = async (req, res, next) => {
       passwordHash
     });
 
-    // Get roles
     const roles = await RoleModel.getRolesByUserId(user.id);
+    const normalizedRoles = roles.map(role => String(role).toLowerCase());
 
-    // Generate JWT (IMPORTANT: roles included)
     const token = signToken({
       userId: user.id,
-      roles
+      roles: normalizedRoles
     });
 
     const { password_hash, ...safeUser } = user;
@@ -63,7 +62,7 @@ export const register = async (req, res, next) => {
       token,
       user: {
         ...safeUser,
-        roles
+        roles: normalizedRoles
       }
     });
 
@@ -103,11 +102,8 @@ export const login = async (req, res, next) => {
 
     // Get full user (clean profile)
     const fullUser = await UserModel.findById(user.id);
+    const roles = fullUser.roles || [];
 
-    // Get roles
-    const roles = await RoleModel.getRolesByUserId(user.id);
-
-    // Generate JWT (IMPORTANT)
     const token = signToken({
       userId: user.id,
       roles

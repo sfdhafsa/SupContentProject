@@ -41,7 +41,7 @@ export const UserModel = {
           u.is_banned,
           u.created_at,
           COALESCE(
-            array_remove(array_agg(DISTINCT r.name), NULL),
+            array_remove(array_agg(DISTINCT LOWER(r.name)), NULL),
             '{}'
           ) AS roles
        FROM users u
@@ -82,7 +82,7 @@ export const UserModel = {
       const user = rows[0];
 
       const { rows: roleRows } = await client.query(
-        `SELECT id FROM roles WHERE name = 'user'`
+        `SELECT id FROM roles WHERE LOWER(name) = 'user'`
       );
       const roleId = roleRows[0]?.id;
 
@@ -157,7 +157,7 @@ export const UserModel = {
     `;
 
     const { rows } = await pool.query(query, values);
-    return rows[0];
+    return rows[0] ? this.findById(id) : null;
   },
 
   // =====================
@@ -181,6 +181,51 @@ export const UserModel = {
        WHERE id = $2`,
       [newHash, id]
     );
+  },
+
+  // =====================
+  // PROMOTE USER TO ADMIN
+  // =====================
+  async promoteToAdmin(id) {
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const { rows: userRows } = await client.query(
+        `SELECT id FROM users WHERE id = $1`,
+        [id]
+      );
+
+      if (!userRows[0]) {
+        await client.query('ROLLBACK');
+        return null;
+      }
+
+      const { rows: roleRows } = await client.query(
+        `SELECT id FROM roles WHERE LOWER(name) = 'admin'`
+      );
+      const roleId = roleRows[0]?.id;
+
+      if (!roleId) {
+        throw Object.assign(new Error('Role admin introuvable.'), { status: 500 });
+      }
+
+      await client.query(
+        `INSERT INTO user_roles (user_id, role_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [id, roleId]
+      );
+
+      await client.query('COMMIT');
+      return this.findById(id);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   },
 
   // =====================
