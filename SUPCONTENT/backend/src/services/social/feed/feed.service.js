@@ -16,13 +16,27 @@ const normalizePagination = ({ limit = 20, offset = 0 } = {}) => {
 
 const hasReviewText = (text) => typeof text === 'string' && text.trim() !== '';
 
-const buildActivity = (row) => {
+const buildActivity = (row, userId) => {
   if (row.activity_type === 'COLLECTION_MOVIE_ADDED') {
     return {
       type: 'COLLECTION_MOVIE_ADDED',
       action: 'added_to_collection',
       headline: `${row.author_username} added ${row.movie_title} to ${row.collection_name}`,
       body: row.collection_description,
+      created_at: row.activity_created_at,
+    };
+  }
+
+  if (row.activity_type === 'REVIEW_COMMENTED') {
+    const isViewerReview = String(row.review_author_id) === String(userId);
+
+    return {
+      type: 'REVIEW_COMMENTED',
+      action: 'commented',
+      headline: isViewerReview
+        ? `${row.author_username} commented on your review`
+        : `${row.author_username} commented on ${row.review_author_username}'s review`,
+      body: row.comment_text,
       created_at: row.activity_created_at,
     };
   }
@@ -46,9 +60,10 @@ const buildActivity = (row) => {
   };
 };
 
-const mapFeedItem = (row) => {
-  const activity = buildActivity(row);
+const mapFeedItem = (row, userId) => {
+  const activity = buildActivity(row, userId);
   const isCollectionActivity = activity.type === 'COLLECTION_MOVIE_ADDED';
+  const isCommentActivity = activity.type === 'REVIEW_COMMENTED';
 
   return {
     type: activity.type,
@@ -71,6 +86,15 @@ const mapFeedItem = (row) => {
           comments_count: row.comments_count,
           has_liked: row.has_liked,
         },
+    comment: isCommentActivity
+      ? {
+          id: row.comment_id,
+          text: row.comment_text,
+          parent_comment_id: row.parent_comment_id,
+          created_at: row.comment_created_at,
+          updated_at: row.comment_updated_at,
+        }
+      : null,
     collection: isCollectionActivity
       ? {
           id: row.collection_id,
@@ -85,6 +109,13 @@ const mapFeedItem = (row) => {
       username: row.author_username,
       avatar_url: row.author_avatar_url,
     },
+    review_author: isCollectionActivity
+      ? null
+      : {
+          id: row.review_author_id,
+          username: row.review_author_username,
+          avatar_url: row.review_author_avatar_url,
+        },
     movie: {
       id: row.movie_id,
       external_id: row.movie_external_id,
@@ -105,7 +136,7 @@ export const getFeed = async (userId, pagination = {}) => {
     data: {
       limit,
       offset,
-      items: rows.map(mapFeedItem),
+      items: rows.map((row) => mapFeedItem(row, userId)),
     },
   };
 };
