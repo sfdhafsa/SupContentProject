@@ -619,7 +619,7 @@ export default function Home() {
   };
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-8">
+    <div className="max-w-screen-xl mx-auto px-4 pt-4 pb-8">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
 
         {/* ══ LEFT — ACTIVITY FEED ══ */}
