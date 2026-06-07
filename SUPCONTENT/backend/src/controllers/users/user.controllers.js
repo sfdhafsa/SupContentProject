@@ -375,6 +375,25 @@ export const getUserById = async (req, res, next) => {
 };
 
 // =====================
+// GET /api/users/search?q=username
+// =====================
+export const searchUsers = async (req, res, next) => {
+  try {
+    const query = String(req.query.q || '').trim();
+
+    if (query.length < 2) {
+      return res.json({ users: [] });
+    }
+
+    const users = await UserModel.searchByUsername(query, req.user.userId);
+
+    return res.json({ users });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// =====================
 // GET /api/users/:id/activity (PUBLIC)
 // =====================
 export const getPublicUserActivity = async (req, res, next) => {
