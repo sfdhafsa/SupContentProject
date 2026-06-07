@@ -1,12 +1,15 @@
 import { Link } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
+import { useI18n } from '../src/i18n';
 
 export default function ForgotPassword() {
+  const { t } = useI18n();
+
   return (
     <View style={styles.page}>
-      <Text style={styles.title}>Forgot password</Text>
-      <Text style={styles.text}>Password reset screen will be built here.</Text>
-      <Link href="/login" style={styles.link}>Back to login</Link>
+      <Text style={styles.title}>{t('forgotPassword')}</Text>
+      <Text style={styles.text}>{t('resetComing')}</Text>
+      <Link href="/login" style={styles.link}>{t('backToLogin')}</Link>
     </View>
   );
 }

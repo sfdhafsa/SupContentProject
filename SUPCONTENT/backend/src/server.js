@@ -20,6 +20,8 @@ import reportRoutes from "./routes/reports/reports.routes.js";
 import "./config/passport.js";
 import "./config/google.strategy.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
+import { i18nResponseMiddleware } from "./middlewares/i18n-response.middleware.js";
+import { localeMiddleware } from "./middlewares/locale.middleware.js";
 import { initializeMessagesSocket } from "./services/social/messages/messages.socket.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,6 +55,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(localeMiddleware);
+app.use(i18nResponseMiddleware);
 app.use(passport.initialize());
 app.get("/.well-known/appspecific/com.chrome.devtools.json", (_, res) => {
   res.status(204).end();

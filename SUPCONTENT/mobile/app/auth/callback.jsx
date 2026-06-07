@@ -3,21 +3,23 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getCurrentUser } from '../../src/services/authApi';
 import { saveAuthSession } from '../../src/services/authStorage';
+import { useI18n } from '../../src/i18n';
 
 export default function OAuthCallback() {
   const router = useRouter();
+  const { t } = useI18n();
   const { token, error: oauthError } = useLocalSearchParams();
   const [error, setError] = useState('');
 
   useEffect(() => {
     const finishOAuth = async () => {
       if (oauthError) {
-        setError('Google sign in failed.');
+        setError(t('googleFailed'));
         return;
       }
 
       if (!token) {
-        setError('Missing OAuth token.');
+        setError(t('missingOauthToken'));
         return;
       }
 
@@ -26,25 +28,25 @@ export default function OAuthCallback() {
         await saveAuthSession(token, user);
         router.replace('/home');
       } catch {
-        setError('Unable to load your Google profile.');
+        setError(t('googleProfileFailed'));
       }
     };
 
     finishOAuth();
-  }, [oauthError, router, token]);
+  }, [oauthError, router, t, token]);
 
   return (
     <View style={styles.page}>
       {error ? (
         <>
-          <Text style={styles.title}>Connection failed</Text>
+          <Text style={styles.title}>{t('connectionFailed')}</Text>
           <Text style={styles.text}>{error}</Text>
-          <Link href="/login" style={styles.link}>Back to login</Link>
+          <Link href="/login" style={styles.link}>{t('backToLogin')}</Link>
         </>
       ) : (
         <>
           <View style={styles.spinner} />
-          <Text style={styles.text}>Connecting with Google...</Text>
+          <Text style={styles.text}>{t('connectingGoogle')}</Text>
         </>
       )}
     </View>

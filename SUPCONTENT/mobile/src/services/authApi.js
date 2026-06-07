@@ -1,4 +1,17 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config/api';
+
+const LANGUAGE_KEY = 'supcontent.language';
+
+async function getJsonHeaders() {
+  const language = await AsyncStorage.getItem(LANGUAGE_KEY) || 'fr';
+  return {
+    Accept: 'application/json',
+    'Accept-Language': language,
+    'Content-Type': 'application/json',
+    'X-Language': language,
+  };
+}
 
 function getErrorMessage(data, fallback) {
   if (data?.message) return data.message;
@@ -10,10 +23,7 @@ function getErrorMessage(data, fallback) {
 export async function loginWithEmail({ email, password }) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
+    headers: await getJsonHeaders(),
     body: JSON.stringify({ email, password }),
   });
 
@@ -29,10 +39,7 @@ export async function loginWithEmail({ email, password }) {
 export async function registerWithEmail({ username, email, password }) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
+    headers: await getJsonHeaders(),
     body: JSON.stringify({ username, email, password }),
   });
 
@@ -48,7 +55,7 @@ export async function registerWithEmail({ username, email, password }) {
 export async function getCurrentUser(token) {
   const response = await fetch(`${API_BASE_URL}/users/me`, {
     headers: {
-      Accept: 'application/json',
+      ...(await getJsonHeaders()),
       Authorization: `Bearer ${token}`,
     },
   });

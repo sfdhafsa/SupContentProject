@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
+import { useI18n } from '../src/i18n';
 import { getAuthUser } from '../src/services/authStorage';
 
 const friends = [
@@ -24,6 +25,8 @@ const watching = [
 ];
 
 function SectionHeader({ icon, title }) {
+  const { t } = useI18n();
+
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitleWrap}>
@@ -31,7 +34,7 @@ function SectionHeader({ icon, title }) {
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       <Pressable>
-        <Text style={styles.seeAll}>See all</Text>
+        <Text style={styles.seeAll}>{t('seeAll')}</Text>
       </Pressable>
     </View>
   );
@@ -39,6 +42,7 @@ function SectionHeader({ icon, title }) {
 
 export default function Home() {
   const [username, setUsername] = useState('User');
+  const { t } = useI18n();
 
   useEffect(() => {
     getAuthUser().then((user) => {
@@ -62,14 +66,14 @@ export default function Home() {
           >
             <View style={styles.heroOverlay}>
               <View style={styles.heroBadgeRow}>
-                <Text style={styles.featuredBadge}>FEATURED</Text>
+                <Text style={styles.featuredBadge}>{t('featured')}</Text>
                 <Text style={styles.ratingBadge}>8.4</Text>
               </View>
               <Text style={styles.heroTitle}>Inception</Text>
               <View style={styles.heroActions}>
                 <Pressable style={styles.detailsButton}>
-                  <Text style={styles.playIcon}>Play</Text>
-                  <Text style={styles.detailsText}>Details</Text>
+                  <Text style={styles.playIcon}>{t('play')}</Text>
+                  <Text style={styles.detailsText}>{t('details')}</Text>
                 </Pressable>
                 <Pressable style={styles.saveButton}>
                   <Text style={styles.saveText}>+</Text>
@@ -82,12 +86,12 @@ export default function Home() {
             {friends.map((friend) => (
               <View key={friend.name} style={styles.friendItem}>
                 <Image source={{ uri: friend.image }} style={styles.friendImage} />
-                <Text style={styles.friendName}>{friend.name}</Text>
+                <Text style={styles.friendName}>{friend.name === 'You' ? t('userYou') : friend.name}</Text>
               </View>
             ))}
           </ScrollView>
 
-          <SectionHeader icon="T" title="Trending Now" />
+          <SectionHeader icon="T" title={t('trendingNow')} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.movieRow}>
             {trending.map((movie) => (
               <View key={movie.title} style={styles.movieCard}>
@@ -102,7 +106,7 @@ export default function Home() {
             ))}
           </ScrollView>
 
-          <SectionHeader icon="C" title="Continue Watching" />
+          <SectionHeader icon="C" title={t('continueWatching')} />
           <View style={styles.watchGrid}>
             {watching.map((movie) => (
               <View key={movie.title} style={styles.watchCard}>
@@ -118,8 +122,8 @@ export default function Home() {
           </View>
 
           <View style={styles.activity}>
-            <Text style={styles.activityTitle}>Friend Activity</Text>
-            <Text style={styles.activityText}>Sarah rated Inception 5 stars.</Text>
+            <Text style={styles.activityTitle}>{t('friendActivity')}</Text>
+            <Text style={styles.activityText}>{t('sarahRated')}</Text>
           </View>
         </ScrollView>
 

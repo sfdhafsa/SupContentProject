@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { registerWithEmail } from '../src/services/authApi';
 import { saveAuthSession } from '../src/services/authStorage';
+import { useI18n } from '../src/i18n';
 import { startGoogleOAuth } from '../src/services/oauth';
 
 export default function Register() {
   const router = useRouter();
+  const { t } = useI18n();
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -23,12 +25,12 @@ export default function Register() {
   };
 
   const validate = () => {
-    if (form.username.trim().length < 3) return 'Username must contain at least 3 characters.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Enter a valid email.';
-    if (form.password.length < 8) return 'Password must contain at least 8 characters.';
-    if (!/[A-Z]/.test(form.password)) return 'Password must contain at least one uppercase letter.';
-    if (!/[0-9]/.test(form.password)) return 'Password must contain at least one number.';
-    if (form.password !== form.confirmPassword) return 'Passwords do not match.';
+    if (form.username.trim().length < 3) return t('usernameValidation');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return t('emailValidation');
+    if (form.password.length < 8) return t('passwordLengthValidation');
+    if (!/[A-Z]/.test(form.password)) return t('passwordUppercaseValidation');
+    if (!/[0-9]/.test(form.password)) return t('passwordNumberValidation');
+    if (form.password !== form.confirmPassword) return t('passwordsMatchValidation');
     return '';
   };
 
@@ -52,7 +54,7 @@ export default function Register() {
       await saveAuthSession(data.token, data.user);
       router.replace('/home');
     } catch (err) {
-      setError(err.message || 'Unable to create account.');
+      setError(err.message || t('unableCreateAccount'));
     } finally {
       setLoading(false);
     }
@@ -72,8 +74,8 @@ export default function Register() {
           </View>
         </View>
 
-        <Text style={styles.title}>Create an account</Text>
-        <Text style={styles.subtitle}>Sign up to get started with SUPMOVIES</Text>
+        <Text style={styles.title}>{t('createAccount')}</Text>
+        <Text style={styles.subtitle}>{t('registerSubtitle')}</Text>
 
         <Pressable onPress={startGoogleOAuth} style={styles.socialButton}>
           <Text style={styles.googleIcon}>G</Text>
@@ -82,11 +84,11 @@ export default function Register() {
 
         <View style={styles.dividerRow}>
           <View style={styles.divider} />
-          <Text style={styles.dividerText}>OR</Text>
+          <Text style={styles.dividerText}>{t('or')}</Text>
           <View style={styles.divider} />
         </View>
 
-        <Text style={styles.label}>Username</Text>
+        <Text style={styles.label}>{t('username')}</Text>
         <TextInput
           autoCapitalize="none"
           onChangeText={(value) => updateField('username', value)}
@@ -96,7 +98,7 @@ export default function Register() {
           value={form.username}
         />
 
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>{t('email')}</Text>
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
@@ -107,20 +109,20 @@ export default function Register() {
           value={form.email}
         />
 
-        <Text style={styles.label}>Password</Text>
+        <Text style={styles.label}>{t('password')}</Text>
         <TextInput
           onChangeText={(value) => updateField('password', value)}
-          placeholder="Create a password (min. 8 characters)"
+          placeholder={t('createPasswordPlaceholder')}
           placeholderTextColor="#7f8a9b"
           secureTextEntry
           style={styles.input}
           value={form.password}
         />
 
-        <Text style={styles.label}>Confirm password</Text>
+        <Text style={styles.label}>{t('confirmPassword')}</Text>
         <TextInput
           onChangeText={(value) => updateField('confirmPassword', value)}
-          placeholder="Confirm your password"
+          placeholder={t('confirmPasswordPlaceholder')}
           placeholderTextColor="#7f8a9b"
           secureTextEntry
           style={styles.input}
@@ -134,14 +136,14 @@ export default function Register() {
           onPress={handleRegister}
           style={[styles.createButton, loading && styles.disabledButton]}
         >
-          <Text style={styles.createText}>{loading ? 'Creating...' : 'Create account'}</Text>
+          <Text style={styles.createText}>{loading ? t('creating') : t('createAccount')}</Text>
         </Pressable>
 
         <View style={styles.signInRow}>
-          <Text style={styles.mutedText}>Already have an account? </Text>
+          <Text style={styles.mutedText}>{t('alreadyHaveAccount')}</Text>
           <Link href="/login" asChild>
             <Pressable>
-              <Text style={styles.signInText}>Sign in</Text>
+              <Text style={styles.signInText}>{t('signIn')}</Text>
             </Pressable>
           </Link>
         </View>

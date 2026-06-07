@@ -1,5 +1,6 @@
 import tmdb from "../../config/tmdb.js";
 import { MovieModel } from "../../models/movie.model.js";
+import { tmdbLanguageForLocale } from "../../middlewares/locale.middleware.js";
 
 const TMDB_IMAGE_BASE_W500 = "https://image.tmdb.org/t/p/w500";
 const TMDB_IMAGE_BASE_ORIG = "https://image.tmdb.org/t/p/original";
@@ -29,6 +30,11 @@ const validateTmdbId = (tmdbId) => {
   }
   return String(tmdbId);
 };
+
+const withLanguage = (locale, params = {}) => ({
+  ...params,
+  language: tmdbLanguageForLocale(locale),
+});
 
 const formatMovieList = (movie) => ({
   tmdb_id:      String(movie.id),
@@ -108,7 +114,7 @@ const formatMovieDetail = (data, credits, videos, similar) => {
 };
 
 // 🔎 SEARCH
-export const searchMovies = async ({ query, page = 1, year, genre_id }) => {
+export const searchMovies = async ({ query, page = 1, year, genre_id, locale = "fr" }) => {
   if (!query || query.trim() === "") {
     throw Object.assign(new Error("Le paramètre 'q' est requis"), { status: 400 });
   }
@@ -119,7 +125,7 @@ export const searchMovies = async ({ query, page = 1, year, genre_id }) => {
   if (yearNum  && !isNaN(yearNum))  params.primary_release_year = yearNum;
   if (genreNum && !isNaN(genreNum)) params.with_genres           = genreNum;
   try {
-    const response = await tmdb.get("search/movie", { params });
+    const response = await tmdb.get("search/movie", { params: withLanguage(locale, params) });
     return {
       results:       response.data.results.map(formatMovieList),
       page:          response.data.page,
@@ -132,15 +138,15 @@ export const searchMovies = async ({ query, page = 1, year, genre_id }) => {
 };
 
 // 🎬 GET MOVIE BY ID
-export const getMovieById = async (tmdbId) => {
+export const getMovieById = async (tmdbId, locale = "fr") => {
   const validId = validateTmdbId(tmdbId);
   const cached  = await MovieModel.findByExternalId(validId);
   try {
     const [movieRes, creditsRes, videosRes, similarRes] = await Promise.all([
-      tmdb.get(`movie/${validId}`),
-      tmdb.get(`movie/${validId}/credits`),
-      tmdb.get(`movie/${validId}/videos`),
-      tmdb.get(`movie/${validId}/similar`),
+      tmdb.get(`movie/${validId}`, { params: withLanguage(locale) }),
+      tmdb.get(`movie/${validId}/credits`, { params: withLanguage(locale) }),
+      tmdb.get(`movie/${validId}/videos`, { params: withLanguage(locale) }),
+      tmdb.get(`movie/${validId}/similar`, { params: withLanguage(locale) }),
     ]);
     const data      = movieRes.data;
     const movieData = {
@@ -165,9 +171,9 @@ export const getMovieById = async (tmdbId) => {
 };
 
 // 🎭 GENRES
-export const getGenres = async () => {
+export const getGenres = async (locale = "fr") => {
   try {
-    const response = await tmdb.get("genre/movie/list");
+    const response = await tmdb.get("genre/movie/list", { params: withLanguage(locale) });
     return response.data.genres.map((g) => ({ id: g.id, name: g.name }));
   } catch (err) {
     throw Object.assign(new Error("Erreur API TMDB"), { status: err.response?.status || 502 });
@@ -175,10 +181,10 @@ export const getGenres = async () => {
 };
 
 // 🔥 POPULAR
-export const getPopularMovies = async (page = 1) => {
+export const getPopularMovies = async (page = 1, locale = "fr") => {
   const pageNum = validatePage(page);
   try {
-    const response = await tmdb.get("movie/popular", { params: { page: pageNum } });
+    const response = await tmdb.get("movie/popular", { params: withLanguage(locale, { page: pageNum }) });
     return {
       results:       response.data.results.map(formatMovieList),
       page:          response.data.page,
@@ -191,7 +197,7 @@ export const getPopularMovies = async (page = 1) => {
 };
 
 // 🔍 DISCOVER
-export const discoverMovies = async ({ page = 1, genre_ids, year_min, year_max, min_rating, sort_by = "popularity.desc" }) => {
+export const discoverMovies = async ({ page = 1, genre_ids, year_min, year_max, min_rating, sort_by = "popularity.desc", locale = "fr" }) => {
   const pageNum = validatePage(page);
   const params  = { page: pageNum, sort_by, "vote_count.gte": 50 };
   if (genre_ids && genre_ids.length > 0) params.with_genres = genre_ids.join(",");
@@ -199,7 +205,7 @@ export const discoverMovies = async ({ page = 1, genre_ids, year_min, year_max, 
   if (year_max)   params["primary_release_date.lte"] = `${year_max}-12-31`;
   if (min_rating) params["vote_average.gte"]          = min_rating;
   try {
-    const response = await tmdb.get("discover/movie", { params });
+    const response = await tmdb.get("discover/movie", { params: withLanguage(locale, params) });
     return {
       results:       response.data.results.map(formatMovieList),
       page:          response.data.page,
@@ -212,9 +218,9 @@ export const discoverMovies = async ({ page = 1, genre_ids, year_min, year_max, 
 };
 
 // 📈 TRENDING
-export const getTrendingMovies = async (timeWindow = "week") => {
+export const getTrendingMovies = async (timeWindow = "week", locale = "fr") => {
   try {
-    const response = await tmdb.get(`trending/movie/${timeWindow}`);
+    const response = await tmdb.get(`trending/movie/${timeWindow}`, { params: withLanguage(locale) });
     return {
       results: response.data.results.map((movie) => ({
         tmdb_id:      String(movie.id),
@@ -233,10 +239,10 @@ export const getTrendingMovies = async (timeWindow = "week") => {
 };
 
 // 🎬 TOP RATED
-export const getTopRatedMovies = async (page = 1) => {
+export const getTopRatedMovies = async (page = 1, locale = "fr") => {
   const pageNum = validatePage(page);
   try {
-    const response = await tmdb.get("movie/top_rated", { params: { page: pageNum } });
+    const response = await tmdb.get("movie/top_rated", { params: withLanguage(locale, { page: pageNum }) });
     return {
       results:       response.data.results.map(formatMovieList),
       page:          response.data.page,
@@ -249,10 +255,10 @@ export const getTopRatedMovies = async (page = 1) => {
 };
 
 // 🆕 NOW PLAYING
-export const getNowPlayingMovies = async (page = 1) => {
+export const getNowPlayingMovies = async (page = 1, locale = "fr") => {
   const pageNum = validatePage(page);
   try {
-    const response = await tmdb.get("movie/now_playing", { params: { page: pageNum } });
+    const response = await tmdb.get("movie/now_playing", { params: withLanguage(locale, { page: pageNum }) });
     return {
       results:       response.data.results.map(formatMovieList),
       page:          response.data.page,
@@ -264,11 +270,11 @@ export const getNowPlayingMovies = async (page = 1) => {
   }
 };
 
-export const getSimilarMovies = async (tmdbId, page = 1) => {
+export const getSimilarMovies = async (tmdbId, page = 1, locale = "fr") => {
   const validId = validateTmdbId(tmdbId);
   const pageNum = validatePage(page);
   try {
-    const response = await tmdb.get(`movie/${validId}/similar`, { params: { page: pageNum } });
+    const response = await tmdb.get(`movie/${validId}/similar`, { params: withLanguage(locale, { page: pageNum }) });
     return {
       results:       response.data.results.map(formatMovieList),
       page:          response.data.page,

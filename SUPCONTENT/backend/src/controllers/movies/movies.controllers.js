@@ -1,4 +1,4 @@
-import {
+﻿import {
   searchMovies,
   getMovieById,
   getGenres,
@@ -14,7 +14,7 @@ export const search = async (req, res, next) => {
     const { q, page, year, genre_id } = req.query;
     if (!q) return res.status(400).json({ error: "Query is required" });
     const pageNum = Math.min(Math.max(parseInt(page, 10) || 1, 1), 500);
-    const data = await searchMovies({ query: q, page: pageNum, year, genre_id });
+    const data = await searchMovies({ query: q, page: pageNum, year, genre_id, locale: req.locale });
     return res.json({ data, meta: { page: pageNum } });
   } catch (err) { next(err); }
 };
@@ -23,15 +23,15 @@ export const getMovie = async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!id || isNaN(id)) return res.status(400).json({ error: "Invalid movie id" });
-    const movie = await getMovieById(id);
-    if (!movie) return res.status(404).json({ error: "Film non trouvé" });
+    const movie = await getMovieById(id, req.locale);
+    if (!movie) return res.status(404).json({ error: req.locale === "en" ? "Movie not found" : "Film non trouvé" });
     return res.json({ data: movie });
   } catch (err) { next(err); }
 };
 
 export const genres = async (req, res, next) => {
   try {
-    const data = await getGenres();
+    const data = await getGenres(req.locale);
     return res.json({ data, meta: {} });
   } catch (err) { next(err); }
 };
@@ -39,7 +39,7 @@ export const genres = async (req, res, next) => {
 export const popular = async (req, res, next) => {
   try {
     const pageNum = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), 500);
-    const data = await getPopularMovies(pageNum);
+    const data = await getPopularMovies(pageNum, req.locale);
     return res.json({ data, meta: { page: pageNum } });
   } catch (err) { next(err); }
 };
@@ -48,7 +48,7 @@ export const discover = async (req, res, next) => {
   try {
     const { page, genre_ids, year_min, year_max, min_rating, sort_by } = req.query;
     const pageNum   = Math.min(Math.max(parseInt(page, 10) || 1, 1), 500);
-    // genre_ids peut être "28,35,18" ou un tableau
+    // genre_ids peut Ãªtre "28,35,18" ou un tableau
     const genreIds  = genre_ids
       ? (Array.isArray(genre_ids) ? genre_ids : genre_ids.split(",")).filter(Boolean)
       : [];
@@ -59,6 +59,7 @@ export const discover = async (req, res, next) => {
       year_max:   year_max   || undefined,
       min_rating: min_rating || undefined,
       sort_by:    sort_by    || "popularity.desc",
+      locale:     req.locale,
     });
     return res.json({ data, meta: { page: pageNum } });
   } catch (err) { next(err); }
@@ -67,7 +68,7 @@ export const discover = async (req, res, next) => {
 export const trending = async (req, res, next) => {
   try {
     const { window = "week" } = req.query;
-    const data = await getTrendingMovies(window);
+    const data = await getTrendingMovies(window, req.locale);
     return res.json({ data });
   } catch (err) { next(err); }
 };
@@ -75,7 +76,7 @@ export const trending = async (req, res, next) => {
 export const topRated = async (req, res, next) => {
   try {
     const pageNum = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), 500);
-    const data = await getTopRatedMovies(pageNum);
+    const data = await getTopRatedMovies(pageNum, req.locale);
     return res.json({ data, meta: { page: pageNum } });
   } catch (err) { next(err); }
 };
@@ -83,7 +84,7 @@ export const topRated = async (req, res, next) => {
 export const nowPlaying = async (req, res, next) => {
   try {
     const pageNum = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), 500);
-    const data = await getNowPlayingMovies(pageNum);
+    const data = await getNowPlayingMovies(pageNum, req.locale);
     return res.json({ data, meta: { page: pageNum } });
   } catch (err) { next(err); }
 };

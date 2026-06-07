@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import api from "../../services/api/axios.js";
 import ReviewComments from "../../components/reviews/ReviewComments.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
+import AddToLibraryButton from "../../components/library/AddToLibraryButton.jsx";
 
 /* ══════════════════════════════════════
    ICONS
@@ -48,12 +49,6 @@ const CollectionIcon = () => (
     <rect x="2" y="6" width="16" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
     <path d="M6 6V4.5A1.5 1.5 0 017.5 3h5A1.5 1.5 0 0114 4.5V6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     <path d="M2 10h16" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-  </svg>
-);
-const BookmarkIcon = () => (
-  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
-    <path d="M5 3h10a1 1 0 011 1v13l-6-4-6 4V4a1 1 0 011-1z"
-      stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 const UserIcon = () => (
@@ -415,10 +410,12 @@ function EmptyFeed() {
 ══════════════════════════════════════ */
 function TrendingCard({ movie }) {
   const movieId = movie.tmdb_id || movie.external_id || movie.id;
+  const tmdbId = movie.tmdb_id || movie.external_id || movie.id;
   const movieHref = movieId ? `/movies/${movieId}` : "#";
 
   return (
-    <Link to={movieHref} aria-label={`Open ${movie.title}`} className="relative block rounded-2xl overflow-hidden aspect-[2/3] bg-gray-200 dark:bg-gray-800 group cursor-pointer hover:ring-2 hover:ring-[#D0021B] transition-all">
+    <article className="relative rounded-2xl overflow-visible aspect-[2/3] bg-gray-200 dark:bg-gray-800 group hover:ring-2 hover:ring-[#D0021B] transition-all">
+      <Link to={movieHref} aria-label={`Open ${movie.title}`} className="block h-full overflow-hidden rounded-2xl">
       {movie.poster_url
         ? <img src={movie.poster_url} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
         : <div className="w-full h-full flex items-center justify-center"><FilmIcon /></div>
@@ -428,15 +425,15 @@ function TrendingCard({ movie }) {
         <StarIcon filled={true} />
         <span className="text-white text-xs font-bold">{movie.vote_average?.toFixed(1) || "—"}</span>
       </div>
-      {/* Bookmark */}
-      <button
-        type="button"
-        onClick={(event) => event.preventDefault()}
-        className="absolute top-2 right-2 w-7 h-7 bg-black/60 backdrop-blur-sm rounded-lg flex items-center justify-center hover:bg-black/80 transition-all"
-      >
-        <BookmarkIcon />
-      </button>
-    </Link>
+      </Link>
+
+      <AddToLibraryButton
+        movieId={null}
+        tmdbId={tmdbId}
+        variant="icon"
+        className="absolute top-2 right-2 z-20"
+      />
+    </article>
   );
 }
 

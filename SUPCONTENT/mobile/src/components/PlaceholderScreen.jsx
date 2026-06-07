@@ -1,15 +1,18 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useI18n } from '../i18n';
 import BottomTabBar from './BottomTabBar';
 import TopNavbar from './TopNavbar';
 
-export default function PlaceholderScreen({ title }) {
+export default function PlaceholderScreen({ title, titleKey }) {
+  const { t } = useI18n();
+
   return (
     <View style={styles.page}>
       <View style={styles.phone}>
         <TopNavbar />
         <View style={styles.content}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.text}>This mobile page will be built next.</Text>
+          <Text style={styles.title}>{titleKey ? t(titleKey) : title}</Text>
+          <Text style={styles.text}>{t('mobilePageComing')}</Text>
         </View>
         <BottomTabBar />
       </View>

@@ -10,7 +10,7 @@ const STATUS_OPTIONS = [
   { value: 'DROPPED',     label: 'Dropped',    color: '#ef4444' },
 ];
 
-export default function AddToLibraryButton({ movieId, tmdbId }) {
+export default function AddToLibraryButton({ movieId, tmdbId, variant = 'default', className = '' }) {
   const { user } = useAuth();
   const { getMovieStatus, upsertEntry, removeEntry, getMyLists, addMovieToList, loading } = useLibrary();
   const [currentStatus, setCurrentStatus] = useState(null);
@@ -35,11 +35,11 @@ export default function AddToLibraryButton({ movieId, tmdbId }) {
   }
 
   useEffect(() => {
-    if (user && movieId) {
-      fetchStatus();
+    if (user && (movieId || tmdbId)) {
+      if (movieId) fetchStatus();
       fetchLists();
     }
-  }, [user, movieId]);
+  }, [user, movieId, tmdbId]);
 
   useEffect(() => {
     function handleOutside(e) {
@@ -56,7 +56,7 @@ export default function AddToLibraryButton({ movieId, tmdbId }) {
 
   async function handleStatus(status) {
     try {
-      await upsertEntry({ movieId, tmdb_id: tmdbId }, status);
+      await upsertEntry({ movieId: tmdbId ? undefined : movieId, tmdb_id: tmdbId || undefined }, status);
       setCurrentStatus(status);
       flash('Added to library ✓');
     } catch (err) { console.error(err); }
@@ -74,7 +74,7 @@ export default function AddToLibraryButton({ movieId, tmdbId }) {
 
   async function handleAddToList(listId) {
     try {
-      await addMovieToList(listId, movieId, tmdbId);
+      await addMovieToList(listId, tmdbId ? undefined : movieId, tmdbId || undefined);
       flash('Added to list ✓');
     } catch (err) { console.error(err); }
     setShowLists(false);
@@ -87,6 +87,21 @@ export default function AddToLibraryButton({ movieId, tmdbId }) {
   }
 
   if (!user) {
+    if (variant === 'icon') {
+      return (
+        <Link
+          to="/login"
+          className={className}
+          style={{ ...btnStyles.icon, textDecoration: 'none' }}
+          title="Login to add"
+          aria-label="Login to add"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <span style={btnStyles.iconLabel}>+</span>
+        </Link>
+      );
+    }
+
     return (
       <Link to="/login" style={btnStyles.secondary}>
         🔐 Login to add
@@ -95,23 +110,39 @@ export default function AddToLibraryButton({ movieId, tmdbId }) {
   }
 
   const active = STATUS_OPTIONS.find((o) => o.value === currentStatus);
+  const isIcon = variant === 'icon';
 
   return (
-    <div style={{ position: 'relative' }} ref={ref}>
+    <div
+      className={className}
+      style={{ position: 'relative' }}
+      ref={ref}
+      onClick={(event) => event.stopPropagation()}
+    >
       {feedback && (
         <div style={btnStyles.feedback}>{feedback}</div>
       )}
 
       <button
-        style={active ? { ...btnStyles.primary, background: active.color + '22', color: active.color, borderColor: active.color + '44' } : btnStyles.primary}
+        type="button"
+        title={isIcon ? 'Add to library or list' : undefined}
+        aria-label={isIcon ? 'Add to library or list' : undefined}
+        style={
+          isIcon
+            ? { ...btnStyles.icon, ...(active ? { color: active.color, borderColor: active.color + '66' } : {}) }
+            : active
+              ? { ...btnStyles.primary, background: active.color + '22', color: active.color, borderColor: active.color + '44' }
+              : btnStyles.primary
+        }
         onClick={() => setShowDropdown(!showDropdown)}
         disabled={loading}
       >
+        {isIcon && <span style={btnStyles.iconLabel}>+</span>}
         {active ? `${active.label} ▾` : '+ Add to library'}
       </button>
 
       {showDropdown && (
-        <div style={btnStyles.dropdown}>
+        <div style={{ ...btnStyles.dropdown, ...(isIcon ? { left: 'auto', right: 0 } : {}) }}>
           <p style={btnStyles.dropSection}>Status</p>
           {STATUS_OPTIONS.map((opt) => (
             <button
@@ -199,6 +230,29 @@ const btnStyles = {
     padding: '10px 20px',
     fontSize: 14,
     textDecoration: 'none',
+  },
+  icon: {
+    width: 28,
+    height: 28,
+    background: 'rgba(0,0,0,0.6)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.14)',
+    borderRadius: 8,
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 0,
+    lineHeight: 1,
+    fontWeight: 700,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    backdropFilter: 'blur(6px)',
+  },
+  iconLabel: {
+    fontSize: 20,
+    lineHeight: 1,
+    marginTop: -2,
   },
   dropdown: {
     position: 'absolute',
