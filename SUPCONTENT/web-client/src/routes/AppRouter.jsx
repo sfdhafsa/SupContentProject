@@ -20,6 +20,7 @@ import MovieLayout from "../layouts/MovieLayout.jsx";
 import AdminView from "../pages/admin/AdminView.jsx";
 import Library from "../pages/library/Library.jsx";
 import Lists from "../pages/library/Lists.jsx";
+import ListDetailPage from "../pages/library/ListDetailPage.jsx";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -72,6 +73,8 @@ export default function AppRouter() {
       <Route path="/" element={<HomeRedirect />} />
       <Route element={<MainLayout />}>
         <Route path="/discover" element={<Search />} />
+        <Route path="/lists" element={<Lists />} />
+        <Route path="/lists/:listId" element={<ListDetailPage />} />
         <Route path="/profile/:id" element={<PublicProfile />} />
         <Route path="/help" element={<Help />} />
       </Route>
@@ -86,7 +89,6 @@ export default function AppRouter() {
         <Route path="/feed" element={<Feed />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/library" element={<Library />} />
-        <Route path="/lists" element={<Lists />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { moviesApi } from "../../services/api/movies.api";
 import api from "../../services/api/axios";
 import { useAuth } from "../../context/AuthContext";
+import { listsApi } from "../../services/api/lists.api";
 import ReviewsSection from "./ReviewsSection.jsx";
 
 const BackIcon = () => (
@@ -185,7 +186,7 @@ const formatMoney = (n) => {
 export default function MovieDetail() {
   const { id }   = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [movie, setMovie]         = useState(null);
   const [loading, setLoading]     = useState(true);
@@ -194,6 +195,11 @@ export default function MovieDetail() {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [librarySaving, setLibrarySaving] = useState(false);
   const [libraryMessage, setLibraryMessage] = useState("");
+  const [collections, setCollections] = useState([]);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [selectedListId, setSelectedListId] = useState("");
+  const [collectionSaving, setCollectionSaving] = useState(false);
+  const [collectionMessage, setCollectionMessage] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -205,6 +211,17 @@ export default function MovieDetail() {
       .catch(() => setError("Film introuvable"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      setCollections([]);
+      return;
+    }
+
+    listsApi.getUserLists(user.id)
+      .then((res) => setCollections(res.data.data || []))
+      .catch(() => setCollections([]));
+  }, [isAuthenticated, user?.id]);
 
   if (loading) return <Skeleton />;
 
@@ -244,6 +261,32 @@ export default function MovieDetail() {
       setLibraryMessage(err?.response?.data?.message || "Impossible d'ajouter ce film.");
     } finally {
       setLibrarySaving(false);
+    }
+  };
+
+  const handleOpenCollections = () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setCollectionMessage("");
+    setCollectionsOpen((open) => !open);
+  };
+
+  const handleAddToCollection = async () => {
+    if (!selectedListId || collectionSaving) return;
+
+    setCollectionSaving(true);
+    setCollectionMessage("");
+
+    try {
+      await listsApi.addMovie(selectedListId, { tmdb_id: movie.tmdb_id || id });
+      setCollectionMessage("Film ajoute a la collection.");
+    } catch (err) {
+      setCollectionMessage(err?.response?.data?.message || "Impossible d'ajouter ce film a la collection.");
+    } finally {
+      setCollectionSaving(false);
     }
   };
 
@@ -383,12 +426,59 @@ export default function MovieDetail() {
                     : "Se connecter pour ajouter"}
                 </span>
               </button>
+              <button
+                type="button"
+                onClick={handleOpenCollections}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 border border-white/20 text-sm font-semibold text-gray-300 rounded-xl hover:bg-white/10 transition-all"
+              >
+                + Collection
+              </button>
               <button onClick={() => navigate("/discover")} className="px-6 py-2.5 border border-white/20 text-sm font-semibold text-gray-300 rounded-xl hover:bg-white/10 transition-all">
                 ← Recherche
               </button>
             </div>
             {libraryMessage && (
               <p className="mt-3 text-sm text-gray-400">{libraryMessage}</p>
+            )}
+            {collectionsOpen && (
+              <div className="mt-4 max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                {collections.length === 0 ? (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-gray-400">Aucune collection disponible.</p>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/lists")}
+                      className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-gray-900 hover:bg-gray-100"
+                    >
+                      Creer une collection
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <select
+                      value={selectedListId}
+                      onChange={(event) => setSelectedListId(event.target.value)}
+                      className="min-w-0 flex-1 rounded-xl border border-white/10 bg-gray-950 px-3 py-2.5 text-sm text-white outline-none focus:border-[#D0021B]"
+                    >
+                      <option value="">Choisir une collection</option>
+                      {collections.map((list) => (
+                        <option key={list.id} value={list.id}>{list.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={!selectedListId || collectionSaving}
+                      onClick={handleAddToCollection}
+                      className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-gray-900 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                    >
+                      {collectionSaving ? "Ajout..." : "Ajouter"}
+                    </button>
+                  </div>
+                )}
+                {collectionMessage && (
+                  <p className="mt-3 text-sm text-gray-400">{collectionMessage}</p>
+                )}
+              </div>
             )}
           </div>
         </div>

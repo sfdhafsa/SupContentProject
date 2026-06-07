@@ -100,13 +100,16 @@ export default function PublicProfile() {
   const [loading, setLoading]       = useState(true);
   const [notFound, setNotFound]     = useState(false);
   const [tab, setTab]               = useState("Overview");
+  const [followModal, setFollowModal] = useState(null);
   const [copied, setCopied]         = useState(false);
-  const [following, setFollowing]   = useState(false);
+  const [isFollowing, setIsFollowing]   = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [activityLoading, setActivityLoading] = useState(true);
 
   const [reviews, setReviews] = useState([]);
   const [lists, setLists]   = useState([]);
+  const [followersList, setFollowersList] = useState([]);
+  const [followingList, setFollowingList] = useState([]);
   const [stats, setStats] = useState({
     followers: 0,
     following: 0,
@@ -144,7 +147,7 @@ export default function PublicProfile() {
     if (!isAuthenticated || !id || currentUser?.id === id) return;
 
     api.get(`/social/follow/${id}/follow-status`)
-      .then((res) => setFollowing(!!res.data.isFollowing))
+      .then((res) => setIsFollowing(!!res.data.isFollowing))
       .catch((err) => console.error("Follow status error:", err));
   }, [currentUser, id, isAuthenticated]);
 
@@ -154,12 +157,18 @@ export default function PublicProfile() {
     const fetchActivity = async () => {
       setActivityLoading(true);
       try {
-        const res = await api.get(`/users/${id}/activity`);
+        const [res, followersRes, followingRes] = await Promise.all([
+          api.get(`/users/${id}/activity`),
+          api.get(`/social/follow/${id}/followers`),
+          api.get(`/social/follow/${id}/following`),
+        ]);
         setReviews((res.data.reviews || []).map(formatReview));
         setLists(res.data.lists || []);
+        setFollowersList(followersRes.data.followers || []);
+        setFollowingList(followingRes.data.following || []);
         setStats({
-          followers: res.data.stats?.followers || 0,
-          following: res.data.stats?.following || 0,
+          followers: followersRes.data.count || res.data.stats?.followers || 0,
+          following: followingRes.data.count || res.data.stats?.following || 0,
           movies_watched: res.data.stats?.movies_watched || 0,
           reviews: res.data.stats?.reviews || 0,
         });
@@ -198,7 +207,7 @@ export default function PublicProfile() {
     setFollowLoading(true);
     try {
       const res = await api.post(`/social/follow/${id}`);
-      setFollowing(res.data.status === "followed");
+      setIsFollowing(res.data.status === "followed");
       setStats((current) => ({
         ...current,
         followers: Math.max(0, current.followers + (res.data.status === "followed" ? 1 : -1)),
@@ -289,12 +298,12 @@ export default function PublicProfile() {
                 onClick={handleFollow}
                 disabled={followLoading}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                  following
+                  isFollowing
                     ? "border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 hover:border-red-200"
                     : "bg-[#D0021B] hover:bg-[#b30218] text-white"
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {following ? <><UserCheckIcon/> Following</> : <><UserPlusIcon/> Follow</>}
+                {isFollowing ? <><UserCheckIcon/> Ne plus suivre</> : <><UserPlusIcon/> Suivre</>}
               </button>
             )}
 
@@ -338,15 +347,21 @@ export default function PublicProfile() {
           {/* Stats */}
           <div className="flex items-center gap-6 flex-wrap">
             {[
-              { value: stats.followers, label: "Followers" },
-              { value: stats.following, label: "Following" },
+              { value: stats.followers, label: "Followers", modal: "followers" },
+              { value: stats.following, label: "Following", modal: "following" },
               { value: stats.movies_watched, label: "Movies Watched" },
               { value: stats.reviews, label: "Reviews" },
-            ].map(({ value, label }) => (
-              <div key={label} className="flex items-baseline gap-1.5">
+            ].map(({ value, label, modal }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => modal && setFollowModal(modal)}
+                disabled={!modal}
+                className="flex items-baseline gap-1.5 text-left disabled:cursor-default"
+              >
                 <span className="text-base font-bold text-gray-900 dark:text-white">{value.toLocaleString()}</span>
-                <span className="text-sm text-gray-400 dark:text-gray-500">{label}</span>
-              </div>
+                <span className={`text-sm ${modal ? "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white" : "text-gray-400 dark:text-gray-500"}`}>{label}</span>
+              </button>
             ))}
           </div>
         </div>
@@ -445,7 +460,91 @@ export default function PublicProfile() {
           }
         </div>
       )}
+
+      {followModal && (
+        <FollowModal
+          title={followModal === "followers" ? "Followers" : "Following"}
+          users={followModal === "followers" ? followersList : followingList}
+          loading={activityLoading}
+          emptyMessage={followModal === "followers" ? "No followers yet." : "This user does not follow anyone yet."}
+          onClose={() => setFollowModal(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function FollowModal({ title, users, loading, emptyMessage, onClose }) {
+  const [query, setQuery] = useState("");
+  const filteredUsers = users.filter((item) => {
+    const text = `${item.username || ""}`.toLowerCase();
+    return text.includes(query.trim().toLowerCase());
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/70 px-4 py-6" onClick={onClose}>
+      <div
+        className="flex max-h-[82vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-gray-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="relative border-b border-gray-100 px-6 py-4 text-center dark:border-gray-800">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-3xl leading-none text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="border-b border-gray-50 p-4 dark:border-gray-800">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search"
+            className="w-full rounded-xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-gray-200 dark:bg-gray-800 dark:text-white dark:focus:ring-gray-700"
+          />
+        </div>
+
+        <div className="min-h-48 overflow-y-auto px-4 py-2">
+          {loading ? (
+            <div className="flex flex-col gap-3 py-2">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16"/>)}
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-400">{query ? "No results." : emptyMessage}</div>
+          ) : (
+            filteredUsers.map((item) => <FollowUserRow key={item.id} user={item} onClose={onClose}/>)
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FollowUserRow({ user, onClose }) {
+  const initials = (user.username || "U").slice(0, 2).toUpperCase();
+
+  return (
+    <Link
+      to={`/profile/${user.id}`}
+      onClick={onClose}
+      className="flex items-center gap-3 rounded-2xl px-2 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+    >
+      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+        {user.avatar_url ? (
+          <img src={user.avatar_url} alt={user.username} className="h-full w-full object-cover"/>
+        ) : (
+          <span className="text-xs font-bold text-gray-500">{initials}</span>
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{user.username}</p>
+        <p className="truncate text-xs text-gray-400">@{user.username}</p>
+      </div>
+    </Link>
   );
 }
 

@@ -18,9 +18,41 @@ async function getUserLists(ownerId, viewerId = null) {
       cl.is_public,
       cl.created_at,
       cl.updated_at,
-      COUNT(clm.movie_id) AS movie_count
+      COALESCE(movie_counts.movie_count, 0) AS movie_count,
+      COALESCE(preview.movies, '[]'::json) AS preview_movies
     FROM custom_lists cl
-    LEFT JOIN custom_list_movies clm ON cl.id = clm.list_id
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int AS movie_count
+      FROM custom_list_movies clm
+      WHERE clm.list_id = cl.id
+    ) movie_counts ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT json_agg(
+        json_build_object(
+          'id', movies.id,
+          'external_id', movies.external_id,
+          'title', movies.title,
+          'poster_url', movies.poster_url,
+          'release_date', movies.release_date,
+          'added_at', movies.added_at
+        )
+        ORDER BY movies.added_at DESC
+      ) AS movies
+      FROM (
+        SELECT
+          m.id,
+          m.external_id,
+          m.title,
+          m.poster_url,
+          m.release_date,
+          clm.added_at
+        FROM custom_list_movies clm
+        JOIN movies m ON clm.movie_id = m.id
+        WHERE clm.list_id = cl.id
+        ORDER BY clm.added_at DESC
+        LIMIT 4
+      ) movies
+    ) preview ON TRUE
     WHERE cl.user_id = $1
   `;
 
@@ -28,7 +60,7 @@ async function getUserLists(ownerId, viewerId = null) {
     query += ` AND cl.is_public = TRUE`;
   }
 
-  query += ` GROUP BY cl.id ORDER BY cl.updated_at DESC`;
+  query += ` ORDER BY cl.updated_at DESC`;
 
   const { rows } = await db.query(query, [ownerId]);
   return rows;
@@ -48,7 +80,7 @@ async function getListById(listId, viewerId = null) {
   }
 
   const list = listRows[0];
-  const isOwner = viewerId && viewerId === list.user_id;
+  const isOwner = viewerId && String(viewerId) === String(list.user_id);
 
   if (!list.is_public && !isOwner) {
     throw serviceError('Acces refuse a cette liste privee', 403);
@@ -211,15 +243,48 @@ async function getPublicLists(page = 1, limit = 20, search = '') {
       cl.id,
       cl.name,
       cl.description,
+      cl.is_public,
       cl.created_at,
+      cl.updated_at,
       u.username AS owner_username,
       u.avatar_url AS owner_avatar,
-      COUNT(clm.movie_id) AS movie_count
+      COALESCE(movie_counts.movie_count, 0) AS movie_count,
+      COALESCE(preview.movies, '[]'::json) AS preview_movies
      FROM custom_lists cl
      JOIN users u ON cl.user_id = u.id
-     LEFT JOIN custom_list_movies clm ON cl.id = clm.list_id
+     LEFT JOIN LATERAL (
+       SELECT COUNT(*)::int AS movie_count
+       FROM custom_list_movies clm
+       WHERE clm.list_id = cl.id
+     ) movie_counts ON TRUE
+     LEFT JOIN LATERAL (
+       SELECT json_agg(
+         json_build_object(
+           'id', movies.id,
+           'external_id', movies.external_id,
+           'title', movies.title,
+           'poster_url', movies.poster_url,
+           'release_date', movies.release_date,
+           'added_at', movies.added_at
+         )
+         ORDER BY movies.added_at DESC
+       ) AS movies
+       FROM (
+         SELECT
+           m.id,
+           m.external_id,
+           m.title,
+           m.poster_url,
+           m.release_date,
+           clm.added_at
+         FROM custom_list_movies clm
+         JOIN movies m ON clm.movie_id = m.id
+         WHERE clm.list_id = cl.id
+         ORDER BY clm.added_at DESC
+         LIMIT 4
+       ) movies
+     ) preview ON TRUE
      WHERE cl.is_public = TRUE AND cl.name ILIKE $1
-     GROUP BY cl.id, u.username, u.avatar_url
      ORDER BY cl.updated_at DESC
      LIMIT $2 OFFSET $3`,
     params

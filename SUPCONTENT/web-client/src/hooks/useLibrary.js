@@ -22,7 +22,17 @@ export function useLibrary() {
         ...options,
         headers: { ...getHeaders(), ...options.headers },
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data = {};
+
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: 'Reponse API invalide.' };
+        }
+      }
+
       if (!res.ok) throw new Error(data.message || 'Erreur serveur');
       return data;
     } catch (err) {
