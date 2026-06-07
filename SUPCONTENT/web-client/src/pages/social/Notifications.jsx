@@ -79,6 +79,37 @@ function buildMessage(notification) {
   return "You have a new notification";
 }
 
+function buildNotificationTarget(notification) {
+  const actorId = notification.actor_id || notification.actor_user_id;
+
+  if (notification.type === "MESSAGE" && actorId) {
+    return `/messages?user=${encodeURIComponent(actorId)}`;
+  }
+
+  if (notification.type === "FOLLOW" && actorId) {
+    return `/profile/${actorId}`;
+  }
+
+  if (
+    ["REVIEW_LIKE", "REVIEW_COMMENT", "COMMENT_REPLY"].includes(notification.type) &&
+    notification.target_movie_tmdb_id &&
+    notification.target_review_id
+  ) {
+    const params = new URLSearchParams({ review: String(notification.target_review_id) });
+    if (notification.target_comment_id) {
+      params.set("comment", String(notification.target_comment_id));
+    }
+
+    return `/movies/${notification.target_movie_tmdb_id}?${params.toString()}`;
+  }
+
+  if (notification.movie_tmdb_id) {
+    return `/movies/${notification.movie_tmdb_id}`;
+  }
+
+  return null;
+}
+
 function NotificationAvatar({ notification }) {
   const initials = notification.username?.slice(0, 2).toUpperCase() || "?";
   const actorProfileId = notification.actor_id || notification.actor_user_id;
@@ -226,14 +257,9 @@ export default function Notifications() {
   const handleNotificationClick = async (notification) => {
     await handleMarkAsRead(notification);
 
-    const actorId = notification.actor_id || notification.actor_user_id;
-    if (notification.type === "MESSAGE" && actorId) {
-      navigate(`/messages?user=${encodeURIComponent(actorId)}`);
-      return;
-    }
-
-    if (notification.type === "FOLLOW" && actorId) {
-      navigate(`/profile/${actorId}`);
+    const target = buildNotificationTarget(notification);
+    if (target) {
+      navigate(target);
     }
   };
 

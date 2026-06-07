@@ -43,21 +43,22 @@ const FlagIcon = () => (
   </svg>
 );
 
-function CommentItem({ comment, currentUserId, dark, depth, isAuthenticated, onReply, onReport }) {
+function CommentItem({ comment, currentUserId, dark, depth, isAuthenticated, onReply, onReport, targetCommentId }) {
   const bubbleClass = dark
     ? "bg-gray-900/80 border-white/10 text-gray-300"
     : "bg-gray-50 dark:bg-gray-800/70 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300";
   const nameClass = dark ? "text-white" : "text-gray-900 dark:text-white";
   const connectorClass = dark ? "border-white/10" : "border-gray-200 dark:border-gray-700";
   const isMine = String(comment.user_id) === String(currentUserId);
+  const isTarget = String(comment.id) === String(targetCommentId);
 
   return (
-    <div className={depth > 0 ? "relative ml-7 sm:ml-10" : ""}>
+    <div id={`comment-${comment.id}`} className={depth > 0 ? "relative ml-7 sm:ml-10 scroll-mt-24" : "scroll-mt-24"}>
       {depth > 0 && <div className={`absolute -left-4 top-0 h-full border-l ${connectorClass}`} />}
       <div className="flex gap-3">
         <Avatar user={comment} dark={dark} />
         <div className="min-w-0 flex-1">
-          <div className={`rounded-2xl border px-3.5 py-2.5 ${bubbleClass}`}>
+          <div className={`rounded-2xl border px-3.5 py-2.5 transition-colors ${isTarget ? "border-[#D0021B] bg-[#D0021B]/15 text-white" : bubbleClass}`}>
             <div className="flex items-center gap-2 mb-0.5">
               <Link to={`/profile/${comment.user_id}`} className={`text-xs font-bold hover:text-[#D0021B] transition-colors ${nameClass}`}>
                 {comment.username}
@@ -100,6 +101,7 @@ function CommentItem({ comment, currentUserId, dark, depth, isAuthenticated, onR
               isAuthenticated={isAuthenticated}
               onReply={onReply}
               onReport={onReport}
+              targetCommentId={targetCommentId}
             />
           ))}
         </div>
@@ -115,6 +117,7 @@ export default function ReviewComments({
   open: controlledOpen,
   onCountChange,
   onReport,
+  targetCommentId,
 }) {
   const dark = variant === "dark";
   const navigate = useNavigate();
@@ -155,6 +158,16 @@ export default function ReviewComments({
   useEffect(() => {
     if (open) loadComments();
   }, [open, loadComments]);
+
+  useEffect(() => {
+    if (!open || loading || !targetCommentId || comments.length === 0) return;
+
+    window.setTimeout(() => {
+      document
+        .getElementById(`comment-${targetCommentId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+  }, [comments, loading, open, targetCommentId]);
 
   const handleReply = (comment) => {
     setReplyTo(comment);
@@ -237,6 +250,7 @@ export default function ReviewComments({
                   isAuthenticated={isAuthenticated}
                   onReply={handleReply}
                   onReport={onReport}
+                  targetCommentId={targetCommentId}
                 />
               ))}
             </div>
