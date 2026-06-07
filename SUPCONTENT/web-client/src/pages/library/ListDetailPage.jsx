@@ -16,7 +16,7 @@ export default function ListDetailPage() {
   async function fetchList() {
     try {
       const res = await getListById(listId);
-      setList(res.data);
+      setList(res.data?.data || res.data);
     } catch (err) {
       setError(err.message);
     }
@@ -54,7 +54,7 @@ export default function ListDetailPage() {
   if (error) return <ErrorState message={error} />;
   if (!list) return null;
 
-  const isOwner = user && (user.id === list.user_id || user.userId === list.user_id);
+  const isOwner = user && (String(user.id) === String(list.user_id) || String(user.userId) === String(list.user_id));
   const movies = list.movies || [];
 
   return (
@@ -108,13 +108,15 @@ export default function ListDetailPage() {
           <p style={styles.emptyIcon}>🎬</p>
           <p style={styles.emptyTitle}>This list is empty</p>
           {isOwner && (
-            <Link to="/search" style={styles.emptyBtn}>Browse films to add</Link>
+            <Link to="/discover" style={styles.emptyBtn}>Browse films to add</Link>
           )}
         </div>
       ) : (
         <div style={styles.grid}>
           {movies.map((movie) => {
-            const poster = movie.poster_url ? `${TMDB_IMG}${movie.poster_url}` : null;
+            const poster = movie.poster_url
+              ? movie.poster_url.startsWith('http') ? movie.poster_url : `${TMDB_IMG}${movie.poster_url}`
+              : null;
             const year = movie.release_date ? movie.release_date.slice(0, 4) : '';
             return (
               <div key={movie.id} style={styles.card}>

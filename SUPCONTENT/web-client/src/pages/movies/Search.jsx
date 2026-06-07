@@ -268,7 +268,7 @@ function MovieSection({ title, movies, onMovieClick, loading }) {
           ))}
         </div>
       ) : (
-        <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
+        <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-2 scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {movies.map((movie) => (
             <div
               key={movie.tmdb_id}
