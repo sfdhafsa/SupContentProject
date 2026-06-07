@@ -324,9 +324,21 @@ export default function Navbar() {
       return;
     }
 
-    api.get("/social/notifications/unread-count")
-      .then((res) => setUnreadNotifications(res.data.count || 0))
-      .catch(() => setUnreadNotifications(0));
+    const fetchUnreadNotifications = () => {
+      api.get("/social/notifications/unread-count")
+        .then((res) => setUnreadNotifications(res.data.count || 0))
+        .catch(() => setUnreadNotifications(0));
+    };
+
+    fetchUnreadNotifications();
+
+    const intervalId = window.setInterval(fetchUnreadNotifications, 30000);
+    window.addEventListener("focus", fetchUnreadNotifications);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", fetchUnreadNotifications);
+    };
   }, [isAuthenticated]);
 
   const handleLogout = () => {

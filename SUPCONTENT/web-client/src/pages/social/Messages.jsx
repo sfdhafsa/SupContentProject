@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { messagesApi } from "../../services/api/messages.api";
 import { createMessagesSocket } from "../../services/socket/messages.socket";
@@ -87,6 +87,7 @@ function EmptyState({ title, text }) {
 
 export default function Messages() {
   const { user, token } = useAuth();
+  const [searchParams] = useSearchParams();
   const [socket, setSocket] = useState(null);
   const [socketStatus, setSocketStatus] = useState("connecting");
   const [conversations, setConversations] = useState([]);
@@ -105,9 +106,11 @@ export default function Messages() {
   const [notice, setNotice] = useState("");
   const bottomRef = useRef(null);
   const activeUserIdRef = useRef(null);
+  const lastUrlUserIdRef = useRef(null);
   const userIdRef = useRef(user?.id);
 
   const activeUserId = activeUser?.id;
+  const urlUserId = searchParams.get("user");
 
   useEffect(() => {
     activeUserIdRef.current = activeUserId;
@@ -161,6 +164,10 @@ export default function Messages() {
       const nextMessages = res.data.messages || [];
       setMessages(nextMessages);
 
+      if (!otherUser.username && nextMessages.length > 0) {
+        setActiveUser(getMessageOtherUser(nextMessages[0], user?.id));
+      }
+
       await Promise.all(
         nextMessages
           .filter((message) => String(message.receiver_id) === String(user?.id) && !message.is_read)
@@ -199,6 +206,27 @@ export default function Messages() {
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
+
+  useEffect(() => {
+    if (!urlUserId || loadingConversations || lastUrlUserIdRef.current === urlUserId) {
+      return;
+    }
+
+    const conversation = conversations.find((item) =>
+      String(item.other_user_id) === String(urlUserId)
+    );
+
+    lastUrlUserIdRef.current = urlUserId;
+    fetchConversation(
+      conversation
+        ? {
+            id: conversation.other_user_id,
+            username: conversation.other_username,
+            avatar_url: conversation.other_avatar_url,
+          }
+        : { id: urlUserId }
+    );
+  }, [conversations, fetchConversation, loadingConversations, urlUserId]);
 
   useEffect(() => {
     if (!token) return undefined;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api/axios.js";
 
 const LIMIT = 30;
@@ -24,6 +24,13 @@ const CommentIcon = () => (
   </svg>
 );
 
+const MessageIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-violet-500">
+    <path d="M4.5 14.5l-2 3V5A2.5 2.5 0 015 2.5h10A2.5 2.5 0 0117.5 5v7A2.5 2.5 0 0115 14.5H4.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    <path d="M6.5 7h7M6.5 10h4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
 const MovieIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-amber-500">
     <rect x="3" y="4" width="14" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
@@ -43,6 +50,7 @@ const iconByType = {
   REVIEW_LIKE: <HeartIcon />,
   REVIEW_COMMENT: <CommentIcon />,
   COMMENT_REPLY: <CommentIcon />,
+  MESSAGE: <MessageIcon />,
   MOVIE_RECOMMENDATION: <MovieIcon />,
 };
 
@@ -63,6 +71,7 @@ function buildMessage(notification) {
   if (notification.type === "REVIEW_LIKE") return `${actorName} liked your review`;
   if (notification.type === "REVIEW_COMMENT") return `${actorName} commented on your review`;
   if (notification.type === "COMMENT_REPLY") return `${actorName} replied to your comment`;
+  if (notification.type === "MESSAGE") return `${actorName} sent you a message`;
   if (notification.type === "MOVIE_RECOMMENDATION") return "A new movie recommendation is ready for you";
 
   return "You have a new notification";
@@ -140,13 +149,14 @@ function EmptyNotifications({ unreadOnly }) {
         {unreadOnly ? "No unread notifications" : "No notifications yet"}
       </h3>
       <p className="text-sm text-gray-400 dark:text-gray-500 max-w-sm">
-        {unreadOnly ? "Everything is caught up." : "Likes, comments, follows, and recommendations will appear here."}
+        {unreadOnly ? "Everything is caught up." : "Likes, comments, follows, messages, and recommendations will appear here."}
       </p>
     </div>
   );
 }
 
 export default function Notifications() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -201,6 +211,15 @@ export default function Notifications() {
       console.error("Mark notification as read error:", err);
     } finally {
       setMarkingId(null);
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    await handleMarkAsRead(notification);
+
+    const actorId = notification.actor_id || notification.actor_user_id;
+    if (notification.type === "MESSAGE" && actorId) {
+      navigate(`/messages?user=${encodeURIComponent(actorId)}`);
     }
   };
 
@@ -286,10 +305,11 @@ export default function Notifications() {
           {visibleNotifications.map((notification) => (
             <div
               key={notification.id}
-              onClick={() => handleMarkAsRead(notification)}
+              onClick={() => handleNotificationClick(notification)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
-                  handleMarkAsRead(notification);
+                  e.preventDefault();
+                  handleNotificationClick(notification);
                 }
               }}
               role="button"

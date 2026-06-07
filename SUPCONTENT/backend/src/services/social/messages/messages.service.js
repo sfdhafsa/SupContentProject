@@ -1,6 +1,8 @@
 import { FollowModel } from "../../../models/follow.model.js";
 import { MessageModel } from "../../../models/message.model.js";
 import { UserModel } from "../../../models/user.model.js";
+import { createNotification } from "../notifications/notifications.service.js";
+import { notificationTypes } from "../../../utils/notificationTypes.js";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -48,7 +50,17 @@ export const sendMessage = async (senderId, receiverId, content) => {
 
   await assertMutualFollow(senderId, receiverId);
 
-  return MessageModel.createMessage(senderId, receiverId, normalizedContent);
+  const message = await MessageModel.createMessage(senderId, receiverId, normalizedContent);
+
+  await createNotification({
+    userId: receiverId,
+    actorUserId: senderId,
+    type: notificationTypes.MESSAGE,
+    entityType: "MESSAGE",
+    entityId: String(message.id),
+  });
+
+  return message;
 };
 
 export const getConversation = async (userId, otherUserId) => {

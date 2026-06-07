@@ -208,6 +208,10 @@ const buildNotificationMessage = async ({ actorUserId, type, entityType, entityI
     return `${actorName} replied to your comment.`;
   }
 
+  if (type === notificationTypes.MESSAGE) {
+    return `${actorName} sent you a message.`;
+  }
+
   return 'You have a new notification on SUPCONTENT.';
 };
 
