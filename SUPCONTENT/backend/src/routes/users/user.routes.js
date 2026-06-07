@@ -11,6 +11,7 @@ import {
   deleteMe,
   getPublicUserActivity,
   getUserById,
+  searchUsers,
 } from '../../controllers/users/user.controllers.js';
 
 import { protect } from '../../middlewares/auth.middleware.js';
@@ -92,6 +93,7 @@ router.delete('/me',           protect, deleteMe);
 // =====================
 // 🌍 Routes publiques
 // =====================
+router.get('/search',          protect, searchUsers);
 router.get('/:id/activity',    getPublicUserActivity);
 router.get('/:id',             getUserById);
 

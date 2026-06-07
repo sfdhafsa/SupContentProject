@@ -14,6 +14,7 @@ import PublicProfile from "../pages/user/PublicProfile.jsx";
 import Settings from "../pages/user/Settings.jsx";
 import Feed from "../pages/social/feed.jsx";
 import Notifications from "../pages/social/Notifications.jsx";
+import Messages from "../pages/social/Messages.jsx";
 import Search from "../pages/movies/Search.jsx";
 import MovieDetail from "../pages/movies/MovieDetail.jsx";
 import MovieLayout from "../layouts/MovieLayout.jsx"; 
@@ -87,6 +88,7 @@ export default function AppRouter() {
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route path="/home" element={<Home />} />
         <Route path="/feed" element={<Feed />} />
+        <Route path="/messages" element={<Messages />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/library" element={<Library />} />
         <Route path="/profile" element={<Profile />} />
