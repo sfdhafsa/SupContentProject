@@ -8,7 +8,7 @@ import { generateMovieRecommendations } from '../recommendations/movieRecommenda
 const serviceError = (message, status) => Object.assign(new Error(message), { status });
 
 async function getUserLists(ownerId, viewerId = null) {
-  const isOwner = viewerId && viewerId === ownerId;
+  const isOwner = viewerId && String(viewerId) === String(ownerId);
 
   let query = `
     SELECT

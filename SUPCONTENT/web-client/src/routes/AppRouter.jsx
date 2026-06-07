@@ -17,6 +17,9 @@ import Notifications from "../pages/social/Notifications.jsx";
 import Search from "../pages/movies/Search.jsx";
 import MovieDetail from "../pages/movies/MovieDetail.jsx";
 import MovieLayout from "../layouts/MovieLayout.jsx"; 
+import AdminView from "../pages/admin/AdminView.jsx";
+import Library from "../pages/library/Library.jsx";
+import Lists from "../pages/library/Lists.jsx";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -82,10 +85,8 @@ export default function AppRouter() {
         <Route path="/home" element={<Home />} />
         <Route path="/feed" element={<Feed />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/library" element={<LibraryPage />} />
-        <Route path="/lists" element={<ListsPage />} />
-        <Route path="/lists/:listId" element={<ListDetailPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/library" element={<Library />} />
+        <Route path="/lists" element={<Lists />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
