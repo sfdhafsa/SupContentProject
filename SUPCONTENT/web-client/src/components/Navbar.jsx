@@ -118,7 +118,7 @@ function SearchDropdown({ results, loading, query, onSelect, onSeeAll }) {
   if (!query.trim()) return null;
 
   return (
-    <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl z-50 overflow-hidden">
+    <div className="absolute top-[calc(100%+8px)] left-1/2 right-auto w-[calc(100vw-1.5rem)] max-w-md -translate-x-1/2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl z-50 overflow-hidden sm:left-0 sm:right-0 sm:w-auto sm:max-w-none sm:translate-x-0">
       {loading && (
         <div className="flex items-center justify-center py-6">
           <div className="w-5 h-5 border-2 border-[#D0021B] border-t-transparent rounded-full animate-spin" />
@@ -275,11 +275,11 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-40 w-full bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 transition-colors duration-300">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 flex items-center h-16 gap-4">
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 flex items-center h-16 gap-2 sm:gap-4">
 
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 flex-shrink-0 mr-2">
-          <div className="w-9 h-9 bg-[#D0021B] rounded-lg flex items-center justify-center">
+        <Link to="/" className="flex items-center gap-2 flex-shrink-0 sm:mr-2">
+          <div className="w-9 h-9 bg-[#D0021B] rounded-lg flex items-center justify-center flex-shrink-0">
             <FilmIcon />
           </div>
           <span className="font-bold text-sm tracking-widest text-gray-900 dark:text-white hidden sm:block">
@@ -297,17 +297,17 @@ export default function Navbar() {
         </div>
 
         {/* Search avec dropdown */}
-        <div className="flex-1 mx-2 md:mx-4 relative" ref={searchRef}>
+        <div className="flex-1 min-w-0 mx-1 md:mx-4 relative" ref={searchRef}>
           <div className="relative flex items-center">
             <span className="absolute left-3"><SearchIcon /></span>
             <input
               type="text"
-              placeholder="Search movies..."
+              placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => search.trim() && setSearchOpen(true)}
               onKeyDown={(e) => e.key === "Enter" && search.trim() && handleSeeAll()}
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-[#D0021B] focus:ring-2 focus:ring-red-50 dark:focus:ring-red-900/20 transition-all"
+              className="w-full min-w-0 pl-9 pr-9 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none focus:border-[#D0021B] focus:ring-2 focus:ring-red-50 dark:focus:ring-red-900/20 transition-all sm:pr-4"
             />
             {search && (
               <button
@@ -418,7 +418,7 @@ export default function Navbar() {
 
         {/* Mobile burger */}
         <button
-          className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all ml-auto"
+          className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all flex-shrink-0"
           onClick={() => setMobile((o) => !o)}
         >
           {mobileOpen ? <CloseIcon /> : <MenuIcon />}
