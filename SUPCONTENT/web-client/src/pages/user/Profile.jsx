@@ -91,6 +91,7 @@ export default function Profile() {
   const avatar      = user?.avatar_url  || null;
   const websiteUrl  = user?.website_url || null;
   const roles       = user?.roles       || [];
+  const isAdmin     = roles.map((role) => String(role).toLowerCase()).includes("admin");
   const initials    = username.slice(0, 2).toUpperCase();
   const joinDate    = user?.created_at
     ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
@@ -192,10 +193,19 @@ export default function Profile() {
           <div className="flex items-center gap-3 flex-wrap mb-1">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{username}</h1>
 
-            {roles.includes("admin") && (
+            {isAdmin && (
               <span className="px-2 py-0.5 bg-[#D0021B]/10 text-[#D0021B] text-xs font-semibold rounded-full">
                 Admin
               </span>
+            )}
+
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin-view")}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-all"
+              >
+                Admin view
+              </button>
             )}
 
             <button

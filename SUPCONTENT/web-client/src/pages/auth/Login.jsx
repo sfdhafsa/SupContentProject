@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api/axios.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -30,11 +30,14 @@ const authBaseUrl = apiUrl.endsWith("/api") ? apiUrl : `${apiUrl}/api`;
 
 export default function Login() {
   const navigate    = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login }   = useAuth();
 
   const [form, setForm]         = useState({ email: "", password: "" });
   const [errors, setErrors]     = useState({});
-  const [apiError, setApiError] = useState("");
+  const [apiError, setApiError] = useState(
+    searchParams.get("error") === "banned" ? "your account is banned" : ""
+  );
   const [loading, setLoading]   = useState(false);
 
   const validate = () => {

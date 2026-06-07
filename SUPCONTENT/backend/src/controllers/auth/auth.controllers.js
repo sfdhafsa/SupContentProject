@@ -90,7 +90,7 @@ export const login = async (req, res, next) => {
     }
 
     if (user.is_banned) {
-      return res.status(403).json({ message: 'Ce compte a été suspendu.' });
+      return res.status(403).json({ message: 'your account is banned' });
     }
 
     // Check password

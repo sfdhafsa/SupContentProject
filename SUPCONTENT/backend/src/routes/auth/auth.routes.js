@@ -63,11 +63,22 @@ router.get('/google',
 );
 
 router.get('/google/callback',
-  passport.authenticate('google', {
-    failureRedirect: `${process.env.CLIENT_URL}/login`,
-    session: false
-  }),
-  oauthCallback
+  (req, res, next) => {
+    passport.authenticate('google', { session: false }, (err, user, info) => {
+      if (err) return next(err);
+
+      if (!user) {
+        const errorCode = info?.message === 'your account is banned'
+          ? 'banned'
+          : 'oauth_google';
+
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=${errorCode}`);
+      }
+
+      req.user = user;
+      return oauthCallback(req, res);
+    })(req, res, next);
+  }
 );
 
 // ── GitHub ───────────────────────────────────────────────────────

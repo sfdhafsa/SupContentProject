@@ -17,6 +17,7 @@ import Notifications from "../pages/social/Notifications.jsx";
 import Search from "../pages/movies/Search.jsx";
 import MovieDetail from "../pages/movies/MovieDetail.jsx";
 import MovieLayout from "../layouts/MovieLayout.jsx"; 
+import AdminView from "../pages/admin/AdminView.jsx";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -28,6 +29,21 @@ function ProtectedRoute({ children }) {
     );
   }
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#D0021B] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const roles = (user?.roles || []).map((role) => String(role).toLowerCase());
+  if (!user) return <Navigate to="/login" replace />;
+  return roles.includes("admin") ? children : <Navigate to="/" replace />;
 }
 
 function PublicRoute({ children }) {
@@ -75,6 +91,10 @@ export default function AppRouter() {
         {/* <Route path="/lists" element={<Lists />} /> */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
+      </Route>
+
+      <Route element={<AdminRoute><MainLayout /></AdminRoute>}>
+        <Route path="/admin-view" element={<AdminView />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
