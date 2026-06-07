@@ -176,9 +176,45 @@ export default function Settings() {
     likes: true,
     comments: true,
     new_followers: true,
-    newsletter: false,
+    push: true,
+    email: false,
   });
+  const [notifsLoading, setNotifsLoading] = useState(false);
   const [notifsSuccess, setNotifsSuccess] = useState(false);
+  const [notifsErr, setNotifsErr] = useState("");
+  const allActivityNotificationsEnabled = notifs.likes && notifs.comments && notifs.new_followers;
+
+  useEffect(() => {
+    let active = true;
+
+    const fetchNotificationPreferences = async () => {
+      setNotifsErr("");
+
+      try {
+        const res = await api.get("/users/me/notification-preferences");
+        const preferences = res.data?.preferences || {};
+
+        if (!active) return;
+
+        setNotifs({
+          likes: preferences.notification_likes_enabled !== false,
+          comments: preferences.notification_comments_enabled !== false,
+          new_followers: preferences.notification_followers_enabled !== false,
+          push: preferences.notification_push_enabled !== false,
+          email: preferences.notification_email_enabled === true,
+        });
+      } catch (err) {
+        if (!active) return;
+        setNotifsErr(err?.response?.data?.message || "Failed to load notification preferences");
+      }
+    };
+
+    fetchNotificationPreferences();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /* ── Privacy ── */
   const [privacy, setPrivacy] = useState({
@@ -285,6 +321,29 @@ export default function Settings() {
   };
 
   /* ── Export ── */
+  const handleSaveNotifications = async () => {
+    setNotifsLoading(true);
+    setNotifsSuccess(false);
+    setNotifsErr("");
+
+    try {
+      await api.patch("/users/me/notification-preferences", {
+        notification_likes_enabled: notifs.likes,
+        notification_comments_enabled: notifs.comments,
+        notification_followers_enabled: notifs.new_followers,
+        notification_push_enabled: notifs.push,
+        notification_email_enabled: notifs.email,
+      });
+
+      setNotifsSuccess(true);
+      setTimeout(() => setNotifsSuccess(false), 3000);
+    } catch (err) {
+      setNotifsErr(err?.response?.data?.errors?.[0]?.msg || err?.response?.data?.message || "Failed to save preferences");
+    } finally {
+      setNotifsLoading(false);
+    }
+  };
+
   const handleExport = async (format) => {
     try {
       const res = await api.get(`/users/me/export?format=${format}`, { responseType: "blob" });
@@ -485,12 +544,65 @@ export default function Settings() {
       {/* ══ NOTIFICATIONS ══ */}
       {tab === "Notifications" && (
         <Card title="Notification Preferences">
+          {notifsErr && (
+            <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 text-sm text-red-600">
+              {notifsErr}
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">
+              Activity
+            </p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Choose which in-app events can create notifications.
+            </p>
+          </div>
+
           <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="flex items-center justify-between py-5 first:pt-0 last:pb-0">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">All Activity</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Enable likes, comments, and new follower notifications</p>
+              </div>
+              <Toggle
+                checked={allActivityNotificationsEnabled}
+                onChange={(val) => setNotifs((n) => ({
+                  ...n,
+                  likes: val,
+                  comments: val,
+                  new_followers: val,
+                }))}
+              />
+            </div>
             {[
               { key: "likes",          label: "Likes",          desc: "Get notified when someone likes your review" },
               { key: "comments",       label: "Comments",       desc: "Get notified when someone comments on your review" },
               { key: "new_followers",  label: "New Followers",  desc: "Get notified when someone follows you" },
-              { key: "newsletter",     label: "Newsletter",     desc: "Receive weekly movie recommendations" },
+            ].map(({ key, label, desc }) => (
+              <div key={key} className="flex items-center justify-between py-5 first:pt-0 last:pb-0">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{label}</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{desc}</p>
+                </div>
+                <Toggle checked={notifs[key]} onChange={(val) => setNotifs((n) => ({ ...n, [key]: val }))}/>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">
+              Channels
+            </p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Choose where enabled notifications are delivered.
+            </p>
+          </div>
+
+          <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
+            {[
+              { key: "push",  label: "Push",  desc: "Show notifications inside SUPMOVIES" },
+              { key: "email", label: "Email", desc: "Send notification emails to your account address" },
             ].map(({ key, label, desc }) => (
               <div key={key} className="flex items-center justify-between py-5 first:pt-0 last:pb-0">
                 <div>
@@ -503,8 +615,8 @@ export default function Settings() {
           </div>
 
           <div className="pt-2">
-            <RedButton loading={false} success={notifsSuccess} label="Save Preferences" successLabel="Saved!" icon={<SaveIcon/>}
-              onClick={() => { setNotifsSuccess(true); setTimeout(() => setNotifsSuccess(false), 3000); }}/>
+            <RedButton loading={notifsLoading} success={notifsSuccess} label="Save Preferences" successLabel="Saved!" icon={<SaveIcon/>}
+              onClick={handleSaveNotifications}/>
           </div>
         </Card>
       )}

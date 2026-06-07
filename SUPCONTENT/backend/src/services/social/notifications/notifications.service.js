@@ -1,13 +1,36 @@
 import { NotificationModel } from '../../../models/notification.model.js';
 import { UserModel } from '../../../models/user.model.js';
 import { sendNotificationEmail } from './emailNotification.service.js';
+import { notificationTypes } from '../../../utils/notificationTypes.js';
 
 const getNotificationChannelPreferences = async (userId) => {
   const preferences = await UserModel.getNotificationPreferences(userId);
   return {
     push: preferences?.notification_push_enabled !== false,
     email: preferences?.notification_email_enabled === true,
+    likes: preferences?.notification_likes_enabled !== false,
+    comments: preferences?.notification_comments_enabled !== false,
+    followers: preferences?.notification_followers_enabled !== false,
   };
+};
+
+const isNotificationTypeEnabled = (type, preferences) => {
+  if (type === notificationTypes.REVIEW_LIKE) {
+    return preferences.likes;
+  }
+
+  if (
+    type === notificationTypes.REVIEW_COMMENT ||
+    type === notificationTypes.COMMENT_REPLY
+  ) {
+    return preferences.comments;
+  }
+
+  if (type === notificationTypes.FOLLOW) {
+    return preferences.followers;
+  }
+
+  return true;
 };
 
 const sendEmailSafely = async (payload) => {
@@ -32,6 +55,8 @@ export const createNotification = async ({
   if (userId === actorUserId) return;
 
   const channels = await getNotificationChannelPreferences(userId);
+  if (!isNotificationTypeEnabled(type, channels)) return;
+
   const payload = {
     userId,
     actorUserId,

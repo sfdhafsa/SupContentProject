@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api/axios.js";
 
 const LIMIT = 30;
+const REFRESH_INTERVAL_MS = 15000;
 
 const HeartIcon = () => (
   <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-[#D0021B]">
@@ -182,6 +183,12 @@ export default function Notifications() {
 
   useEffect(() => {
     fetchNotifications();
+
+    const intervalId = window.setInterval(fetchNotifications, REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
   }, [fetchNotifications]);
 
   const unreadCount = useMemo(
