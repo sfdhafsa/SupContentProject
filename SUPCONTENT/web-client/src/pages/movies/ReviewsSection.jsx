@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api/axios";
 import ReviewComments from "../../components/reviews/ReviewComments.jsx";
+import ReportDialog from "../../components/reports/ReportDialog.jsx";
 
 const StarIcon = ({ filled }) => (
   <svg viewBox="0 0 20 20" className={`w-4 h-4 ${filled ? "text-yellow-400" : "text-gray-600"}`} fill="currentColor">
@@ -51,6 +52,12 @@ const PencilIcon = () => (
 const TrashIcon = () => (
   <svg viewBox="0 0 22 22" fill="none" className="w-4 h-4">
     <path d="M5 7h12M9 10v6M13 10v6M8 7l.6-2h4.8L14 7M6 7l.8 11h8.4L16 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const FlagIcon = () => (
+  <svg viewBox="0 0 22 22" fill="none" className="w-4 h-4">
+    <path d="M6 18V4.5M6 5h9.5l-1.4 3 1.4 3H6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -149,7 +156,7 @@ function ReviewForm({ initialReview, submitting, error, onCancel, onSubmit }) {
   );
 }
 
-function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, onLiked }) {
+function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, onLiked, onReport }) {
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -209,16 +216,27 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
               </div>
             </div>
 
-            {isMine && (
-              <div className="ml-auto flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-1">
+              {isMine ? (
+                <>
                 <button onClick={() => onEdit(review)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors" title="Edit review">
                   <PencilIcon />
                 </button>
                 <button onClick={() => onDelete(review.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-900/20 transition-colors" title="Delete review">
                   <TrashIcon />
                 </button>
-              </div>
-            )}
+                </>
+              ) : isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => onReport({ type: "REVIEW", id: review.id })}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-900/20 transition-colors"
+                  title="Report review"
+                >
+                  <FlagIcon />
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="mt-4">
@@ -298,6 +316,7 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
             open={commentsOpen}
             initialCount={commentsCount}
             onCountChange={setCommentsCount}
+            onReport={onReport}
           />
         </div>
       </div>
@@ -313,6 +332,8 @@ export default function ReviewsSection({ tmdbId }) {
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportMessage, setReportMessage] = useState("");
 
   const myReview = useMemo(
     () => reviews.find((review) => String(review.user_id) === String(user?.id)),
@@ -398,6 +419,12 @@ export default function ReviewsSection({ tmdbId }) {
         </div>
       )}
 
+      {reportMessage && (
+        <div className="mb-5 rounded-2xl border border-green-500/20 bg-green-500/10 px-5 py-4 text-sm text-green-200">
+          {reportMessage}
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           {[1, 2].map((item) => (
@@ -420,10 +447,21 @@ export default function ReviewsSection({ tmdbId }) {
               onEdit={setEditingReview}
               onDelete={deleteReview}
               onLiked={updateLikes}
+              onReport={(target) => {
+                setReportMessage("");
+                setReportTarget(target);
+              }}
             />
           ))}
         </div>
       )}
+
+      <ReportDialog
+        open={Boolean(reportTarget)}
+        target={reportTarget}
+        onClose={() => setReportTarget(null)}
+        onSubmitted={() => setReportMessage("Report submitted. The moderation team will review it.")}
+      />
     </section>
   );
 }

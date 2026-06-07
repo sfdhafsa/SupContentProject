@@ -37,12 +37,19 @@ function buildCommentTree(comments) {
   return roots;
 }
 
-function CommentItem({ comment, dark, depth, onReply }) {
+const FlagIcon = () => (
+  <svg viewBox="0 0 22 22" fill="none" className="w-3.5 h-3.5">
+    <path d="M6 18V4.5M6 5h9.5l-1.4 3 1.4 3H6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+function CommentItem({ comment, currentUserId, dark, depth, isAuthenticated, onReply, onReport }) {
   const bubbleClass = dark
     ? "bg-gray-900/80 border-white/10 text-gray-300"
     : "bg-gray-50 dark:bg-gray-800/70 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300";
   const nameClass = dark ? "text-white" : "text-gray-900 dark:text-white";
   const connectorClass = dark ? "border-white/10" : "border-gray-200 dark:border-gray-700";
+  const isMine = String(comment.user_id) === String(currentUserId);
 
   return (
     <div className={depth > 0 ? "relative ml-7 sm:ml-10" : ""}>
@@ -67,6 +74,16 @@ function CommentItem({ comment, dark, depth, onReply }) {
             >
               Reply
             </button>
+            {isAuthenticated && !isMine && (
+              <button
+                type="button"
+                onClick={() => onReport?.({ type: "COMMENT", id: comment.id })}
+                className="inline-flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-red-400 transition-colors"
+              >
+                <FlagIcon />
+                Report
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -74,7 +91,16 @@ function CommentItem({ comment, dark, depth, onReply }) {
       {comment.replies.length > 0 && (
         <div className="mt-3 space-y-3">
           {comment.replies.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} dark={dark} depth={depth + 1} onReply={onReply} />
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              currentUserId={currentUserId}
+              dark={dark}
+              depth={depth + 1}
+              isAuthenticated={isAuthenticated}
+              onReply={onReply}
+              onReport={onReport}
+            />
           ))}
         </div>
       )}
@@ -88,10 +114,11 @@ export default function ReviewComments({
   variant = "light",
   open: controlledOpen,
   onCountChange,
+  onReport,
 }) {
   const dark = variant === "dark";
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const inputRef = useRef(null);
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
@@ -201,7 +228,16 @@ export default function ReviewComments({
           ) : (
             <div className="space-y-4">
               {tree.map((comment) => (
-                <CommentItem key={comment.id} comment={comment} dark={dark} depth={0} onReply={handleReply} />
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  currentUserId={user?.id}
+                  dark={dark}
+                  depth={0}
+                  isAuthenticated={isAuthenticated}
+                  onReply={handleReply}
+                  onReport={onReport}
+                />
               ))}
             </div>
           )}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { REPORT_REASON_LABELS } from "../../components/reports/ReportDialog.jsx";
 import api from "../../services/api/axios.js";
 
 const UserIcon = () => (
@@ -32,6 +33,7 @@ const StarIcon = ({ filled = false }) => (
 
 const userFilters = ["ALL", "ACTIVE", "BANNED"];
 const reviewFilters = ["ALL", "FEATURED", "UNFEATURED"];
+const reportFilters = ["ALL", "PENDING", "REVIEWED", "RESOLVED"];
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -47,11 +49,14 @@ export default function AdminView() {
   const [activeTab, setActiveTab] = useState("users");
   const [users, setUsers] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [reports, setReports] = useState([]);
   const [query, setQuery] = useState("");
   const [userFilter, setUserFilter] = useState("ALL");
   const [reviewFilter, setReviewFilter] = useState("ALL");
+  const [reportFilter, setReportFilter] = useState("PENDING");
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [loadingReports, setLoadingReports] = useState(false);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
 
@@ -94,6 +99,26 @@ export default function AdminView() {
     });
   }, [activeTab, query, reviewFilter, reviews]);
 
+  const filteredReports = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return reports.filter((report) => {
+      const matchesFilter =
+        reportFilter === "ALL" ||
+        report.status === reportFilter;
+
+      const matchesQuery =
+        activeTab !== "reports" ||
+        !normalizedQuery ||
+        report.reporter_username?.toLowerCase().includes(normalizedQuery) ||
+        report.target_author_username?.toLowerCase().includes(normalizedQuery) ||
+        report.target_text?.toLowerCase().includes(normalizedQuery) ||
+        report.target_type?.toLowerCase().includes(normalizedQuery);
+
+      return matchesFilter && matchesQuery;
+    });
+  }, [activeTab, query, reportFilter, reports]);
+
   const loadUsers = async () => {
     setLoadingUsers(true);
     setError("");
@@ -122,6 +147,20 @@ export default function AdminView() {
     }
   };
 
+  const loadReports = async () => {
+    setLoadingReports(true);
+    setError("");
+
+    try {
+      const res = await api.get("/moderation/reports");
+      setReports(res.data.reports || []);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to load reports.");
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -131,6 +170,12 @@ export default function AdminView() {
       loadReviews();
     }
   }, [activeTab, reviews.length]);
+
+  useEffect(() => {
+    if (activeTab === "reports" && reports.length === 0) {
+      loadReports();
+    }
+  }, [activeTab, reports.length]);
 
   const updateBan = async (targetUser, shouldBan) => {
     setBusyId(`user-${targetUser.id}`);
@@ -178,9 +223,48 @@ export default function AdminView() {
     }
   };
 
+  const dismissReport = async (report) => {
+    setBusyId(`report-${report.id}`);
+    setError("");
+
+    try {
+      const res = await api.patch(`/moderation/reports/${report.id}/dismiss`);
+      const updatedReport = res.data.report;
+      setReports((currentReports) =>
+        currentReports.map((item) => (item.id === report.id ? { ...item, ...updatedReport } : item))
+      );
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to dismiss report.");
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  const deleteReportedTarget = async (report) => {
+    setBusyId(`report-${report.id}`);
+    setError("");
+
+    try {
+      const res = await api.delete(`/moderation/reports/${report.id}/target`);
+      const updatedReport = res.data.report;
+      setReports((currentReports) =>
+        currentReports.map((item) => (item.id === report.id ? { ...item, ...updatedReport } : item))
+      );
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to delete reported content.");
+    } finally {
+      setBusyId("");
+    }
+  };
+
   const isUsersTab = activeTab === "users";
-  const isLoading = isUsersTab ? loadingUsers : loadingReviews;
-  const placeholder = isUsersTab ? "Search users..." : "Search reviews...";
+  const isReviewsTab = activeTab === "reviews";
+  const isReportsTab = activeTab === "reports";
+  const isLoading = isUsersTab ? loadingUsers : isReviewsTab ? loadingReviews : loadingReports;
+  const placeholder = isUsersTab ? "Search users..." : isReviewsTab ? "Search reviews..." : "Search reports...";
+  const currentFilters = isUsersTab ? userFilters : isReviewsTab ? reviewFilters : reportFilters;
+  const currentFilter = isUsersTab ? userFilter : isReviewsTab ? reviewFilter : reportFilter;
+  const setCurrentFilter = isUsersTab ? setUserFilter : isReviewsTab ? setReviewFilter : setReportFilter;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -211,13 +295,13 @@ export default function AdminView() {
           </div>
 
           <div className="flex gap-1 rounded-xl bg-gray-100 dark:bg-gray-800 p-1">
-            {(isUsersTab ? userFilters : reviewFilters).map((item) => (
+            {currentFilters.map((item) => (
               <button
                 key={item}
                 type="button"
-                onClick={() => (isUsersTab ? setUserFilter(item) : setReviewFilter(item))}
+                onClick={() => setCurrentFilter(item)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  (isUsersTab ? userFilter : reviewFilter) === item
+                  currentFilter === item
                     ? "bg-white dark:bg-gray-950 text-gray-900 dark:text-white shadow-sm"
                     : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 }`}
@@ -233,6 +317,7 @@ export default function AdminView() {
         {[
           { id: "users", label: "Users" },
           { id: "reviews", label: "Reviews" },
+          { id: "reports", label: "Reports" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -268,13 +353,22 @@ export default function AdminView() {
           onUpdateBan={updateBan}
           users={users}
         />
-      ) : (
+      ) : isReviewsTab ? (
         <ReviewsPanel
           busyId={busyId}
           filteredReviews={filteredReviews}
           loading={isLoading}
           onUpdateFeatured={updateFeatured}
           reviews={reviews}
+        />
+      ) : (
+        <ReportsPanel
+          busyId={busyId}
+          filteredReports={filteredReports}
+          loading={isLoading}
+          onDeleteTarget={deleteReportedTarget}
+          onDismiss={dismissReport}
+          reports={reports}
         />
       )}
     </div>
@@ -492,6 +586,112 @@ function ReviewsPanel({ busyId, filteredReviews, loading, onUpdateFeatured, revi
                     }`}
                   >
                     {busyId === `review-${review.id}` ? "Updating..." : review.is_featured ? "Unfeature" : "Feature"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReportsPanel({ busyId, filteredReports, loading, onDeleteTarget, onDismiss, reports }) {
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden">
+      <div className="grid grid-cols-4 border-b border-gray-100 dark:border-gray-800">
+        {[
+          { label: "Total reports", value: reports.length },
+          { label: "Pending", value: reports.filter((item) => item.status === "PENDING").length },
+          { label: "Reviewed", value: reports.filter((item) => item.status === "REVIEWED").length },
+          { label: "Resolved", value: reports.filter((item) => item.status === "RESOLVED").length },
+        ].map(({ label, value }) => (
+          <div key={label} className="px-4 py-4 border-r last:border-r-0 border-gray-100 dark:border-gray-800">
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {loading ? (
+        <LoadingState />
+      ) : filteredReports.length === 0 ? (
+        <EmptyState icon={<ShieldIcon />} message="No reports found." />
+      ) : (
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          {filteredReports.map((report) => {
+            const isPending = report.status === "PENDING";
+            const targetText = report.target_text || "Reported content is unavailable or has no text.";
+
+            return (
+              <div key={report.id} className="p-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_160px] lg:items-start">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {report.target_type === "REVIEW" ? "Review" : "Comment"} report
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                      report.status === "PENDING"
+                        ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300"
+                        : report.status === "RESOLVED"
+                        ? "bg-green-50 dark:bg-green-900/20 text-green-600"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                    }`}>
+                      {report.status}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-[#D0021B]/10 text-[#D0021B] text-[11px] font-semibold">
+                      {REPORT_REASON_LABELS[report.reason] || report.reason}
+                    </span>
+                  </div>
+
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-3">
+                    {targetText}
+                  </p>
+
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">Reporter</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {report.reporter_username || "Unknown user"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">Target author</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {report.target_author_username || "Unknown user"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">Reported at</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {formatDate(report.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row lg:mt-6 lg:flex-col lg:items-stretch">
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 sm:mr-auto lg:mr-0 lg:h-6 lg:text-right">
+                    {report.handled_at
+                      ? `Handled ${formatDate(report.handled_at)}${report.handler_username ? ` by ${report.handler_username}` : ""}`
+                      : "Not handled"}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={Boolean(busyId) || !isPending}
+                    onClick={() => onDismiss(report)}
+                    className="w-full sm:w-auto lg:w-full px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {busyId === `report-${report.id}` ? "Updating..." : "Dismiss"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={Boolean(busyId) || !isPending}
+                    onClick={() => onDeleteTarget(report)}
+                    className="w-full sm:w-auto lg:w-full px-4 py-2 rounded-xl bg-[#D0021B] hover:bg-[#b30218] text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Delete content
                   </button>
                 </div>
               </div>
