@@ -112,15 +112,12 @@ export const searchMovies = async ({ query, page = 1, year, genre_id }) => {
   if (!query || query.trim() === "") {
     throw Object.assign(new Error("Le paramètre 'q' est requis"), { status: 400 });
   }
-
   const pageNum  = validatePage(page);
   const params   = { query: query.trim(), page: pageNum };
   const yearNum  = year ? parseInt(year, 10) : undefined;
   const genreNum = genre_id ? parseInt(genre_id, 10) : undefined;
-
   if (yearNum  && !isNaN(yearNum))  params.primary_release_year = yearNum;
   if (genreNum && !isNaN(genreNum)) params.with_genres           = genreNum;
-
   try {
     const response = await tmdb.get("search/movie", { params });
     return {
@@ -138,7 +135,6 @@ export const searchMovies = async ({ query, page = 1, year, genre_id }) => {
 export const getMovieById = async (tmdbId) => {
   const validId = validateTmdbId(tmdbId);
   const cached  = await MovieModel.findByExternalId(validId);
-
   try {
     const [movieRes, creditsRes, videosRes, similarRes] = await Promise.all([
       tmdb.get(`movie/${validId}`),
@@ -146,7 +142,6 @@ export const getMovieById = async (tmdbId) => {
       tmdb.get(`movie/${validId}/videos`),
       tmdb.get(`movie/${validId}/similar`),
     ]);
-
     const data      = movieRes.data;
     const movieData = {
       external_id:     validId,
@@ -156,17 +151,11 @@ export const getMovieById = async (tmdbId) => {
       release_date:    data.release_date || null,
       runtime_minutes: data.runtime ?? null,
     };
-
     if (cached) {
       await MovieModel.update(validId, movieData);
     } else {
-      try {
-        await MovieModel.create(movieData);
-      } catch {
-        // Race condition
-      }
+      try { await MovieModel.create(movieData); } catch { /* Race condition */ }
     }
-
     return formatMovieDetail(data, creditsRes.data, videosRes.data, similarRes.data);
   } catch (err) {
     if (err.status === 400) throw err;
@@ -201,23 +190,69 @@ export const getPopularMovies = async (page = 1) => {
   }
 };
 
-// 🔍 DISCOVER — filtres côté serveur TMDB
-export const discoverMovies = async ({ page = 1, genre_id, year_min, year_max, min_rating, sort_by = "popularity.desc" }) => {
+// 🔍 DISCOVER
+export const discoverMovies = async ({ page = 1, genre_ids, year_min, year_max, min_rating, sort_by = "popularity.desc" }) => {
   const pageNum = validatePage(page);
-
-  const params = {
-    page,
-    sort_by,
-    "vote_count.gte": 50,
-  };
-
-  if (genre_id)   params.with_genres                    = genre_id;
-  if (year_min)   params["primary_release_date.gte"]    = `${year_min}-01-01`;
-  if (year_max)   params["primary_release_date.lte"]    = `${year_max}-12-31`;
-  if (min_rating) params["vote_average.gte"]            = min_rating;
-
+  const params  = { page: pageNum, sort_by, "vote_count.gte": 50 };
+  if (genre_ids && genre_ids.length > 0) params.with_genres = genre_ids.join(",");
+  if (year_min)   params["primary_release_date.gte"] = `${year_min}-01-01`;
+  if (year_max)   params["primary_release_date.lte"] = `${year_max}-12-31`;
+  if (min_rating) params["vote_average.gte"]          = min_rating;
   try {
     const response = await tmdb.get("discover/movie", { params });
+    return {
+      results:       response.data.results.map(formatMovieList),
+      page:          response.data.page,
+      total_pages:   response.data.total_pages,
+      total_results: response.data.total_results,
+    };
+  } catch (err) {
+    throw Object.assign(new Error("Erreur API TMDB"), { status: err.response?.status || 502 });
+  }
+};
+
+// 📈 TRENDING
+export const getTrendingMovies = async (timeWindow = "week") => {
+  try {
+    const response = await tmdb.get(`trending/movie/${timeWindow}`);
+    return {
+      results: response.data.results.map((movie) => ({
+        tmdb_id:      String(movie.id),
+        title:        movie.title,
+        poster_url:   formatPosterUrl(movie.poster_path),
+        backdrop_url: formatBackdropUrl(movie.backdrop_path),
+        release_date: movie.release_date,
+        overview:     movie.overview,
+        vote_average: movie.vote_average,
+        genre_ids:    movie.genre_ids,
+      })),
+    };
+  } catch (err) {
+    throw Object.assign(new Error("Erreur API TMDB"), { status: err.response?.status || 502 });
+  }
+};
+
+// 🎬 TOP RATED
+export const getTopRatedMovies = async (page = 1) => {
+  const pageNum = validatePage(page);
+  try {
+    const response = await tmdb.get("movie/top_rated", { params: { page: pageNum } });
+    return {
+      results:       response.data.results.map(formatMovieList),
+      page:          response.data.page,
+      total_pages:   response.data.total_pages,
+      total_results: response.data.total_results,
+    };
+  } catch (err) {
+    throw Object.assign(new Error("Erreur API TMDB"), { status: err.response?.status || 502 });
+  }
+};
+
+// 🆕 NOW PLAYING
+export const getNowPlayingMovies = async (page = 1) => {
+  const pageNum = validatePage(page);
+  try {
+    const response = await tmdb.get("movie/now_playing", { params: { page: pageNum } });
     return {
       results:       response.data.results.map(formatMovieList),
       page:          response.data.page,
@@ -232,16 +267,12 @@ export const discoverMovies = async ({ page = 1, genre_id, year_min, year_max, m
 export const getSimilarMovies = async (tmdbId, page = 1) => {
   const validId = validateTmdbId(tmdbId);
   const pageNum = validatePage(page);
-
   try {
-    const response = await tmdb.get(`movie/${validId}/similar`, {
-      params: { page: pageNum },
-    });
-
+    const response = await tmdb.get(`movie/${validId}/similar`, { params: { page: pageNum } });
     return {
-      results: response.data.results.map(formatMovieList),
-      page: response.data.page,
-      total_pages: response.data.total_pages,
+      results:       response.data.results.map(formatMovieList),
+      page:          response.data.page,
+      total_pages:   response.data.total_pages,
       total_results: response.data.total_results,
     };
   } catch (err) {
