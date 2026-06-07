@@ -49,6 +49,12 @@ const BellIcon = () => (
     <path d="M9 17a2 2 0 004 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
   </svg>
 );
+const MessageIcon = () => (
+  <svg viewBox="0 0 22 22" fill="none" className="w-5 h-5">
+    <path d="M5 16.5l-2 3V5.5A2.5 2.5 0 015.5 3h11A2.5 2.5 0 0119 5.5V14a2.5 2.5 0 01-2.5 2.5H5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="M7 8h8M7 11h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
 const MenuIcon = () => (
   <svg viewBox="0 0 22 22" fill="none" className="w-5 h-5">
     <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -356,6 +362,14 @@ export default function Navbar() {
           {isAuthenticated ? (
             <>
               <Link
+                to="/messages"
+                title="Conversations"
+                className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all"
+              >
+                <MessageIcon />
+              </Link>
+
+              <Link
                 to="/notifications"
                 title="Notifications"
                 className="relative w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all"
@@ -485,6 +499,14 @@ export default function Navbar() {
                   <p className="text-xs text-gray-400 dark:text-gray-500">{user?.email}</p>
                 </div>
               </div>
+              <Link
+                to="/messages"
+                onClick={() => setMobile(false)}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <MessageIcon />
+                Conversations
+              </Link>
               <Link
                 to="/notifications"
                 onClick={() => setMobile(false)}

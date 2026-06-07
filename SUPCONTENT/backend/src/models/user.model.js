@@ -111,6 +111,34 @@ export const UserModel = {
     return rows[0] || null;
   },
 
+  async searchByUsername(query, currentUserId, limit = 8) {
+    const normalizedQuery = String(query || '').trim();
+
+    if (normalizedQuery.length < 2) {
+      return [];
+    }
+
+    const { rows } = await pool.query(
+      `SELECT id, username, avatar_url
+       FROM users
+       WHERE username ILIKE $1
+       AND id <> $2
+       AND is_banned = FALSE
+       ORDER BY
+         CASE WHEN username ILIKE $3 THEN 0 ELSE 1 END,
+         username ASC
+       LIMIT $4`,
+      [
+        `%${normalizedQuery}%`,
+        currentUserId,
+        `${normalizedQuery}%`,
+        limit,
+      ]
+    );
+
+    return rows;
+  },
+
   // =====================
   // CREATE LOCAL USER
   // =====================
