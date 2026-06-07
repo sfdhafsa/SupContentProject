@@ -1,14 +1,5 @@
 import { useState, useCallback } from 'react';
-
-const API_BASE = '/api';
-
-function getHeaders() {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+import api from '../services/api/axios';
 
 export function useLibrary() {
   const [loading, setLoading] = useState(false);
@@ -18,25 +9,16 @@ export function useLibrary() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}${url}`, {
-        ...options,
-        headers: { ...getHeaders(), ...options.headers },
+      const { body, ...requestOptions } = options;
+      const res = await api.request({
+        url,
+        ...requestOptions,
+        data: body ? JSON.parse(body) : undefined,
       });
-      const text = await res.text();
-      let data = {};
-
-      if (text) {
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = { message: 'Reponse API invalide.' };
-        }
-      }
-
-      if (!res.ok) throw new Error(data.message || 'Erreur serveur');
-      return data;
+      return res.data;
     } catch (err) {
-      setError(err.message);
+      const message = err?.response?.data?.message || err.message || 'Erreur serveur';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);

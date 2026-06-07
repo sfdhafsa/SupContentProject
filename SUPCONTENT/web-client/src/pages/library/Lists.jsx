@@ -17,17 +17,15 @@ const TrashIcon = () => (
 );
 
 const PosterPreview = ({ movie }) => (
-  <Link
-    to={`/movies/${movie.external_id}`}
+  <div
     className="block aspect-[2/3] overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
     title={movie.title}
-    onClick={(event) => event.stopPropagation()}
   >
     {movie.poster_url ? (
       <img
         src={movie.poster_url}
         alt={movie.title}
-        className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
+        className="h-full w-full object-cover transition-transform duration-200 group-hover/list:scale-105"
         loading="lazy"
       />
     ) : (
@@ -35,7 +33,7 @@ const PosterPreview = ({ movie }) => (
         Film
       </div>
     )}
-  </Link>
+  </div>
 );
 
 function ListsSkeleton() {
@@ -67,11 +65,23 @@ function EmptyLists() {
 function ListCard({ list, onDelete, deleting, canManage = false }) {
   const previewMovies = list.preview_movies || list.movies || [];
   const movieCount = Number(list.movie_count ?? previewMovies.length ?? 0);
+  const handleDeleteClick = (event) => {
+    event.stopPropagation();
+    onDelete(list);
+  };
 
   return (
-    <article className="rounded-2xl border border-gray-100 bg-white p-5 transition-colors hover:border-gray-200 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
-      <div className="block">
-        <Link to={`/lists/${list.id}`} className="flex items-start gap-3">
+    <article
+      className="group/list relative rounded-2xl border border-gray-100 bg-white p-5 transition-colors hover:border-gray-200 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
+    >
+      <Link
+        to={`/lists/${list.id}`}
+        className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#D0021B]/50"
+        aria-label={`Ouvrir la liste ${list.name}`}
+      />
+
+      <div className="pointer-events-none relative z-10 block">
+        <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800">
             <ListIcon />
           </div>
@@ -81,7 +91,7 @@ function ListCard({ list, onDelete, deleting, canManage = false }) {
               {list.description || "Aucune description."}
             </p>
           </div>
-        </Link>
+        </div>
 
         {previewMovies.length > 0 ? (
           <div className="mt-5 grid grid-cols-4 gap-2">
@@ -110,18 +120,14 @@ function ListCard({ list, onDelete, deleting, canManage = false }) {
           <button
             type="button"
             disabled={deleting}
-            onClick={() => onDelete(list)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-900/20"
+            onClick={handleDeleteClick}
+            className="pointer-events-auto relative z-20 flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-900/20"
             title="Supprimer"
           >
             <TrashIcon />
           </button>
         )}
       </div>
-
-      <Link to={`/lists/${list.id}`} className="mt-4 inline-flex text-sm font-bold text-[#D0021B] hover:underline">
-        Ouvrir la collection
-      </Link>
     </article>
   );
 }
