@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { moviesApi } from "../../services/api/movies.api";
+import api from "../../services/api/axios";
+import { useAuth } from "../../context/AuthContext";
 import ReviewsSection from "./ReviewsSection.jsx";
 
 const BackIcon = () => (
@@ -183,12 +185,15 @@ const formatMoney = (n) => {
 export default function MovieDetail() {
   const { id }   = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const [movie, setMovie]         = useState(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(null);
   const [trailer, setTrailer]     = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [librarySaving, setLibrarySaving] = useState(false);
+  const [libraryMessage, setLibraryMessage] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -219,6 +224,28 @@ export default function MovieDetail() {
   const stars   = rating ? Math.round(rating / 2) : 0;
   const budget  = formatMoney(movie.budget);
   const revenue = formatMoney(movie.revenue);
+
+  const handleAddToLibrary = async () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setLibrarySaving(true);
+    setLibraryMessage("");
+
+    try {
+      await api.post("/library", {
+        tmdb_id: movie.tmdb_id || id,
+        status: "TO_WATCH",
+      });
+      setLibraryMessage("Ajoute a votre bibliotheque.");
+    } catch (err) {
+      setLibraryMessage(err?.response?.data?.message || "Impossible d'ajouter ce film.");
+    } finally {
+      setLibrarySaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -343,18 +370,26 @@ export default function MovieDetail() {
                 </button>
               )}
               <button
-                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#D0021B] hover:bg-[#b30218] text-white text-sm font-semibold rounded-xl transition-all"
-                onClick={() => {/* personne 3 branchera ici */}}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#D0021B] hover:bg-[#b30218] text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                onClick={handleAddToLibrary}
+                disabled={librarySaving}
               >
                 <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
                   <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
-                Ajouter à ma bibliothèque
+                <span className="text-sm">
+                  {isAuthenticated
+                    ? librarySaving ? "Ajout..." : "Ajouter a ma bibliotheque"
+                    : "Se connecter pour ajouter"}
+                </span>
               </button>
               <button onClick={() => navigate("/discover")} className="px-6 py-2.5 border border-white/20 text-sm font-semibold text-gray-300 rounded-xl hover:bg-white/10 transition-all">
                 ← Recherche
               </button>
             </div>
+            {libraryMessage && (
+              <p className="mt-3 text-sm text-gray-400">{libraryMessage}</p>
+            )}
           </div>
         </div>
       </div>

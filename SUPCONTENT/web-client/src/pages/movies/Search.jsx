@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { moviesApi } from "../../services/api/movies.api";
+import api from "../../services/api/axios";
+import { useAuth } from "../../context/AuthContext";
 
 const SearchIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-gray-400 flex-shrink-0">
@@ -130,7 +132,7 @@ function FilterTag({ label, onRemove }) {
 }
 
 // ── Hero Carousel — sans sortir du container ──
-function HeroCarousel({ movies, onMovieClick }) {
+function HeroCarousel({ movies, onMovieClick, onAddToLibrary }) {
   const [current, setCurrent]   = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
   const heroMovies = movies.slice(0, 6);
@@ -189,10 +191,10 @@ function HeroCarousel({ movies, onMovieClick }) {
               <PlayIcon />Voir le film
             </button>
             <button
-              onClick={() => onMovieClick(movie.tmdb_id)}
+              onClick={() => onAddToLibrary(movie)}
               className="px-5 py-2 bg-white/20 backdrop-blur-sm text-white text-sm font-semibold rounded-xl hover:bg-white/30 transition-all border border-white/20"
             >
-              + Ma bibliothèque
+              <span className="text-sm">+ Ma bibliotheque</span>
             </button>
           </div>
         </div>
@@ -321,8 +323,9 @@ function GenrePills({ genres, selectedIds, onToggle }) {
 }
 
 export default function Search() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const navigate  = useNavigate();
+  const { isAuthenticated } = useAuth();
   const filterRef = useRef(null);
 
   const [query, setQuery]         = useState(searchParams.get("q") || "");
@@ -418,6 +421,18 @@ export default function Search() {
 
   const handleMovieClick = (tmdbId) => navigate(`/movies/${tmdbId}`);
 
+  const handleAddToLibrary = async (movie) => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    await api.post("/library", {
+      tmdb_id: movie.tmdb_id,
+      status: "TO_WATCH",
+    });
+  };
+
   const toggleGenre = (id) => {
     setGenreIds((prev) => prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]);
     setPage(1);
@@ -448,7 +463,11 @@ export default function Search() {
 
       {/* Hero — seulement en mode découverte */}
       {!isSearchMode && trending.length > 0 && (
-        <HeroCarousel movies={trending} onMovieClick={handleMovieClick} />
+        <HeroCarousel
+          movies={trending}
+          onMovieClick={handleMovieClick}
+          onAddToLibrary={handleAddToLibrary}
+        />
       )}
 
       {/* Search + Filters */}
@@ -697,6 +716,17 @@ export default function Search() {
             Suivant →
           </button>
         </div>
+      )}
+        </>
+      )}
+
+      {!isSearchMode && (
+        <>
+          <GenrePills genres={genres} selectedIds={genreIds} onToggle={toggleGenre} />
+          <MovieSection title="Tendances" movies={trending} onMovieClick={handleMovieClick} loading={sectionsLoading} />
+          <MovieSection title="Mieux notes" movies={topRated} onMovieClick={handleMovieClick} loading={sectionsLoading} />
+          <MovieSection title="Au cinema" movies={nowPlaying} onMovieClick={handleMovieClick} loading={sectionsLoading} />
+        </>
       )}
     </div>
   );
