@@ -16,6 +16,17 @@ const hashResetToken = (token) =>
 
 const getClientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
 
+const getOAuthCallbackUrl = (state) => {
+  if (!state) return `${getClientUrl()}/auth/callback`;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+    return parsed.redirectUri || `${getClientUrl()}/auth/callback`;
+  } catch {
+    return `${getClientUrl()}/auth/callback`;
+  }
+};
+
 // =====================
 // REGISTER
 // =====================
@@ -227,9 +238,11 @@ export const resetPassword = async (req, res, next) => {
 // =====================
 export const oauthCallback = (req, res) => {
   const user = req.user;
+  const callbackUrl = new URL(getOAuthCallbackUrl(req.query.state));
 
   if (!user) {
-    return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+    callbackUrl.searchParams.set('error', 'oauth_failed');
+    return res.redirect(callbackUrl.toString());
   }
 
   const token = signToken({
@@ -237,7 +250,6 @@ export const oauthCallback = (req, res) => {
     roles: user.roles || []
   });
 
-  return res.redirect(
-    `${process.env.CLIENT_URL}/auth/callback?token=${token}`
-  );
+  callbackUrl.searchParams.set('token', token);
+  return res.redirect(callbackUrl.toString());
 };
