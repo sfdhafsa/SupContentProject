@@ -56,12 +56,6 @@ const BookmarkIcon = () => (
       stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
-const RefreshIcon = () => (
-  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
-    <path d="M4 4v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M4.06 13A7 7 0 1010 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-  </svg>
-);
 const UserIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-gray-400">
     <circle cx="10" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.3"/>
@@ -506,7 +500,6 @@ export default function Home() {
   const [feedError, setFeedError]       = useState("");
   const [offset, setOffset]             = useState(0);
   const [hasMore, setHasMore]           = useState(true);
-  const [refreshing, setRefreshing]     = useState(false);
 
   /* Trending state */
   const [trending, setTrending]         = useState([]);
@@ -548,7 +541,6 @@ export default function Home() {
     } finally {
       setFeedLoading(false);
       setLoadingMore(false);
-      setRefreshing(false);
     }
   }, [offset]);
 
@@ -610,8 +602,7 @@ export default function Home() {
     return () => observer.disconnect();
   }, [hasMore, loadingMore, fetchFeed]);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
+  const handleRetry = async () => {
     setOffset(0);
     setHasMore(true);
     setFeedError("");
@@ -625,22 +616,15 @@ export default function Home() {
         {/* ══ LEFT — ACTIVITY FEED ══ */}
         <div>
           {/* Feed header */}
-          <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
+          <div className="mb-5 sm:mb-6">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Activity Feed</h1>
-            <button onClick={handleRefresh} disabled={refreshing}
-              className={`flex shrink-0 items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all ${
-                refreshing ? "opacity-50 cursor-not-allowed" : ""
-              }`}>
-              <span className={refreshing ? "animate-spin" : ""}><RefreshIcon /></span>
-              {refreshing ? "Refreshing…" : "Refresh"}
-            </button>
           </div>
 
           {/* Error */}
           {feedError && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 text-sm text-red-600 flex items-center justify-between">
               {feedError}
-              <button onClick={handleRefresh} className="font-semibold hover:underline ml-2">Retry</button>
+              <button onClick={handleRetry} className="font-semibold hover:underline ml-2">Retry</button>
             </div>
           )}
 
@@ -674,11 +658,6 @@ export default function Home() {
                 </div>
               )}
 
-              {!hasMore && items.length > 0 && (
-                <div className="text-center py-8">
-                  <p className="text-sm text-gray-400 dark:text-gray-500">You're all caught up 🎉</p>
-                </div>
-              )}
             </>
           )}
         </div>

@@ -276,13 +276,6 @@ export default function Lists() {
         </div>
       )}
 
-      {isAuthenticated && (
-        <div className="mt-8">
-          <Link to="/discover" className="text-sm font-bold text-[#D0021B] hover:underline">
-            Ajouter des films depuis Discover
-          </Link>
-        </div>
-      )}
     </div>
   );
 }
