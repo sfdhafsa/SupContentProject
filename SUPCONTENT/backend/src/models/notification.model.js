@@ -28,6 +28,12 @@ export const NotificationModel = {
           u.id AS actor_id,
           u.username,
           u.avatar_url,
+          EXISTS (
+            SELECT 1
+            FROM follows viewer_follow
+            WHERE viewer_follow.follower_id = n.user_id
+            AND viewer_follow.followed_id = n.actor_user_id
+          ) AS viewer_follows_actor,
           COALESCE(m.id, recommended_movie.id) AS movie_id,
           COALESCE(m.external_id, recommended_movie.external_id) AS movie_tmdb_id,
           COALESCE(m.title, recommended_movie.title) AS movie_title,
