@@ -13,6 +13,18 @@ export { getReports, updateReportStatus };
 
 export const getModerationUsers = () => UserModel.findAllForAdmin();
 
+export const getModerationReviews = ({ featured } = {}) => {
+  let featuredFilter;
+
+  if (typeof featured === "string") {
+    const normalizedFeatured = featured.trim().toLowerCase();
+    if (normalizedFeatured === "true") featuredFilter = true;
+    if (normalizedFeatured === "false") featuredFilter = false;
+  }
+
+  return ReviewModel.findAllForAdmin({ featured: featuredFilter });
+};
+
 const updateUserBanStatus = async ({ userId, isBanned, handledBy }) => {
   if (!userId) {
     throw Object.assign(new Error("User id is required."), { status: 400 });
@@ -40,6 +52,28 @@ export const banUser = ({ userId, handledBy }) =>
 
 export const unbanUser = ({ userId, handledBy }) =>
   updateUserBanStatus({ userId, handledBy, isBanned: false });
+
+export const updateReviewFeaturedStatus = async ({
+  reviewId,
+  isFeatured,
+  handledBy,
+}) => {
+  if (!reviewId) {
+    throw Object.assign(new Error("Review id is required."), { status: 400 });
+  }
+
+  const review = await ReviewModel.updateFeaturedStatus(
+    reviewId,
+    Boolean(isFeatured),
+    handledBy
+  );
+
+  if (!review) {
+    throw Object.assign(new Error("Review not found."), { status: 404 });
+  }
+
+  return review;
+};
 
 export const dismissReport = async ({ reportId, handledBy }) =>
   updateReportStatus({

@@ -156,6 +156,7 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentsCount, setCommentsCount] = useState(review.comments_count || 0);
   const isMine = String(review.user_id) === String(currentUserId);
+  const isFeatured = Boolean(review.is_featured);
   const initials = review.username ? review.username.slice(0, 2).toUpperCase() : "U";
   const hasText = typeof review.text === "string" && review.text.trim().length > 0;
 
@@ -174,7 +175,11 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
   };
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+    <article className={`rounded-2xl border p-5 ${
+      isFeatured
+        ? "border-[#D0021B]/40 bg-[#D0021B]/[0.08] shadow-[0_0_0_1px_rgba(208,2,27,0.08)]"
+        : "border-white/10 bg-white/[0.04]"
+    }`}>
       <div className="flex gap-4">
         <Link to={`/profile/${review.user_id}`} className="w-11 h-11 rounded-full overflow-hidden bg-gray-800 flex-shrink-0 ring-1 ring-white/10 hover:ring-[#D0021B] transition-all">
           {review.avatar_url ? (
@@ -185,6 +190,15 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
         </Link>
 
         <div className="flex-1 min-w-0">
+          {isFeatured && (
+            <div className="mb-4 rounded-xl border border-[#D0021B]/30 bg-black/20 px-4 py-3">
+              <p className="text-sm font-bold text-white">❤️ Coup de cœur</p>
+              <p className="mt-1 text-xs text-gray-300">
+                This review is featured by the moderation team.
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-start gap-3">
             <div className="min-w-0">
               <Link to={`/profile/${review.user_id}`} className="text-sm font-bold text-white hover:text-[#D0021B] transition-colors">

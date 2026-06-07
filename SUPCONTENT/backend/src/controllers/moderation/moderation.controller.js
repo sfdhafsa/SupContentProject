@@ -4,7 +4,9 @@ import {
   dismissReport,
   getReports,
   getModerationUsers,
+  getModerationReviews,
   unbanUser,
+  updateReviewFeaturedStatus,
   updateReportStatus,
 } from "../../services/moderation/moderation.service.js";
 
@@ -103,6 +105,18 @@ export const listModerationUsers = async (req, res, next) => {
   }
 };
 
+export const listModerationReviews = async (req, res, next) => {
+  try {
+    const reviews = await getModerationReviews({
+      featured: req.query.featured,
+    });
+
+    return res.json({ reviews });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const banModerationUser = async (req, res, next) => {
   try {
     const user = await banUser({
@@ -129,6 +143,40 @@ export const unbanModerationUser = async (req, res, next) => {
     return res.json({
       message: "User unbanned.",
       user,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const featureModerationReview = async (req, res, next) => {
+  try {
+    const review = await updateReviewFeaturedStatus({
+      reviewId: req.params.id,
+      isFeatured: true,
+      handledBy: req.user.userId,
+    });
+
+    return res.json({
+      message: "Review featured.",
+      review,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const unfeatureModerationReview = async (req, res, next) => {
+  try {
+    const review = await updateReviewFeaturedStatus({
+      reviewId: req.params.id,
+      isFeatured: false,
+      handledBy: req.user.userId,
+    });
+
+    return res.json({
+      message: "Review unfeatured.",
+      review,
     });
   } catch (err) {
     next(err);
