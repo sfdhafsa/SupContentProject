@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api/axios";
 import ReviewComments from "../../components/reviews/ReviewComments.jsx";
@@ -156,16 +156,26 @@ function ReviewForm({ initialReview, submitting, error, onCancel, onSubmit }) {
   );
 }
 
-function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, onLiked, onReport }) {
+function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, onLiked, onReport, shouldFocus, targetCommentId }) {
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
   const [liked, setLiked] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(shouldFocus);
   const [commentsCount, setCommentsCount] = useState(review.comments_count || 0);
+  const cardRef = useRef(null);
   const isMine = String(review.user_id) === String(currentUserId);
   const isFeatured = Boolean(review.is_featured);
   const initials = review.username ? review.username.slice(0, 2).toUpperCase() : "U";
   const hasText = typeof review.text === "string" && review.text.trim().length > 0;
+
+  useEffect(() => {
+    if (!shouldFocus) return;
+
+    setCommentsOpen(true);
+    window.setTimeout(() => {
+      cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+  }, [shouldFocus]);
 
   const toggleLike = async () => {
     if (!isAuthenticated || likeLoading) return;
@@ -182,11 +192,17 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
   };
 
   return (
-    <article className={`rounded-2xl border p-5 ${
-      isFeatured
-        ? "border-[#D0021B]/40 bg-[#D0021B]/[0.08] shadow-[0_0_0_1px_rgba(208,2,27,0.08)]"
-        : "border-white/10 bg-white/[0.04]"
-    }`}>
+    <article
+      ref={cardRef}
+      id={`review-${review.id}`}
+      className={`rounded-2xl border p-5 transition-colors ${
+        shouldFocus
+          ? "border-[#D0021B] bg-[#D0021B]/15"
+          : isFeatured
+            ? "border-[#D0021B]/40 bg-[#D0021B]/[0.08] shadow-[0_0_0_1px_rgba(208,2,27,0.08)]"
+            : "border-white/10 bg-white/[0.04]"
+      }`}
+    >
       <div className="flex gap-4">
         <Link to={`/profile/${review.user_id}`} className="w-11 h-11 rounded-full overflow-hidden bg-gray-800 flex-shrink-0 ring-1 ring-white/10 hover:ring-[#D0021B] transition-all">
           {review.avatar_url ? (
@@ -315,6 +331,7 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
             variant="dark"
             open={commentsOpen}
             initialCount={commentsCount}
+            targetCommentId={targetCommentId}
             onCountChange={setCommentsCount}
             onReport={onReport}
           />
@@ -326,6 +343,7 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
 
 export default function ReviewsSection({ tmdbId }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -339,6 +357,13 @@ export default function ReviewsSection({ tmdbId }) {
     () => reviews.find((review) => String(review.user_id) === String(user?.id)),
     [reviews, user?.id]
   );
+  const reviewTarget = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      reviewId: params.get("review"),
+      commentId: params.get("comment"),
+    };
+  }, [location.search]);
 
   const loadReviews = () => {
     setLoading(true);
@@ -444,6 +469,8 @@ export default function ReviewsSection({ tmdbId }) {
               review={review}
               currentUserId={user?.id}
               isAuthenticated={isAuthenticated}
+              shouldFocus={String(review.id) === String(reviewTarget.reviewId)}
+              targetCommentId={String(review.id) === String(reviewTarget.reviewId) ? reviewTarget.commentId : null}
               onEdit={setEditingReview}
               onDelete={deleteReview}
               onLiked={updateLikes}

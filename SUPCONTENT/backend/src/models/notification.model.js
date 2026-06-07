@@ -28,10 +28,19 @@ export const NotificationModel = {
           u.id AS actor_id,
           u.username,
           u.avatar_url,
+          EXISTS (
+            SELECT 1
+            FROM follows viewer_follow
+            WHERE viewer_follow.follower_id = n.user_id
+            AND viewer_follow.followed_id = n.actor_user_id
+          ) AS viewer_follows_actor,
           COALESCE(m.id, recommended_movie.id) AS movie_id,
           COALESCE(m.external_id, recommended_movie.external_id) AS movie_tmdb_id,
           COALESCE(m.title, recommended_movie.title) AS movie_title,
           COALESCE(m.poster_url, recommended_movie.poster_url) AS movie_poster_url,
+          COALESCE(notification_review.id, comment_review.id) AS target_review_id,
+          notification_comment.id AS target_comment_id,
+          review_movie.external_id AS target_movie_tmdb_id,
           source_movie.id AS source_movie_id,
           source_movie.external_id AS source_movie_tmdb_id,
           source_movie.title AS source_movie_title,
@@ -43,6 +52,19 @@ export const NotificationModel = {
        FROM notifications n
        LEFT JOIN users u ON u.id = n.actor_user_id
        LEFT JOIN movies m ON n.entity_type = 'MOVIE' AND n.entity_id = m.id::text
+       LEFT JOIN reviews notification_review
+         ON n.entity_type = 'REVIEW'
+        AND n.entity_id = notification_review.id::text
+        AND notification_review.deleted_at IS NULL
+       LEFT JOIN comments notification_comment
+         ON n.entity_type = 'COMMENT'
+        AND n.entity_id = notification_comment.id::text
+        AND notification_comment.deleted_at IS NULL
+       LEFT JOIN reviews comment_review
+         ON comment_review.id = notification_comment.review_id
+        AND comment_review.deleted_at IS NULL
+       LEFT JOIN movies review_movie
+         ON review_movie.id = COALESCE(notification_review.movie_id, comment_review.movie_id)
        LEFT JOIN movies source_movie
          ON source_movie.id::text = CASE
           WHEN n.entity_type = 'MOVIE_RECOMMENDATION' AND n.entity_id LIKE '{%'

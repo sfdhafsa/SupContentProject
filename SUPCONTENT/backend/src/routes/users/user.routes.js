@@ -63,6 +63,21 @@ const notificationPreferenceRules = [
     .isBoolean()
     .withMessage('notification_email_enabled doit etre un booleen.')
     .toBoolean(),
+  body('notification_likes_enabled')
+    .optional()
+    .isBoolean()
+    .withMessage('notification_likes_enabled doit etre un booleen.')
+    .toBoolean(),
+  body('notification_comments_enabled')
+    .optional()
+    .isBoolean()
+    .withMessage('notification_comments_enabled doit etre un booleen.')
+    .toBoolean(),
+  body('notification_followers_enabled')
+    .optional()
+    .isBoolean()
+    .withMessage('notification_followers_enabled doit etre un booleen.')
+    .toBoolean(),
 ];
 
 // ⚠️ IMPORTANT : les routes /me/* doivent être AVANT /:id

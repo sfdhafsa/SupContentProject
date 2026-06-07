@@ -68,8 +68,8 @@ export const createComment = async ({
       userId: review.user_id,
       actorUserId: userId,
       type: notificationTypes.REVIEW_COMMENT,
-      entityType: "REVIEW",
-      entityId: reviewId.toString(),
+      entityType: "COMMENT",
+      entityId: comment.id.toString(),
     });
   }
 

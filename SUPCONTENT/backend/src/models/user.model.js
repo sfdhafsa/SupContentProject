@@ -13,7 +13,10 @@ export const UserModel = {
     await pool.query(
       `ALTER TABLE users
        ADD COLUMN IF NOT EXISTS notification_push_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-       ADD COLUMN IF NOT EXISTS notification_email_enabled BOOLEAN NOT NULL DEFAULT FALSE`
+       ADD COLUMN IF NOT EXISTS notification_email_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+       ADD COLUMN IF NOT EXISTS notification_likes_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+       ADD COLUMN IF NOT EXISTS notification_comments_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+       ADD COLUMN IF NOT EXISTS notification_followers_enabled BOOLEAN NOT NULL DEFAULT TRUE`
     );
   },
 
@@ -47,6 +50,9 @@ export const UserModel = {
           u.language_preference,
           COALESCE(u.notification_push_enabled, TRUE) AS notification_push_enabled,
           COALESCE(u.notification_email_enabled, FALSE) AS notification_email_enabled,
+          COALESCE(u.notification_likes_enabled, TRUE) AS notification_likes_enabled,
+          COALESCE(u.notification_comments_enabled, TRUE) AS notification_comments_enabled,
+          COALESCE(u.notification_followers_enabled, TRUE) AS notification_followers_enabled,
           u.is_banned,
           u.banned_by,
           u.banned_at,
@@ -204,7 +210,9 @@ export const UserModel = {
     const allowed = [
       'username', 'avatar_url', 'bio',
       'website_url', 'theme_preference', 'language_preference',
-      'notification_push_enabled', 'notification_email_enabled'
+      'notification_push_enabled', 'notification_email_enabled',
+      'notification_likes_enabled', 'notification_comments_enabled',
+      'notification_followers_enabled'
     ];
 
     for (const key of allowed) {
@@ -227,7 +235,9 @@ export const UserModel = {
       RETURNING 
         id, email, username, avatar_url, bio,
         website_url, theme_preference, language_preference,
-        notification_push_enabled, notification_email_enabled, created_at
+        notification_push_enabled, notification_email_enabled,
+        notification_likes_enabled, notification_comments_enabled,
+        notification_followers_enabled, created_at
     `;
 
     const { rows } = await pool.query(query, values);
@@ -309,7 +319,12 @@ export const UserModel = {
     await this.ensureNotificationPreferenceColumns();
 
     const { rows } = await pool.query(
-      `SELECT notification_push_enabled, notification_email_enabled
+      `SELECT
+          notification_push_enabled,
+          notification_email_enabled,
+          notification_likes_enabled,
+          notification_comments_enabled,
+          notification_followers_enabled
        FROM users
        WHERE id = $1`,
       [id]
@@ -328,7 +343,13 @@ export const UserModel = {
     const values = [];
     let index = 1;
 
-    const allowed = ['notification_push_enabled', 'notification_email_enabled'];
+    const allowed = [
+      'notification_push_enabled',
+      'notification_email_enabled',
+      'notification_likes_enabled',
+      'notification_comments_enabled',
+      'notification_followers_enabled',
+    ];
 
     for (const key of allowed) {
       if (data[key] !== undefined) {
@@ -347,7 +368,12 @@ export const UserModel = {
       `UPDATE users
        SET ${fields.join(', ')}, updated_at = NOW()
        WHERE id = $${index}
-       RETURNING notification_push_enabled, notification_email_enabled`,
+       RETURNING
+          notification_push_enabled,
+          notification_email_enabled,
+          notification_likes_enabled,
+          notification_comments_enabled,
+          notification_followers_enabled`,
       values
     );
 

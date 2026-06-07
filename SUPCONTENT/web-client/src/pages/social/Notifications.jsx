@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api/axios.js";
 
 const LIMIT = 30;
+const REFRESH_INTERVAL_MS = 15000;
 
 const HeartIcon = () => (
   <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-[#D0021B]">
@@ -67,6 +68,7 @@ function buildMessage(notification) {
   const actorName = notification.username || "Someone";
 
   if (notification.message) return notification.message;
+  if (notification.type === "FOLLOW" && notification.viewer_follows_actor) return `${actorName} followed you back`;
   if (notification.type === "FOLLOW") return `${actorName} started following you`;
   if (notification.type === "REVIEW_LIKE") return `${actorName} liked your review`;
   if (notification.type === "REVIEW_COMMENT") return `${actorName} commented on your review`;
@@ -75,6 +77,37 @@ function buildMessage(notification) {
   if (notification.type === "MOVIE_RECOMMENDATION") return "A new movie recommendation is ready for you";
 
   return "You have a new notification";
+}
+
+function buildNotificationTarget(notification) {
+  const actorId = notification.actor_id || notification.actor_user_id;
+
+  if (notification.type === "MESSAGE" && actorId) {
+    return `/messages?user=${encodeURIComponent(actorId)}`;
+  }
+
+  if (notification.type === "FOLLOW" && actorId) {
+    return `/profile/${actorId}`;
+  }
+
+  if (
+    ["REVIEW_LIKE", "REVIEW_COMMENT", "COMMENT_REPLY"].includes(notification.type) &&
+    notification.target_movie_tmdb_id &&
+    notification.target_review_id
+  ) {
+    const params = new URLSearchParams({ review: String(notification.target_review_id) });
+    if (notification.target_comment_id) {
+      params.set("comment", String(notification.target_comment_id));
+    }
+
+    return `/movies/${notification.target_movie_tmdb_id}?${params.toString()}`;
+  }
+
+  if (notification.movie_tmdb_id) {
+    return `/movies/${notification.movie_tmdb_id}`;
+  }
+
+  return null;
 }
 
 function NotificationAvatar({ notification }) {
@@ -163,6 +196,7 @@ export default function Notifications() {
   const [filter, setFilter] = useState("all");
   const [markingAll, setMarkingAll] = useState(false);
   const [markingId, setMarkingId] = useState(null);
+  const [followingId, setFollowingId] = useState(null);
 
   const fetchNotifications = useCallback(async () => {
     setError("");
@@ -182,6 +216,12 @@ export default function Notifications() {
 
   useEffect(() => {
     fetchNotifications();
+
+    const intervalId = window.setInterval(fetchNotifications, REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
   }, [fetchNotifications]);
 
   const unreadCount = useMemo(
@@ -217,10 +257,57 @@ export default function Notifications() {
   const handleNotificationClick = async (notification) => {
     await handleMarkAsRead(notification);
 
-    const actorId = notification.actor_id || notification.actor_user_id;
-    if (notification.type === "MESSAGE" && actorId) {
-      navigate(`/messages?user=${encodeURIComponent(actorId)}`);
+    const target = buildNotificationTarget(notification);
+    if (target) {
+      navigate(target);
     }
+  };
+
+  const handleFollowBack = async (notification) => {
+    const actorId = notification.actor_id || notification.actor_user_id;
+    if (!actorId || followingId) return;
+
+    setFollowingId(notification.id);
+
+    try {
+      await handleMarkAsRead(notification);
+      const statusRes = await api.get(`/social/follow/${actorId}/follow-status`);
+
+      if (statusRes.data?.isFollowing) {
+        setNotifications((current) =>
+          current.map((item) =>
+            item.id === notification.id
+              ? { ...item, is_read: true, viewer_follows_actor: true }
+              : item
+          )
+        );
+        return;
+      }
+
+      const res = await api.post(`/social/follow/${actorId}`);
+
+      if (res.data?.status === "followed") {
+        setNotifications((current) =>
+          current.map((item) =>
+            item.id === notification.id
+              ? { ...item, is_read: true, viewer_follows_actor: true }
+              : item
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Follow back error:", err);
+    } finally {
+      setFollowingId(null);
+    }
+  };
+
+  const handleMessageUser = async (notification) => {
+    const actorId = notification.actor_id || notification.actor_user_id;
+    if (!actorId) return;
+
+    await handleMarkAsRead(notification);
+    navigate(`/messages?user=${encodeURIComponent(actorId)}`);
   };
 
   const handleMarkAllAsRead = async () => {
@@ -321,7 +408,7 @@ export default function Notifications() {
                   : "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700"
               }`}
             >
-              <div className="flex items-center gap-4 pr-8">
+              <div className="flex flex-col gap-4 pr-8 sm:flex-row sm:items-center">
                 <NotificationAvatar notification={notification} />
                 <div className="min-w-0 flex-1">
                   <p className="text-base font-medium text-gray-950 dark:text-white">
@@ -331,6 +418,38 @@ export default function Notifications() {
                     {formatDate(notification.created_at)}
                   </p>
                 </div>
+                {notification.type === "FOLLOW" && (notification.actor_id || notification.actor_user_id) && (
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                    {notification.viewer_follows_actor ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMessageUser(notification);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-[#D0021B] text-white text-sm font-bold hover:bg-[#b30218] transition-colors"
+                      >
+                        Message
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={followingId === notification.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFollowBack(notification);
+                        }}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+                          followingId === notification.id
+                            ? "bg-[#D0021B]/50 text-white cursor-not-allowed"
+                            : "bg-[#D0021B] text-white hover:bg-[#b30218]"
+                        }`}
+                      >
+                        {followingId === notification.id ? "Following..." : "Follow back"}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {!notification.is_read && (
