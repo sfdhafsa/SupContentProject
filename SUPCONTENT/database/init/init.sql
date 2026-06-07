@@ -20,6 +20,8 @@ CREATE TABLE users (
   notification_push_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   notification_email_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   is_banned BOOLEAN NOT NULL DEFAULT FALSE,
+  banned_by UUID,
+  banned_at TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -103,6 +105,9 @@ CREATE TABLE reviews (
   rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
   text TEXT,
   contains_spoiler BOOLEAN NOT NULL DEFAULT FALSE,
+  is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+  featured_by UUID,
+  featured_at TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMP
@@ -243,6 +248,9 @@ ALTER TABLE reviews
 ALTER TABLE reviews
   ADD FOREIGN KEY (movie_id) REFERENCES movies (id) ON DELETE CASCADE;
 
+ALTER TABLE reviews
+  ADD FOREIGN KEY (featured_by) REFERENCES users (id) ON DELETE SET NULL;
+
 ALTER TABLE comments
   ADD FOREIGN KEY (review_id) REFERENCES reviews (id) ON DELETE CASCADE;
 
@@ -281,6 +289,9 @@ ALTER TABLE reports
 
 ALTER TABLE reports
   ADD FOREIGN KEY (handled_by) REFERENCES users (id) ON DELETE SET NULL;
+
+ALTER TABLE users
+  ADD FOREIGN KEY (banned_by) REFERENCES users (id) ON DELETE SET NULL;
 
 -- =========================
 -- SEED

@@ -48,6 +48,31 @@ const resetPasswordRules = [
 const oauthFailure = (provider) =>
   `${process.env.CLIENT_URL}/login?error=oauth_${provider}`;
 
+const getOAuthRedirectUrl = (req) => {
+  const redirectUri = typeof req.query.redirect_uri === 'string' ? req.query.redirect_uri : '';
+  const allowedRedirects = new Set([
+    process.env.CLIENT_URL,
+    process.env.MOBILE_CLIENT_URL,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8082',
+    'http://127.0.0.1:8082',
+    'http://localhost:8083',
+    'http://127.0.0.1:8083',
+    'supcontent://',
+  ].filter(Boolean));
+
+  if (!redirectUri) return undefined;
+
+  try {
+    const url = new URL(redirectUri);
+    const origin = url.protocol === 'supcontent:' ? 'supcontent://' : url.origin;
+    return allowedRedirects.has(origin) ? redirectUri : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 router.post('/register', authLimiter, registerRules, register);
 router.post('/login',    authLimiter, loginRules,    login);
 router.post('/logout',   protect, logout);
@@ -55,19 +80,33 @@ router.post('/forgot-password', authLimiter, forgotPasswordRules, requestPasswor
 router.post('/reset-password',  authLimiter, resetPasswordRules,  resetPassword);
 
 // ── Google ───────────────────────────────────────────────────────
-router.get('/google',
-  passport.authenticate('google', {
+router.get('/google', (req, res, next) => {
+  const redirectUri = getOAuthRedirectUrl(req);
+
+  return passport.authenticate('google', {
     scope: ['profile', 'email'],
-    session: false
-  })
-);
+    session: false,
+    state: redirectUri ? Buffer.from(JSON.stringify({ redirectUri })).toString('base64url') : undefined,
+  })(req, res, next);
+});
 
 router.get('/google/callback',
-  passport.authenticate('google', {
-    failureRedirect: `${process.env.CLIENT_URL}/login`,
-    session: false
-  }),
-  oauthCallback
+  (req, res, next) => {
+    passport.authenticate('google', { session: false }, (err, user, info) => {
+      if (err) return next(err);
+
+      if (!user) {
+        const errorCode = info?.message === 'your account is banned'
+          ? 'banned'
+          : 'oauth_google';
+
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=${errorCode}`);
+      }
+
+      req.user = user;
+      return oauthCallback(req, res);
+    })(req, res, next);
+  }
 );
 
 // ── GitHub ───────────────────────────────────────────────────────

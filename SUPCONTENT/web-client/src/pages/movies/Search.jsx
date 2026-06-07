@@ -444,7 +444,7 @@ export default function Search() {
   };
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 sm:px-6">
+    <div className="max-w-screen-xl mx-auto px-0 sm:px-6">
 
       {/* Hero — seulement en mode découverte */}
       {!isSearchMode && trending.length > 0 && (
@@ -452,7 +452,7 @@ export default function Search() {
       )}
 
       {/* Search + Filters */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row">
         <div className="relative flex-1">
           <span className="absolute left-4 top-1/2 -translate-y-1/2"><SearchIcon /></span>
           <input
@@ -472,7 +472,7 @@ export default function Search() {
         <div className="relative" ref={filterRef}>
           <button
             onClick={() => setFiltersOpen((o) => !o)}
-            className={`flex items-center gap-2 px-4 py-3.5 rounded-2xl border text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-4 py-3 rounded-2xl border text-sm font-medium transition-all ${
               filtersOpen || activeFiltersCount > 0
                 ? "border-[#D0021B] bg-[#D0021B]/5 text-[#D0021B] dark:bg-[#D0021B]/10"
                 : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
@@ -489,7 +489,7 @@ export default function Search() {
           </button>
 
           {filtersOpen && (
-            <div className="absolute right-0 top-[calc(100%+8px)] w-80 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl z-30 overflow-hidden">
+            <div className="fixed inset-x-3 top-24 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl z-30 overflow-hidden sm:absolute sm:inset-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-80">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                 <span className="text-sm font-semibold text-gray-900 dark:text-white">Filtres & Tri</span>
                 {activeFiltersCount > 0 && (
@@ -642,12 +642,14 @@ export default function Search() {
             <div className="mb-6 p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 text-sm text-red-600 dark:text-red-400">{error}</div>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {loading
-              ? Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
-              : movies.map((movie) => <MovieCard key={movie.tmdb_id} movie={movie} onClick={handleMovieClick} />)
-            }
-          </div>
+      {/* Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {loading
+          ? Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
+          : movies.map((movie) => (
+              <MovieCard key={movie.tmdb_id} movie={movie} onClick={handleMovieClick} />
+            ))}
+      </div>
 
           {!loading && movies.length === 0 && (
             <div className="text-center py-16">
@@ -658,55 +660,43 @@ export default function Search() {
             </div>
           )}
 
-          {totalPages > 1 && !loading && (
-            <div className="flex items-center justify-center gap-3 mt-10 mb-4">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                ← Précédent
-              </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const p = page <= 3 ? i + 1 : page - 2 + i;
-                  if (p > totalPages) return null;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => setPage(p)}
-                      className={`w-9 h-9 rounded-xl text-sm font-medium transition-all ${
-                        p === page ? "bg-[#D0021B] text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                Suivant →
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── MODE DÉCOUVERTE ── */}
-      {!isSearchMode && (
-        <>
-          <div className="mb-8">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Parcourir par genre</h2>
-            <GenrePills genres={genres} selectedIds={genreIds} onToggle={toggleGenre} />
+      {/* Pagination */}
+      {totalPages > 1 && !loading && (
+        <div className="flex items-center justify-center gap-3 mt-10 mb-4">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            ← Précédent
+          </button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const p = page <= 3 ? i + 1 : page - 2 + i;
+              if (p > totalPages) return null;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`w-9 h-9 rounded-xl text-sm font-medium transition-all ${
+                    p === page
+                      ? "bg-[#D0021B] text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
           </div>
-          <MovieSection title="🔥 Tendances cette semaine" movies={trending}   onMovieClick={handleMovieClick} loading={sectionsLoading} />
-          <MovieSection title="⭐ Les mieux notés"         movies={topRated}   onMovieClick={handleMovieClick} loading={sectionsLoading} />
-          <MovieSection title="🎬 Actuellement au cinéma"  movies={nowPlaying} onMovieClick={handleMovieClick} loading={sectionsLoading} />
-        </>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            Suivant →
+          </button>
+        </div>
       )}
     </div>
   );

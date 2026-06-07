@@ -91,6 +91,7 @@ export default function Profile() {
   const avatar      = user?.avatar_url  || null;
   const websiteUrl  = user?.website_url || null;
   const roles       = user?.roles       || [];
+  const isAdmin     = roles.map((role) => String(role).toLowerCase()).includes("admin");
   const initials    = username.slice(0, 2).toUpperCase();
   const joinDate    = user?.created_at
     ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
@@ -155,9 +156,9 @@ export default function Profile() {
   /* ── Loading ── */
   if (loading || !user) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-start gap-7 mb-8">
-          <Skeleton className="w-36 h-36 rounded-full"/>
+      <div className="max-w-4xl mx-auto px-0 sm:px-4 py-5 sm:py-8">
+        <div className="flex flex-col items-center gap-5 mb-8 sm:flex-row sm:items-start sm:gap-7">
+          <Skeleton className="w-28 h-28 sm:w-36 sm:h-36 rounded-full"/>
           <div className="flex-1 pt-2 flex flex-col gap-3">
             <Skeleton className="w-48 h-8"/>
             <Skeleton className="w-32 h-4"/>
@@ -172,13 +173,13 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-0 sm:px-4 py-5 sm:py-8">
 
       {/* ── HEADER ── */}
-      <div className="flex items-start gap-7 mb-8">
+      <div className="flex flex-col items-center gap-5 mb-8 sm:flex-row sm:items-start sm:gap-7">
 
         {/* Avatar */}
-        <div className="w-36 h-36 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center flex-shrink-0">
+        <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center flex-shrink-0">
           {avatar
             ? <img src={avatar} alt={username} className="w-full h-full object-cover"
                 onError={(e) => { e.target.style.display = "none"; }}/>
@@ -186,16 +187,25 @@ export default function Profile() {
         </div>
 
         {/* Info */}
-        <div className="flex-1 pt-2">
+        <div className="flex-1 pt-2 w-full text-center sm:text-left">
 
           {/* Name + Actions */}
-          <div className="flex items-center gap-3 flex-wrap mb-1">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{username}</h1>
+          <div className="flex items-center justify-center gap-3 flex-wrap mb-1 sm:justify-start">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white break-all">{username}</h1>
 
-            {roles.includes("admin") && (
+            {isAdmin && (
               <span className="px-2 py-0.5 bg-[#D0021B]/10 text-[#D0021B] text-xs font-semibold rounded-full">
                 Admin
               </span>
+            )}
+
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin-view")}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-all"
+              >
+                Admin view
+              </button>
             )}
 
             <button
@@ -226,7 +236,7 @@ export default function Profile() {
 
           {websiteUrl && (
             <a href={websiteUrl} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-[#D0021B] hover:underline mb-3">
+              className="inline-flex max-w-full items-center gap-1.5 text-sm text-[#D0021B] hover:underline mb-3 break-all">
               <GlobeIcon/> {websiteUrl.replace(/^https?:\/\//, "")}
             </a>
           )}
@@ -236,14 +246,14 @@ export default function Profile() {
           )}
 
           {/* Stats row */}
-          <div className="flex items-center gap-6 flex-wrap">
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center sm:gap-6 sm:flex-wrap">
             {[
               { value: stats.followers,      label: "Followers" },
               { value: stats.following,      label: "Following" },
               { value: stats.movies_watched, label: "Movies Watched" },
               { value: stats.reviews,        label: "Reviews" },
             ].map(({ value, label }) => (
-              <div key={label} className="flex items-baseline gap-1.5">
+              <div key={label} className="flex flex-col items-center gap-0.5 sm:flex-row sm:items-baseline sm:gap-1.5">
                 <span className="text-base font-bold text-gray-900 dark:text-white">{value.toLocaleString()}</span>
                 <span className="text-sm text-gray-400 dark:text-gray-500">{label}</span>
               </div>
@@ -255,10 +265,10 @@ export default function Profile() {
       <div className="h-px bg-gray-100 dark:bg-gray-800 mb-6"/>
 
       {/* ── TABS ── */}
-      <div className="flex gap-1 mb-8">
+      <div className="flex gap-1 mb-8 overflow-x-auto pb-1">
         {TABS.map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+            className={`px-4 sm:px-5 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
               tab === t
                 ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
                 : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
@@ -273,7 +283,7 @@ export default function Profile() {
         <div className="flex flex-col gap-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Account Info</h2>
 
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { label: "Email",       value: user?.email },
@@ -331,7 +341,7 @@ export default function Profile() {
             : lists.length === 0
             ? <EmptyState message="No lists yet." sub="Create lists to organise your movies."/>
             : lists.map((list) => (
-              <div key={list.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 flex items-center justify-between">
+              <div key={list.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                     <FilmIcon/>
@@ -359,22 +369,22 @@ export default function Profile() {
         <div className="flex flex-col gap-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Statistics</h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {[
               { label: "Movies Watched", value: stats.movies_watched },
               { label: "Hours Watched",  value: stats.movies_watched * 2 },
               { label: "Reviews",        value: stats.reviews },
               { label: "Lists",          value: lists.length },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 text-center">
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{value.toLocaleString()}</p>
+              <div key={label} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 text-center">
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">{value.toLocaleString()}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">{label}</p>
               </div>
             ))}
           </div>
 
           {/* Profile completeness */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-6">
             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Profile Completeness</h3>
             {(() => {
               const checks = [
@@ -447,7 +457,7 @@ function ReviewCard({ item, user, initials, compact = false }) {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5">
       {!compact && (
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -487,7 +497,7 @@ function ReviewCard({ item, user, initials, compact = false }) {
 /* ── EmptyState ── */
 function EmptyState({ message, sub }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-12 text-center flex flex-col items-center gap-2">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-8 sm:p-12 text-center flex flex-col items-center gap-2">
       <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2">
         <FilmIcon/>
       </div>

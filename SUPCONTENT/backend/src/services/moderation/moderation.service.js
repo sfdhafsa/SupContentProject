@@ -1,6 +1,7 @@
 import { CommentModel } from "../../models/comment.model.js";
 import { ReportModel } from "../../models/report.model.js";
 import { ReviewModel } from "../../models/review.model.js";
+import { UserModel } from "../../models/user.model.js";
 import {
   getReports,
   updateReportStatus,
@@ -9,6 +10,70 @@ import {
 const normalizeUpper = (value) => String(value || "").trim().toUpperCase();
 
 export { getReports, updateReportStatus };
+
+export const getModerationUsers = () => UserModel.findAllForAdmin();
+
+export const getModerationReviews = ({ featured } = {}) => {
+  let featuredFilter;
+
+  if (typeof featured === "string") {
+    const normalizedFeatured = featured.trim().toLowerCase();
+    if (normalizedFeatured === "true") featuredFilter = true;
+    if (normalizedFeatured === "false") featuredFilter = false;
+  }
+
+  return ReviewModel.findAllForAdmin({ featured: featuredFilter });
+};
+
+const updateUserBanStatus = async ({ userId, isBanned, handledBy }) => {
+  if (!userId) {
+    throw Object.assign(new Error("User id is required."), { status: 400 });
+  }
+
+  if (String(userId) === String(handledBy)) {
+    throw Object.assign(new Error("You cannot update your own ban status."), { status: 400 });
+  }
+
+  const user = await UserModel.updateBanStatus(
+    userId,
+    isBanned,
+    isBanned ? handledBy : null
+  );
+
+  if (!user) {
+    throw Object.assign(new Error("User not found."), { status: 404 });
+  }
+
+  return user;
+};
+
+export const banUser = ({ userId, handledBy }) =>
+  updateUserBanStatus({ userId, handledBy, isBanned: true });
+
+export const unbanUser = ({ userId, handledBy }) =>
+  updateUserBanStatus({ userId, handledBy, isBanned: false });
+
+export const updateReviewFeaturedStatus = async ({
+  reviewId,
+  isFeatured,
+  handledBy,
+}) => {
+  if (!reviewId) {
+    throw Object.assign(new Error("Review id is required."), { status: 400 });
+  }
+
+  const review = await ReviewModel.updateFeaturedStatus(
+    reviewId,
+    Boolean(isFeatured),
+    handledBy
+  );
+
+  if (!review) {
+    throw Object.assign(new Error("Review not found."), { status: 404 });
+  }
+
+  return review;
+};
 
 export const dismissReport = async ({ reportId, handledBy }) =>
   updateReportStatus({

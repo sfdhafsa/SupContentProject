@@ -125,6 +125,10 @@ passport.use(
           );
         }
 
+        if (user.is_banned) {
+          return done(null, false, { message: "your account is banned" });
+        }
+
         // 5. LOAD ROLES
         const roles = await pool.query(
           `SELECT LOWER(r.name) AS name

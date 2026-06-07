@@ -47,6 +47,10 @@ export const createReport = async ({
     throw Object.assign(new Error("Reported content not found."), { status: 404 });
   }
 
+  if (String(target.user_id) === String(reporterUserId)) {
+    throw Object.assign(new Error("You cannot report your own content."), { status: 400 });
+  }
+
   const existingReport = await ReportModel.findOpenByReporterAndTarget({
     reporter_user_id: reporterUserId,
     target_type: normalizedTargetType,

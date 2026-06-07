@@ -1,6 +1,14 @@
 import pool from '../config/db.js';
 
 export const UserModel = {
+  async ensureBanAuditColumns() {
+    await pool.query(
+      `ALTER TABLE users
+       ADD COLUMN IF NOT EXISTS banned_by UUID REFERENCES users(id) ON DELETE SET NULL,
+       ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP`
+    );
+  },
+
   async ensureNotificationPreferenceColumns() {
     await pool.query(
       `ALTER TABLE users
@@ -25,6 +33,7 @@ export const UserModel = {
   // =====================
   async findById(id) {
     await this.ensureNotificationPreferenceColumns();
+    await this.ensureBanAuditColumns();
 
     const { rows } = await pool.query(
       `SELECT 
@@ -39,6 +48,9 @@ export const UserModel = {
           COALESCE(u.notification_push_enabled, TRUE) AS notification_push_enabled,
           COALESCE(u.notification_email_enabled, FALSE) AS notification_email_enabled,
           u.is_banned,
+          u.banned_by,
+          u.banned_at,
+          banned_admin.username AS banned_by_username,
           u.created_at,
           COALESCE(
             array_remove(array_agg(DISTINCT LOWER(r.name)), NULL),
@@ -47,11 +59,45 @@ export const UserModel = {
        FROM users u
        LEFT JOIN user_roles ur ON ur.user_id = u.id
        LEFT JOIN roles r ON r.id = ur.role_id
+       LEFT JOIN users banned_admin ON banned_admin.id = u.banned_by
        WHERE u.id = $1
-       GROUP BY u.id`,
+       GROUP BY u.id, banned_admin.username`,
       [id]
     );
     return rows[0] || null;
+  },
+
+  // =====================
+  // LIST USERS FOR ADMIN
+  // =====================
+  async findAllForAdmin() {
+    await this.ensureBanAuditColumns();
+
+    const { rows } = await pool.query(
+      `SELECT
+          u.id,
+          u.email,
+          u.username,
+          u.avatar_url,
+          u.bio,
+          u.is_banned,
+          u.banned_by,
+          u.banned_at,
+          banned_admin.username AS banned_by_username,
+          u.created_at,
+          COALESCE(
+            array_remove(array_agg(DISTINCT LOWER(r.name)), NULL),
+            '{}'
+          ) AS roles
+       FROM users u
+       LEFT JOIN users banned_admin ON banned_admin.id = u.banned_by
+       LEFT JOIN user_roles ur ON ur.user_id = u.id
+       LEFT JOIN roles r ON r.id = ur.role_id
+       GROUP BY u.id, banned_admin.username
+       ORDER BY u.created_at DESC`
+    );
+
+    return rows;
   },
 
   // =====================
@@ -278,6 +324,29 @@ export const UserModel = {
     );
 
     return rows[0] || null;
+  },
+
+  // =====================
+  // UPDATE BAN STATUS
+  // =====================
+  async updateBanStatus(id, isBanned, bannedBy = null) {
+    await this.ensureBanAuditColumns();
+
+    const { rows } = await pool.query(
+      `UPDATE users
+       SET
+         is_banned = $1,
+         banned_by = CASE WHEN $1 THEN $3::UUID ELSE NULL::UUID END,
+         banned_at = CASE WHEN $1 THEN NOW() ELSE NULL END,
+         updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, email, username, avatar_url, bio, website_url,
+                 theme_preference, language_preference, is_banned,
+                 banned_by, banned_at, created_at`,
+      [isBanned, id, bannedBy]
+    );
+
+    return rows[0] ? this.findById(id) : null;
   },
 
   // =====================

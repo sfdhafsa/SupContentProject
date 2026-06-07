@@ -115,6 +115,16 @@ export const ReportModel = {
           ELSE NULL
         END AS target_author_username,
         CASE
+          WHEN r.target_type = 'REVIEW' THEN review_author.id
+          WHEN r.target_type = 'COMMENT' THEN comment_author.id
+          ELSE NULL
+        END AS target_author_id,
+        CASE
+          WHEN r.target_type = 'REVIEW' THEN review_author.is_banned
+          WHEN r.target_type = 'COMMENT' THEN comment_author.is_banned
+          ELSE NULL
+        END AS target_author_is_banned,
+        CASE
           WHEN r.target_type = 'REVIEW' THEN rv.text
           WHEN r.target_type = 'COMMENT' THEN c.text
           ELSE NULL
