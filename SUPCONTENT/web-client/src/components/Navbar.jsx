@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import api from "../services/api/axios";
+import { messagesApi } from "../services/api/messages.api";
 import { moviesApi } from "../services/api/movies.api";
 
 /* ── Icons ── */
@@ -120,8 +121,27 @@ function UserDropdown({ user, onLogout }) {
 }
 
 // ── Search Dropdown ──
-function SearchDropdown({ results, loading, query, onSelect, onSeeAll }) {
+function SearchAvatar({ user }) {
+  const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "U";
+
+  return (
+    <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+      {user?.avatar_url ? (
+        <img src={user.avatar_url} alt={user.username || "User"} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-300">
+          {initials}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SearchDropdown({ movies, users, loading, query, onSelectMovie, onSelectUser, onSeeAll }) {
   if (!query.trim()) return null;
+
+  const hasMovies = movies.length > 0;
+  const hasUsers = users.length > 0;
 
   return (
     <div className="absolute top-[calc(100%+8px)] left-1/2 right-auto w-[calc(100vw-1.5rem)] max-w-md -translate-x-1/2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl z-50 overflow-hidden sm:left-0 sm:right-0 sm:w-auto sm:max-w-none sm:translate-x-0">
@@ -131,19 +151,19 @@ function SearchDropdown({ results, loading, query, onSelect, onSeeAll }) {
         </div>
       )}
 
-      {!loading && results.length === 0 && (
+      {!loading && !hasMovies && !hasUsers && (
         <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
-          Aucun film trouvé pour "{query}"
+          Aucun resultat trouve pour "{query}"
         </div>
       )}
 
-      {!loading && results.length > 0 && (
+      {!loading && (hasMovies || hasUsers) && (
         <>
           <div className="max-h-80 overflow-y-auto">
-            {results.map((movie) => (
+            {hasMovies && movies.map((movie) => (
               <button
-                key={movie.tmdb_id}
-                onClick={() => onSelect(movie.tmdb_id)}
+                key={`movie-${movie.tmdb_id}`}
+                onClick={() => onSelectMovie(movie.tmdb_id)}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
               >
                 {/* Poster mini */}
@@ -166,7 +186,7 @@ function SearchDropdown({ results, loading, query, onSelect, onSeeAll }) {
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-gray-400 dark:text-gray-500">
-                      {movie.release_date ? movie.release_date.slice(0, 4) : "—"}
+                      {movie.release_date ? movie.release_date.slice(0, 4) : "-"}
                     </span>
                     {movie.vote_average > 0 && (
                       <div className="flex items-center gap-1">
@@ -185,6 +205,33 @@ function SearchDropdown({ results, loading, query, onSelect, onSeeAll }) {
                 </svg>
               </button>
             ))}
+            {hasUsers && (
+              <div className={`${hasMovies ? "border-t border-gray-100 dark:border-gray-700" : ""}`}>
+                <p className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  Users
+                </p>
+                {users.map((searchUser) => (
+                  <button
+                    key={`user-${searchUser.id}`}
+                    onClick={() => onSelectUser(searchUser.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                  >
+                    <SearchAvatar user={searchUser} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {searchUser.username}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                        @{searchUser.username}
+                      </p>
+                    </div>
+                    <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0">
+                      <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* See all */}
@@ -208,7 +255,8 @@ export default function Navbar() {
   const [search, setSearch]           = useState("");
   const [dropdownOpen, setDropdown]   = useState(false);
   const [mobileOpen, setMobile]       = useState(false);
-  const [searchResults, setResults]   = useState([]);
+  const [movieResults, setMovieResults] = useState([]);
+  const [userResults, setUserResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -220,7 +268,8 @@ export default function Navbar() {
   // Debounced search
   useEffect(() => {
     if (!search.trim()) {
-      setResults([]);
+      setMovieResults([]);
+      setUserResults([]);
       setSearchOpen(false);
       return;
     }
@@ -229,14 +278,34 @@ export default function Navbar() {
     setSearchLoading(true);
 
     const timer = setTimeout(() => {
-      moviesApi.search(search, 1)
-        .then((res) => setResults(res.data.data.results.slice(0, 6)))
-        .catch(() => setResults([]))
+      const requests = [moviesApi.search(search, 1)];
+
+      if (isAuthenticated && search.trim().length >= 2) {
+        requests.push(messagesApi.searchUsers(search));
+      }
+
+      Promise.allSettled(requests)
+        .then(([moviesRes, usersRes]) => {
+          setMovieResults(
+            moviesRes.status === "fulfilled"
+              ? (moviesRes.value.data.data.results || []).slice(0, 6)
+              : []
+          );
+          setUserResults(
+            usersRes?.status === "fulfilled"
+              ? (usersRes.value.data.users || []).slice(0, 6)
+              : []
+          );
+        })
+        .catch(() => {
+          setMovieResults([]);
+          setUserResults([]);
+        })
         .finally(() => setSearchLoading(false));
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [isAuthenticated, search]);
 
   // Close on outside click
   useEffect(() => {
@@ -271,6 +340,12 @@ export default function Navbar() {
     setSearch("");
     setSearchOpen(false);
     navigate(`/movies/${tmdbId}`);
+  };
+
+  const handleSelectUser = (userId) => {
+    setSearch("");
+    setSearchOpen(false);
+    navigate(`/profile/${userId}`);
   };
 
   const handleSeeAll = () => {
@@ -328,10 +403,12 @@ export default function Navbar() {
           {/* Dropdown résultats */}
           {searchOpen && (
             <SearchDropdown
-              results={searchResults}
+              movies={movieResults}
+              users={userResults}
               loading={searchLoading}
               query={search}
-              onSelect={handleSelectMovie}
+              onSelectMovie={handleSelectMovie}
+              onSelectUser={handleSelectUser}
               onSeeAll={handleSeeAll}
             />
           )}
