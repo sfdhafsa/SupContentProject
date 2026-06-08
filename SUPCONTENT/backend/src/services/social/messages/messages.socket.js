@@ -5,6 +5,42 @@ import { verifyToken } from "../../../utils/jwt.utils.js";
 import { sendMessage } from "./messages.service.js";
 
 export const onlineUsers = new Map();
+let ioServer = null;
+
+const addUserSocket = (userId, socketId) => {
+  const key = String(userId);
+  const socketIds = onlineUsers.get(key) || new Set();
+  socketIds.add(socketId);
+  onlineUsers.set(key, socketIds);
+};
+
+const removeUserSocket = (userId, socketId) => {
+  const key = String(userId);
+  const socketIds = onlineUsers.get(key);
+
+  if (!socketIds) return;
+
+  socketIds.delete(socketId);
+
+  if (socketIds.size === 0) {
+    onlineUsers.delete(key);
+  }
+};
+
+export const emitToUser = (userId, eventName, payload) => {
+  if (!ioServer || !userId || !eventName) return;
+
+  const socketIds = onlineUsers.get(String(userId));
+  if (!socketIds) return;
+
+  socketIds.forEach((socketId) => {
+    ioServer.to(socketId).emit(eventName, payload);
+  });
+};
+
+export const emitNotificationSync = (userId, payload = {}) => {
+  emitToUser(userId, "notifications_changed", payload);
+};
 
 const getSocketToken = (socket) => {
   const authToken = socket.handshake.auth?.token;
@@ -20,6 +56,7 @@ export const initializeMessagesSocket = (server, corsOptions = {}) => {
   const io = new Server(server, {
     cors: corsOptions,
   });
+  ioServer = io;
 
   io.use(async (socket, next) => {
     try {
@@ -60,7 +97,7 @@ export const initializeMessagesSocket = (server, corsOptions = {}) => {
 
   io.on("connection", (socket) => {
     const userId = socket.user.userId;
-    onlineUsers.set(String(userId), socket.id);
+    addUserSocket(userId, socket.id);
 
     socket.on("send_message", async (payload = {}) => {
       try {
@@ -70,11 +107,7 @@ export const initializeMessagesSocket = (server, corsOptions = {}) => {
           payload.content
         );
 
-        const receiverSocketId = onlineUsers.get(String(payload.receiverId));
-
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit("receive_message", message);
-        }
+        emitToUser(payload.receiverId, "receive_message", message);
 
         socket.emit("message_sent", message);
       } catch (err) {
@@ -86,9 +119,7 @@ export const initializeMessagesSocket = (server, corsOptions = {}) => {
     });
 
     socket.on("disconnect", () => {
-      if (onlineUsers.get(String(userId)) === socket.id) {
-        onlineUsers.delete(String(userId));
-      }
+      removeUserSocket(userId, socket.id);
     });
   });
 
