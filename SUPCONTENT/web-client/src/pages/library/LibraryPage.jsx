@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useLibrary } from '../../hooks/useLibrary';
 import { useAuth } from '../../context/AuthContext';
+import { getYear } from '../../utils/format';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 
@@ -184,7 +185,7 @@ export default function LibraryPage() {
 function MovieCard({ entry, onRemove }) {
   const [bookmarked, setBookmarked] = useState(true);
   const poster = entry.poster_url ? `${TMDB_IMG}${entry.poster_url}` : null;
-  const year = entry.release_date ? entry.release_date.slice(0, 4) : '';
+  const year = getYear(entry.release_date);
   const rating = entry.vote_average ? parseFloat(entry.vote_average).toFixed(1) : null;
 
   return (
