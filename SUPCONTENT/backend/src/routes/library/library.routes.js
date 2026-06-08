@@ -13,6 +13,7 @@ router.delete('/library/:movieId', protect, libraryController.removeEntry);
 
 // ─── LISTES PUBLIQUES ─────────────────────────────────────
 router.get('/lists/public', customListController.getPublicLists);
+router.get('/lists/following/search', protect, customListController.searchFollowingLists);
 
 // ─── LISTES PAR UTILISATEUR ───────────────────────────────
 router.get('/users/:userId/lists', optionalProtect, customListController.getUserLists);

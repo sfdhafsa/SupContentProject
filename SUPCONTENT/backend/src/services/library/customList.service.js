@@ -303,6 +303,74 @@ async function getPublicLists(page = 1, limit = 20, search = '') {
   };
 }
 
+async function searchFollowingLists(userId, search = '', limit = 6) {
+  const normalizedSearch = search.trim();
+
+  if (normalizedSearch.length < 2) {
+    return [];
+  }
+
+  const { rows } = await db.query(
+    `SELECT
+      cl.id,
+      cl.name,
+      cl.description,
+      cl.is_public,
+      cl.created_at,
+      cl.updated_at,
+      u.id AS owner_id,
+      u.username AS owner_username,
+      u.avatar_url AS owner_avatar,
+      COALESCE(movie_counts.movie_count, 0) AS movie_count,
+      COALESCE(preview.movies, '[]'::json) AS preview_movies
+     FROM custom_lists cl
+     JOIN follows f ON f.followed_id = cl.user_id
+     JOIN users u ON u.id = cl.user_id
+     LEFT JOIN LATERAL (
+       SELECT COUNT(*)::int AS movie_count
+       FROM custom_list_movies clm
+       WHERE clm.list_id = cl.id
+     ) movie_counts ON TRUE
+     LEFT JOIN LATERAL (
+       SELECT json_agg(
+         json_build_object(
+           'id', movies.id,
+           'external_id', movies.external_id,
+           'title', movies.title,
+           'poster_url', movies.poster_url,
+           'release_date', movies.release_date,
+           'added_at', movies.added_at
+         )
+         ORDER BY movies.added_at DESC
+       ) AS movies
+       FROM (
+         SELECT
+           m.id,
+           m.external_id,
+           m.title,
+           m.poster_url,
+           m.release_date,
+           clm.added_at
+         FROM custom_list_movies clm
+         JOIN movies m ON clm.movie_id = m.id
+         WHERE clm.list_id = cl.id
+         ORDER BY clm.added_at DESC
+         LIMIT 4
+       ) movies
+     ) preview ON TRUE
+     WHERE f.follower_id = $1
+       AND cl.is_public = TRUE
+       AND cl.name ILIKE $2
+     ORDER BY
+       CASE WHEN cl.name ILIKE $3 THEN 0 ELSE 1 END,
+       cl.updated_at DESC
+     LIMIT $4`,
+    [userId, `%${normalizedSearch}%`, `${normalizedSearch}%`, limit]
+  );
+
+  return rows;
+}
+
 export {
   getUserLists,
   getListById,
@@ -312,4 +380,5 @@ export {
   addMovieToList,
   removeMovieFromList,
   getPublicLists,
+  searchFollowingLists,
 };

@@ -20,6 +20,27 @@ async function getPublicLists(req, res, next) {
 }
 
 /**
+ * GET /api/lists/following/search
+ * Search public custom lists created by users followed by the current user.
+ * Query : ?q=texte&limit=6
+ */
+async function searchFollowingLists(req, res, next) {
+  try {
+    const query = (req.query.q || '').trim();
+    const limit = Math.min(parseInt(req.query.limit) || 6, 20);
+
+    if (query.length < 2) {
+      return res.json({ success: true, lists: [] });
+    }
+
+    const lists = await customListService.searchFollowingLists(req.user.userId, query, limit);
+    return res.json({ success: true, lists });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * GET /api/users/:userId/lists
  * Listes d'un utilisateur.
  * Si c'est soi-même, on retourne toutes les listes.
@@ -145,4 +166,4 @@ async function removeMovieFromList(req, res, next) {
   }
 }
 
-export { getPublicLists, getUserLists, getListById, createList, updateList, deleteList, addMovieToList, removeMovieFromList };
+export { getPublicLists, searchFollowingLists, getUserLists, getListById, createList, updateList, deleteList, addMovieToList, removeMovieFromList };

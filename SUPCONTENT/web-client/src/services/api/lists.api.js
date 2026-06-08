@@ -4,6 +4,9 @@ export const listsApi = {
   getPublic: ({ page = 1, limit = 20, search = "" } = {}) =>
     api.get("/lists/public", { params: { page, limit, search } }),
 
+  searchFollowing: (query, limit = 6) =>
+    api.get("/lists/following/search", { params: { q: query, limit } }),
+
   getUserLists: (userId) => api.get(`/users/${userId}/lists`),
 
   getById: (listId) => api.get(`/lists/${listId}`),

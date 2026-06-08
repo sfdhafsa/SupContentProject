@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import api from "../services/api/axios";
+import { listsApi } from "../services/api/lists.api";
 import { messagesApi } from "../services/api/messages.api";
 import { moviesApi } from "../services/api/movies.api";
 import { createAppSocket } from "../services/socket/app.socket";
@@ -140,11 +141,12 @@ function SearchAvatar({ user }) {
   );
 }
 
-function SearchDropdown({ movies, users, loading, query, onSelectMovie, onSelectUser, onSeeAll }) {
+function SearchDropdown({ movies, users, lists, loading, query, onSelectMovie, onSelectUser, onSelectList, onSeeAll }) {
   if (!query.trim()) return null;
 
   const hasMovies = movies.length > 0;
   const hasUsers = users.length > 0;
+  const hasLists = lists.length > 0;
 
   return (
     <div className="absolute top-[calc(100%+8px)] left-1/2 right-auto w-[calc(100vw-1.5rem)] max-w-md -translate-x-1/2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl z-50 overflow-hidden sm:left-0 sm:right-0 sm:w-auto sm:max-w-none sm:translate-x-0">
@@ -154,13 +156,13 @@ function SearchDropdown({ movies, users, loading, query, onSelectMovie, onSelect
         </div>
       )}
 
-      {!loading && !hasMovies && !hasUsers && (
+      {!loading && !hasMovies && !hasUsers && !hasLists && (
         <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
           Aucun resultat trouve pour "{query}"
         </div>
       )}
 
-      {!loading && (hasMovies || hasUsers) && (
+      {!loading && (hasMovies || hasUsers || hasLists) && (
         <>
           <div className="max-h-80 overflow-y-auto">
             {hasMovies && movies.map((movie) => (
@@ -235,6 +237,38 @@ function SearchDropdown({ movies, users, loading, query, onSelectMovie, onSelect
                 ))}
               </div>
             )}
+            {hasLists && (
+              <div className={`${hasMovies || hasUsers ? "border-t border-gray-100 dark:border-gray-700" : ""}`}>
+                <p className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  Lists from people you follow
+                </p>
+                {lists.map((list) => (
+                  <button
+                    key={`list-${list.id}`}
+                    onClick={() => onSelectList(list.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
+                      <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-[#D0021B]">
+                        <path d="M5 4h10a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0115 16H5a1.5 1.5 0 01-1.5-1.5v-9A1.5 1.5 0 015 4z" stroke="currentColor" strokeWidth="1.5" />
+                        <path d="M6.5 7h7M6.5 10h7M6.5 13h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {list.name}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                        by {list.owner_username} · {list.movie_count ?? 0} films
+                      </p>
+                    </div>
+                    <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0">
+                      <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* See all */}
@@ -261,6 +295,7 @@ export default function Navbar() {
   const [mobileOpen, setMobile]       = useState(false);
   const [movieResults, setMovieResults] = useState([]);
   const [userResults, setUserResults] = useState([]);
+  const [listResults, setListResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -277,6 +312,7 @@ export default function Navbar() {
     if (!search.trim()) {
       setMovieResults([]);
       setUserResults([]);
+      setListResults([]);
       setSearchOpen(false);
       return;
     }
@@ -289,10 +325,11 @@ export default function Navbar() {
 
       if (isAuthenticated && search.trim().length >= 2) {
         requests.push(messagesApi.searchUsers(search));
+        requests.push(listsApi.searchFollowing(search));
       }
 
       Promise.allSettled(requests)
-        .then(([moviesRes, usersRes]) => {
+        .then(([moviesRes, usersRes, listsRes]) => {
           setMovieResults(
             moviesRes.status === "fulfilled"
               ? (moviesRes.value.data.data.results || []).slice(0, 6)
@@ -303,10 +340,16 @@ export default function Navbar() {
               ? (usersRes.value.data.users || []).slice(0, 6)
               : []
           );
+          setListResults(
+            listsRes?.status === "fulfilled"
+              ? (listsRes.value.data.lists || []).slice(0, 6)
+              : []
+          );
         })
         .catch(() => {
           setMovieResults([]);
           setUserResults([]);
+          setListResults([]);
         })
         .finally(() => setSearchLoading(false));
     }, 300);
@@ -400,6 +443,12 @@ export default function Navbar() {
     navigate(`/profile/${userId}`);
   };
 
+  const handleSelectList = (listId) => {
+    setSearch("");
+    setSearchOpen(false);
+    navigate(`/lists/${listId}`);
+  };
+
   const handleSeeAll = () => {
     setSearchOpen(false);
     navigate(`/discover?q=${encodeURIComponent(search)}`);
@@ -457,10 +506,12 @@ export default function Navbar() {
             <SearchDropdown
               movies={movieResults}
               users={userResults}
+              lists={listResults}
               loading={searchLoading}
               query={search}
               onSelectMovie={handleSelectMovie}
               onSelectUser={handleSelectUser}
+              onSelectList={handleSelectList}
               onSeeAll={handleSeeAll}
             />
           )}
