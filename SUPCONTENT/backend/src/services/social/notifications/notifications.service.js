@@ -179,6 +179,49 @@ export const markAsRead = async (notificationId, userId) => {
   };
 };
 
+export const markEntityNotificationsAsRead = async ({
+  userId,
+  type,
+  entityType,
+  entityId,
+}) => {
+  if (!userId || !type || !entityType || !entityId) return [];
+
+  const updated = await NotificationModel.markByEntityAsRead(
+    userId,
+    type,
+    entityType,
+    entityId
+  );
+
+  if (updated.length > 0) {
+    await syncNotifications(userId, 'read', updated[0]);
+  }
+
+  return updated;
+};
+
+export const markMessageNotificationsAsRead = async (userId) => {
+  if (!userId) return {
+    status: 400,
+    data: { message: 'Utilisateur introuvable.' },
+  };
+
+  const updated = await NotificationModel.markByTypeAsRead(
+    userId,
+    notificationTypes.MESSAGE
+  );
+
+  if (updated.length > 0) {
+    await syncNotifications(userId, 'read-message-notifications', updated[0]);
+  }
+
+  return {
+    status: 200,
+    data: { count: updated.length },
+  };
+};
+
 // MARK ALL AS READ
 export const markAllAsRead = async (userId) => {
   const updated = await NotificationModel.markAllAsRead(userId);

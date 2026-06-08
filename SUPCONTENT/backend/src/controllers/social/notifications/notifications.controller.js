@@ -2,6 +2,7 @@ import {
   getNotifications as getNotificationsService,
   markAsRead as markAsReadService,
   markAllAsRead as markAllAsReadService,
+  markMessageNotificationsAsRead as markMessageNotificationsAsReadService,
   getUnreadCount as getUnreadCountService,
 } from '../../../services/social/notifications/notifications.service.js';
 
@@ -35,6 +36,19 @@ export const markAsRead = async (req, res, next) => {
       notificationId,
       userId
     );
+
+    return res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PATCH /api/notifications/messages/read-all
+export const markMessageNotificationsAsRead = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await markMessageNotificationsAsReadService(userId);
 
     return res.status(result.status).json(result.data);
   } catch (err) {

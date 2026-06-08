@@ -1,7 +1,10 @@
 import { FollowModel } from "../../../models/follow.model.js";
 import { MessageModel } from "../../../models/message.model.js";
 import { UserModel } from "../../../models/user.model.js";
-import { createNotification } from "../notifications/notifications.service.js";
+import {
+  createNotification,
+  markEntityNotificationsAsRead,
+} from "../notifications/notifications.service.js";
 import { notificationTypes } from "../../../utils/notificationTypes.js";
 
 const UUID_PATTERN =
@@ -94,6 +97,13 @@ export const markAsRead = async (messageId, userId) => {
   if (!message) {
     throw Object.assign(new Error("Message not found."), { status: 404 });
   }
+
+  await markEntityNotificationsAsRead({
+    userId,
+    type: notificationTypes.MESSAGE,
+    entityType: "MESSAGE",
+    entityId: message.id,
+  });
 
   return message;
 };

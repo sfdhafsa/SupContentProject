@@ -3,6 +3,7 @@ import {
   getNotifications,
   markAsRead,
   markAllAsRead,
+  markMessageNotificationsAsRead,
   getUnreadCount,
 } from '../../controllers/social/notifications/notifications.controller.js';
 
@@ -18,6 +19,9 @@ router.get('/unread-count', protect, getUnreadCount);
 
 // mark all as read
 router.patch('/read-all', protect, markAllAsRead);
+
+// mark message notifications as read
+router.patch('/messages/read-all', protect, markMessageNotificationsAsRead);
 
 // mark one as read
 router.patch('/:id/read', protect, markAsRead);

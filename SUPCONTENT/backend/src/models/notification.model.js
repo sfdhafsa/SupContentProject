@@ -98,6 +98,36 @@ export const NotificationModel = {
     return rows[0];
   },
 
+  async markByEntityAsRead(userId, type, entityType, entityId) {
+    const { rows } = await pool.query(
+      `UPDATE notifications
+       SET is_read = true
+       WHERE user_id = $1
+       AND type = $2
+       AND entity_type = $3
+       AND entity_id = $4
+       AND is_read = false
+       RETURNING *`,
+      [userId, type, entityType, String(entityId)]
+    );
+
+    return rows;
+  },
+
+  async markByTypeAsRead(userId, type) {
+    const { rows } = await pool.query(
+      `UPDATE notifications
+       SET is_read = true
+       WHERE user_id = $1
+       AND type = $2
+       AND is_read = false
+       RETURNING *`,
+      [userId, type]
+    );
+
+    return rows;
+  },
+
   async markAllAsRead(userId) {
     const { rows } = await pool.query(
       `UPDATE notifications

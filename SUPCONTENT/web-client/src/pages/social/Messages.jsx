@@ -205,6 +205,7 @@ export default function Messages() {
 
   useEffect(() => {
     fetchConversations();
+    messagesApi.markMessageNotificationsAsRead().catch(() => null);
   }, [fetchConversations]);
 
   useEffect(() => {

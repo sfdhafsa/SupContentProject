@@ -17,6 +17,10 @@ export const messagesApi = {
     return api.patch(`/social/messages/${messageId}/read`);
   },
 
+  markMessageNotificationsAsRead() {
+    return api.patch("/social/notifications/messages/read-all");
+  },
+
   searchUsers(query) {
     return api.get("/users/search", {
       params: { q: query },
