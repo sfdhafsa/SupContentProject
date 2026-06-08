@@ -26,17 +26,6 @@ const CommentIcon = () => (
       stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
-const ShareIcon = () => (
-  <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5">
-    <path d="M2.8 9.5L17 3l-3.8 14-3.5-6L2.8 9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M9.7 11L17 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-const FeedBookmarkIcon = () => (
-  <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5">
-    <path d="M5.5 3.5A1.5 1.5 0 017 2h6a1.5 1.5 0 011.5 1.5V17L10 13.8 5.5 17V3.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-  </svg>
-);
 const FilmIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-400">
     <rect x="2" y="4" width="16" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
@@ -368,7 +357,7 @@ function FeedItem({ item, currentUser }) {
       {/* Actions */}
       {(isReview || isRating || isComment) && item.review?.id && (
         <div className="sm:ml-[52px]">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <div className="flex items-center gap-4">
               <button
                 onClick={handleLike}
@@ -390,13 +379,7 @@ function FeedItem({ item, currentUser }) {
               >
                 <CommentIcon />
               </button>
-              <button type="button" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors" title="Share">
-                <ShareIcon />
-              </button>
             </div>
-            <button type="button" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors" title="Save">
-              <FeedBookmarkIcon />
-            </button>
           </div>
 
           <div className="mt-2 space-y-1">

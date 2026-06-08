@@ -29,19 +29,6 @@ const CommentIcon = () => (
   </svg>
 );
 
-const ShareIcon = () => (
-  <svg viewBox="0 0 22 22" fill="none" className="w-6 h-6">
-    <path d="M3 10.5L19 3l-4.2 16-4.1-6.8L3 10.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M10.7 12.2L19 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-);
-
-const BookmarkIcon = () => (
-  <svg viewBox="0 0 22 22" fill="none" className="w-6 h-6">
-    <path d="M6 4.5A1.5 1.5 0 017.5 3h7A1.5 1.5 0 0116 4.5v14L11 15l-5 3.5v-14z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-  </svg>
-);
-
 const PencilIcon = () => (
   <svg viewBox="0 0 22 22" fill="none" className="w-4 h-4">
     <path d="M4 15.8V18h2.2L16.9 7.3l-2.2-2.2L4 15.8z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
@@ -274,7 +261,7 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
             )}
           </div>
 
-          <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
+          <div className="mt-4 flex items-center border-t border-white/10 pt-3">
             <div className="flex items-center gap-4">
             <button
               type="button"
@@ -295,21 +282,7 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
             >
               <CommentIcon />
             </button>
-            <button
-              type="button"
-              className="text-gray-400 hover:text-white transition-colors"
-              title="Share"
-            >
-              <ShareIcon />
-            </button>
             </div>
-            <button
-              type="button"
-              className="text-gray-400 hover:text-white transition-colors"
-              title="Save"
-            >
-              <BookmarkIcon />
-            </button>
           </div>
 
           <div className="mt-2 space-y-1">
