@@ -433,27 +433,44 @@ function TrendingCard({ movie }) {
   const movieId = movie.tmdb_id || movie.external_id || movie.id;
   const tmdbId = movie.tmdb_id || movie.external_id || movie.id;
   const movieHref = movieId ? `/movies/${movieId}` : "#";
+  const title = movie.title || movie.name || "Untitled";
+  const rating = Number(movie.vote_average);
+  const displayRating = Number.isFinite(rating) ? rating.toFixed(1) : "-";
+  const posterUrl = movie.poster_url || (
+    movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null
+  );
 
   return (
-    <article className="relative rounded-2xl overflow-visible aspect-[2/3] bg-gray-200 dark:bg-gray-800 group hover:ring-2 hover:ring-[#D0021B] transition-all">
-      <Link to={movieHref} aria-label={`Open ${movie.title}`} className="block h-full overflow-hidden rounded-2xl">
-      {movie.poster_url
-        ? <img src={movie.poster_url} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
-        : <div className="w-full h-full flex items-center justify-center"><FilmIcon /></div>
-      }
-      {/* Rating badge */}
-      <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-lg">
-        <StarIcon filled={true} />
-        <span className="text-white text-xs font-bold">{movie.vote_average?.toFixed(1) || "—"}</span>
-      </div>
+    <article className="group overflow-visible rounded-md border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+      <Link
+        to={movieHref}
+        aria-label={`Open ${title}`}
+        className="flex aspect-[2/3] items-center justify-center overflow-hidden rounded-t-md bg-gray-200 dark:bg-gray-800"
+      >
+        {posterUrl ? (
+          <img
+            src={posterUrl}
+            alt={title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <FilmIcon />
+        )}
       </Link>
 
-      <AddToLibraryButton
-        movieId={null}
-        tmdbId={tmdbId}
-        variant="icon"
-        className="absolute top-2 right-2 z-20"
-      />
+      <div className="flex h-7 items-center justify-between gap-2 border-t border-gray-100 px-2 dark:border-gray-800">
+        <div className="flex min-w-0 items-center gap-1">
+          <StarIcon filled={true} />
+          <span className="text-[11px] font-bold leading-none text-gray-900 dark:text-gray-100">{displayRating}</span>
+        </div>
+
+        <AddToLibraryButton
+          movieId={null}
+          tmdbId={tmdbId}
+          variant="icon"
+        />
+      </div>
     </article>
   );
 }
@@ -737,7 +754,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {trending.slice(0, 6).map((movie, idx) => (
+              {trending.slice(0, 4).map((movie, idx) => (
                 <TrendingCard key={movie.id || idx} movie={movie} />
               ))}
             </div>
