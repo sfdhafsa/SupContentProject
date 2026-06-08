@@ -15,17 +15,6 @@ const FILTERS = [
 
 const SORT_OPTIONS = ['Date Added', 'Title', 'Rating'];
 
-function getReleaseYear(releaseDate) {
-  if (!releaseDate) return '';
-
-  if (typeof releaseDate === 'string') {
-    return releaseDate.slice(0, 4);
-  }
-
-  const date = new Date(releaseDate);
-  return Number.isNaN(date.getTime()) ? '' : String(date.getFullYear());
-}
-
 const BookmarkFilledIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
     <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
@@ -197,7 +186,8 @@ function MovieCard({ entry, onRemove }) {
   const [bookmarked, setBookmarked] = useState(true);
   const poster = entry.poster_url ? `${TMDB_IMG}${entry.poster_url}` : null;
   const year = getYear(entry.release_date);
-  const rating = entry.vote_average ? parseFloat(entry.vote_average).toFixed(1) : null;
+  const numericRating = Number(entry.vote_average);
+  const rating = Number.isFinite(numericRating) && numericRating > 0 ? numericRating.toFixed(1) : null;
 
   return (
     <div className="group relative rounded-xl overflow-hidden bg-[#1a1a2e] aspect-[2/3] cursor-pointer">

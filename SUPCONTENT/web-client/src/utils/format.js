@@ -37,6 +37,11 @@ export function formatShortDate(value, fallback = "") {
   return formatDate(value, { month: "short", day: "numeric", year: "numeric" }, fallback);
 }
 
+export function formatRating(value, fallback = "") {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number.toFixed(1) : fallback;
+}
+
 export function toDisplayNumber(value, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;

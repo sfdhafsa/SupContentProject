@@ -4,6 +4,7 @@ import api from "../../services/api/axios.js";
 import ReviewComments from "../../components/reviews/ReviewComments.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import AddToLibraryButton from "../../components/library/AddToLibraryButton.jsx";
+import { getYear, toDisplayNumber } from "../../utils/format.js";
 
 /* ══════════════════════════════════════
    ICONS
@@ -177,6 +178,7 @@ function Headline({ item, currentUser }) {
 function MovieCard({ movie, rating }) {
   if (!movie) return null;
   const movieHref = movie.external_id ? `/movies/${movie.external_id}` : null;
+  const releaseYear = getYear(movie.release_date);
   const content = (
     <>
       {/* Poster */}
@@ -189,8 +191,8 @@ function MovieCard({ movie, rating }) {
       {/* Info */}
       <div className="flex flex-col justify-center gap-1">
         <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight group-hover:text-[#D0021B] transition-colors">{movie.title}</p>
-        {movie.release_date && (
-          <p className="text-xs text-gray-400 dark:text-gray-500">{new Date(movie.release_date).getFullYear()}</p>
+        {releaseYear && (
+          <p className="text-xs text-gray-400 dark:text-gray-500">{releaseYear}</p>
         )}
         {rating && (
           <div className="flex items-center gap-1 mt-0.5">
@@ -488,7 +490,7 @@ function TrendingSkeleton() {
 /* ══════════════════════════════════════
    HOME PAGE
 ══════════════════════════════════════ */
-const formatStat = (value) => Number(value || 0).toLocaleString("en-US");
+const formatStat = (value) => toDisplayNumber(value).toLocaleString("en-US");
 
 function StatsCard({ stats, loading }) {
   const rows = [

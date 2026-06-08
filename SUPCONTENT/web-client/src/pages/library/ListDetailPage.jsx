@@ -184,7 +184,8 @@ export default function ListDetailPage() {
 function MoviePosterCard({ movie, isOwner, onRemove }) {
   const poster = getPoster(movie);
   const year = getYear(movie.release_date);
-  const rating = movie.vote_average ? Number(movie.vote_average).toFixed(1) : null;
+  const numericRating = Number(movie.vote_average);
+  const rating = Number.isFinite(numericRating) && numericRating > 0 ? numericRating.toFixed(1) : null;
 
   return (
     <article style={styles.card}>

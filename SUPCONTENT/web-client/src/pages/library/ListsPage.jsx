@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLibrary } from '../../hooks/useLibrary';
 import { useAuth } from '../../context/AuthContext';
+import { formatShortDate } from '../../utils/format';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w200';
 
@@ -152,7 +153,7 @@ export default function ListsPage() {
 function ListCard({ list, onClick, onEdit, onDelete }) {
   const count = parseInt(list.movie_count) || 0;
   const movies = list.movies || [];
-  const date = new Date(list.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = formatShortDate(list.updated_at);
 
   return (
     <div
@@ -215,7 +216,7 @@ function ListCard({ list, onClick, onEdit, onDelete }) {
         )}
         <div className="flex items-center justify-between">
           <span className="text-gray-500 text-xs">{count} film{count !== 1 ? 's' : ''}</span>
-          <span className="text-gray-600 text-xs">{date}</span>
+          {date && <span className="text-gray-600 text-xs">{date}</span>}
         </div>
       </div>
     </div>

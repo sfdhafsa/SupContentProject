@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import api from "../../services/api/axios.js";
 import { createAppSocket } from "../../services/socket/app.socket.js";
+import { formatShortDate } from "../../utils/format.js";
 
 const LIMIT = 30;
 const REFRESH_INTERVAL_MS = 5000;
@@ -58,12 +59,7 @@ const iconByType = {
 };
 
 function formatDate(value) {
-  if (!value) return "";
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatShortDate(value);
 }
 
 function buildMessage(notification) {

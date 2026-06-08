@@ -7,6 +7,7 @@ import { listsApi } from "../services/api/lists.api";
 import { messagesApi } from "../services/api/messages.api";
 import { moviesApi } from "../services/api/movies.api";
 import { createAppSocket } from "../services/socket/app.socket";
+import { formatRating, getYear } from "../utils/format";
 
 /* ── Icons ── */
 const FilmIcon = () => (
@@ -189,13 +190,13 @@ function SearchDropdown({ movies, users, lists, loading, query, onSelectMovie, o
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-gray-400 dark:text-gray-500">
-                      {movie.release_date ? movie.release_date.slice(0, 4) : "-"}
+                      {getYear(movie.release_date) || "-"}
                     </span>
-                    {movie.vote_average > 0 && (
+                    {formatRating(movie.vote_average) && (
                       <div className="flex items-center gap-1">
                         <StarIcon filled />
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {movie.vote_average.toFixed(1)}
+                          {formatRating(movie.vote_average)}
                         </span>
                       </div>
                     )}

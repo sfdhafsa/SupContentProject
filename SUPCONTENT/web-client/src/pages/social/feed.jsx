@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../../services/api/axios.js";
 import ReviewComments from "../../components/reviews/ReviewComments.jsx";
+import { getYear } from "../../utils/format.js";
 
 /* ── Icons ── */
 const StarIcon = ({ filled }) => (
@@ -106,6 +107,7 @@ function StarRating({ rating }) {
 function MovieCard({ movie }) {
   if (!movie) return null;
   const movieHref = movie.external_id ? `/movies/${movie.external_id}` : null;
+  const releaseYear = getYear(movie.release_date);
   const content = (
     <>
       <div className="w-12 h-16 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center">
@@ -117,9 +119,9 @@ function MovieCard({ movie }) {
       </div>
       <div className="flex flex-col justify-center">
         <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight group-hover:text-[#D0021B] transition-colors">{movie.title}</p>
-        {movie.release_date && (
+        {releaseYear && (
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-            {new Date(movie.release_date).getFullYear()}
+            {releaseYear}
           </p>
         )}
       </div>
@@ -171,7 +173,13 @@ function FeedItem({ item }) {
   const collectionHref = isCollection && item.collection?.id ? `/lists/${item.collection.id}` : null;
 
   const timeAgo = (dateStr) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
+    if (!dateStr) return "";
+
+    const date = new Date(dateStr);
+    const timestamp = date.getTime();
+    if (Number.isNaN(timestamp)) return "";
+
+    const diff = Date.now() - timestamp;
     const mins  = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days  = Math.floor(diff / 86400000);
@@ -179,7 +187,7 @@ function FeedItem({ item }) {
     if (mins < 60)  return `${mins}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7)   return `${days}d ago`;
-    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   const handleLike = async () => {
@@ -218,9 +226,11 @@ function FeedItem({ item }) {
               </Link>
               <ActivityBadge type={item.type} />
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              {timeAgo(item.activity?.created_at)}
-            </p>
+            {timeAgo(item.activity?.created_at) && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                {timeAgo(item.activity?.created_at)}
+              </p>
+            )}
           </div>
         </div>
       </div>

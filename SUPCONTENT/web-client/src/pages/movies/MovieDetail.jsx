@@ -145,6 +145,9 @@ function CrewCard({ name, role }) {
 
 // ── Similar Card ──
 function SimilarCard({ movie, onClick }) {
+  const rating = Number(movie.vote_average);
+  const displayRating = Number.isFinite(rating) && rating > 0 ? rating.toFixed(1) : null;
+
   return (
     <div onClick={() => onClick(movie.tmdb_id)} className="flex-shrink-0 w-32 cursor-pointer group">
       <div className="aspect-[2/3] rounded-xl overflow-hidden bg-gray-700 mb-2 group-hover:ring-2 ring-[#D0021B] transition-all">
@@ -159,7 +162,7 @@ function SimilarCard({ movie, onClick }) {
         )}
       </div>
       <p className="text-xs font-semibold text-white truncate">{movie.title}</p>
-      {movie.vote_average > 0 && <p className="text-xs text-yellow-400">★ {movie.vote_average?.toFixed(1)}</p>}
+      {displayRating && <p className="text-xs text-yellow-400">★ {displayRating}</p>}
     </div>
   );
 }
@@ -237,7 +240,8 @@ export default function MovieDetail() {
   }
 
   const year    = movie.release_date ? movie.release_date.slice(0, 4) : null;
-  const rating  = movie.vote_average ? parseFloat(movie.vote_average) : null;
+  const parsedRating = Number(movie.vote_average);
+  const rating  = Number.isFinite(parsedRating) && parsedRating > 0 ? parsedRating : null;
   const stars   = rating ? Math.round(rating / 2) : 0;
   const budget  = formatMoney(movie.budget);
   const revenue = formatMoney(movie.revenue);

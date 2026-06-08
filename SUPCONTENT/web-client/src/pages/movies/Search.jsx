@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { moviesApi } from "../../services/api/movies.api";
 import api from "../../services/api/axios";
 import { useAuth } from "../../context/AuthContext";
+import { formatRating, getYear } from "../../utils/format";
 
 const SearchIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-gray-400 flex-shrink-0">
@@ -96,12 +97,12 @@ function MovieCard({ movie, onClick }) {
         <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{movie.title}</p>
         <div className="flex items-center justify-between mt-1">
           <span className="text-xs text-gray-400 dark:text-gray-500">
-            {movie.release_date ? movie.release_date.slice(0, 4) : "—"}
+            {getYear(movie.release_date) || "—"}
           </span>
-          {movie.vote_average > 0 && (
+          {formatRating(movie.vote_average) && (
             <div className="flex items-center gap-1">
               <StarIcon filled />
-              <span className="text-xs text-gray-500 dark:text-gray-400">{movie.vote_average.toFixed(1)}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{formatRating(movie.vote_average)}</span>
             </div>
           )}
         </div>
@@ -165,20 +166,20 @@ function HeroCarousel({ movies, onMovieClick, onAddToLibrary }) {
 
       <div className="absolute bottom-0 left-0 right-0 p-6">
         <div className="max-w-2xl">
-          {movie.vote_average > 0 && (
+          {formatRating(movie.vote_average) && (
             <div className="flex items-center gap-1.5 mb-2">
               <div className="flex items-center gap-0.5">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <StarIcon key={i} filled={i < Math.round(movie.vote_average / 2)} />
+                  <StarIcon key={i} filled={i < Math.round(Number(movie.vote_average) / 2)} />
                 ))}
               </div>
-              <span className="text-white text-sm font-semibold">{movie.vote_average.toFixed(1)}</span>
+              <span className="text-white text-sm font-semibold">{formatRating(movie.vote_average)}</span>
               <span className="text-gray-400 text-sm">/ 10</span>
             </div>
           )}
           <h2 className="text-2xl md:text-4xl font-bold text-white mb-1 leading-tight">{movie.title}</h2>
-          {movie.release_date && (
-            <p className="text-gray-300 text-sm mb-2">{movie.release_date.slice(0, 4)}</p>
+          {getYear(movie.release_date) && (
+            <p className="text-gray-300 text-sm mb-2">{getYear(movie.release_date)}</p>
           )}
           {movie.overview && (
             <p className="text-gray-300 text-sm leading-relaxed line-clamp-2 mb-4 max-w-lg">{movie.overview}</p>
@@ -287,8 +288,8 @@ function MovieSection({ title, movies, onMovieClick, loading }) {
                 )}
               </div>
               <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{movie.title}</p>
-              {movie.vote_average > 0 && (
-                <p className="text-xs text-yellow-500">★ {movie.vote_average.toFixed(1)}</p>
+              {formatRating(movie.vote_average) && (
+                <p className="text-xs text-yellow-500">★ {formatRating(movie.vote_average)}</p>
               )}
             </div>
           ))}
