@@ -37,11 +37,14 @@ const reportFilters = ["ALL", "PENDING", "REVIEWED", "RESOLVED"];
 
 const formatDate = (value) => {
   if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "2-digit",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 };
 
 export default function AdminView() {
@@ -259,7 +262,6 @@ export default function AdminView() {
 
   const isUsersTab = activeTab === "users";
   const isReviewsTab = activeTab === "reviews";
-  const isReportsTab = activeTab === "reports";
   const isLoading = isUsersTab ? loadingUsers : isReviewsTab ? loadingReviews : loadingReports;
   const placeholder = isUsersTab ? "Search users..." : isReviewsTab ? "Search reviews..." : "Search reports...";
   const currentFilters = isUsersTab ? userFilters : isReviewsTab ? reviewFilters : reportFilters;
