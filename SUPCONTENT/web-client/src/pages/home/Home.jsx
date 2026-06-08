@@ -236,8 +236,21 @@ function FeedItem({ item, currentUser }) {
   const isCollection = item.type === "COLLECTION_MOVIE_ADDED";
   const isComment    = item.type === "REVIEW_COMMENTED";
 
+  const getActivityDate = () =>
+    item.activity?.created_at ||
+    item.review?.created_at ||
+    item.comment?.created_at ||
+    item.collection?.added_at;
+
   const timeAgo = (dateStr) => {
-    const diff  = Date.now() - new Date(dateStr).getTime();
+    if (!dateStr) return "";
+
+    const date = new Date(dateStr);
+    const timestamp = date.getTime();
+
+    if (Number.isNaN(timestamp)) return "";
+
+    const diff  = Date.now() - timestamp;
     const mins  = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days  = Math.floor(diff / 86400000);
@@ -245,8 +258,9 @@ function FeedItem({ item, currentUser }) {
     if (mins < 60)  return `${mins}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7)   return `${days}d ago`;
-    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
+  const activityTimeLabel = timeAgo(getActivityDate());
 
   const handleLike = async () => {
     if (likeLoading || !item.review?.id) return;
@@ -274,9 +288,11 @@ function FeedItem({ item, currentUser }) {
           </Link>
           <div className="min-w-0">
             <Headline item={item} currentUser={currentUser} />
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              {timeAgo(item.activity?.created_at)}
-            </p>
+            {activityTimeLabel && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                {activityTimeLabel}
+              </p>
+            )}
           </div>
         </div>
 
@@ -497,6 +513,7 @@ export default function Home() {
   const [feedError, setFeedError]       = useState("");
   const [offset, setOffset]             = useState(0);
   const [hasMore, setHasMore]           = useState(true);
+  const [feedOrder, setFeedOrder]       = useState("desc");
 
   /* Trending state */
   const [trending, setTrending]         = useState([]);
@@ -511,6 +528,7 @@ export default function Home() {
 
   const LIMIT     = 20;
   const loaderRef = useRef(null);
+  const previousFeedOrderRef = useRef(feedOrder);
 
   /* ── Fetch feed ── */
   const fetchFeed = useCallback(async (reset = false) => {
@@ -520,7 +538,7 @@ export default function Home() {
 
     try {
       const res = await api.get("/social/feed", {
-        params: { limit: LIMIT, offset: currentOffset },
+        params: { limit: LIMIT, offset: currentOffset, order: feedOrder },
       });
       const newItems = res.data.items || [];
 
@@ -539,7 +557,7 @@ export default function Home() {
       setFeedLoading(false);
       setLoadingMore(false);
     }
-  }, [offset]);
+  }, [feedOrder, offset]);
 
   /* ── Fetch popular movies ── */
   useEffect(() => {
@@ -586,6 +604,16 @@ export default function Home() {
     fetchFeed(true);
   }, [user?.id]);
 
+  useEffect(() => {
+    if (previousFeedOrderRef.current === feedOrder) return;
+
+    previousFeedOrderRef.current = feedOrder;
+    setOffset(0);
+    setHasMore(true);
+    setFeedError("");
+    fetchFeed(true);
+  }, [feedOrder]);
+
   /* ── Infinite scroll ── */
   useEffect(() => {
     if (!loaderRef.current || !hasMore) return;
@@ -613,8 +641,36 @@ export default function Home() {
         {/* ══ LEFT — ACTIVITY FEED ══ */}
         <div>
           {/* Feed header */}
-          <div className="mb-5 sm:mb-6">
+          <div className="mb-5 sm:mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Activity Feed</h1>
+            <div
+              className="grid h-10 w-full grid-cols-2 rounded-2xl border border-gray-100 bg-gray-50 p-1 dark:border-gray-800 dark:bg-gray-900 sm:w-auto"
+              role="group"
+              aria-label="Feed order"
+            >
+              {[
+                { value: "desc", label: "Newest" },
+                { value: "asc", label: "Oldest" },
+              ].map((option) => {
+                const isActive = feedOrder === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setFeedOrder(option.value)}
+                    className={`min-w-24 rounded-xl px-4 text-sm font-bold transition-all ${
+                      isActive
+                        ? "bg-white text-[#D0021B] shadow-sm ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700"
+                        : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                    }`}
+                    aria-pressed={isActive}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Error */}

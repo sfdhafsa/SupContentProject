@@ -14,7 +14,19 @@ const normalizePagination = ({ limit = 20, offset = 0 } = {}) => {
   };
 };
 
+const normalizeOrder = (order = 'desc') => {
+  const normalized = String(order).toLowerCase();
+  return normalized === 'asc' ? 'asc' : 'desc';
+};
+
 const hasReviewText = (text) => typeof text === 'string' && text.trim() !== '';
+
+const normalizeDate = (value) => {
+  if (!value) return null;
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
 
 const buildActivity = (row, userId) => {
   if (row.activity_type === 'COLLECTION_MOVIE_ADDED') {
@@ -23,7 +35,7 @@ const buildActivity = (row, userId) => {
       action: 'added_to_collection',
       headline: `${row.author_username} added ${row.movie_title} to ${row.collection_name}`,
       body: row.collection_description,
-      created_at: row.activity_created_at,
+      created_at: normalizeDate(row.activity_created_at),
     };
   }
 
@@ -37,7 +49,7 @@ const buildActivity = (row, userId) => {
         ? `${row.author_username} commented on your review`
         : `${row.author_username} commented on ${row.review_author_username}'s review`,
       body: row.comment_text,
-      created_at: row.activity_created_at,
+      created_at: normalizeDate(row.activity_created_at),
     };
   }
 
@@ -47,7 +59,7 @@ const buildActivity = (row, userId) => {
       action: 'reviewed',
       headline: `${row.author_username} reviewed ${row.movie_title}`,
       body: row.text,
-      created_at: row.activity_created_at,
+      created_at: normalizeDate(row.activity_created_at),
     };
   }
 
@@ -56,7 +68,7 @@ const buildActivity = (row, userId) => {
     action: 'rated',
     headline: `${row.author_username} rated ${row.movie_title}`,
     body: null,
-    created_at: row.activity_created_at,
+    created_at: normalizeDate(row.activity_created_at),
   };
 };
 
@@ -80,8 +92,8 @@ const mapFeedItem = (row, userId) => {
           rating: row.rating,
           text: hasReviewText(row.text) ? row.text : null,
           contains_spoiler: row.contains_spoiler,
-          created_at: row.review_created_at,
-          updated_at: row.review_updated_at,
+          created_at: normalizeDate(row.review_created_at),
+          updated_at: normalizeDate(row.review_updated_at),
           likes_count: row.likes_count,
           comments_count: row.comments_count,
           has_liked: row.has_liked,
@@ -91,8 +103,8 @@ const mapFeedItem = (row, userId) => {
           id: row.comment_id,
           text: row.comment_text,
           parent_comment_id: row.parent_comment_id,
-          created_at: row.comment_created_at,
-          updated_at: row.comment_updated_at,
+          created_at: normalizeDate(row.comment_created_at),
+          updated_at: normalizeDate(row.comment_updated_at),
         }
       : null,
     collection: isCollectionActivity
@@ -101,7 +113,7 @@ const mapFeedItem = (row, userId) => {
           name: row.collection_name,
           description: row.collection_description,
           is_public: row.collection_is_public,
-          added_at: row.collection_movie_added_at,
+          added_at: normalizeDate(row.collection_movie_added_at),
         }
       : null,
     author: {
@@ -129,13 +141,15 @@ const mapFeedItem = (row, userId) => {
 
 export const getFeed = async (userId, pagination = {}) => {
   const { limit, offset } = normalizePagination(pagination);
-  const rows = await FeedModel.getFollowingActivities(userId, limit, offset);
+  const order = normalizeOrder(pagination.order);
+  const rows = await FeedModel.getFollowingActivities(userId, limit, offset, order);
 
   return {
     status: 200,
     data: {
       limit,
       offset,
+      order,
       items: rows.map((row) => mapFeedItem(row, userId)),
     },
   };

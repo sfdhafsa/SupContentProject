@@ -1,7 +1,8 @@
 import pool from '../config/db.js';
 
 export const FeedModel = {
-  async getFollowingActivities(userId, limit, offset) {
+  async getFollowingActivities(userId, limit, offset, order = 'desc') {
+    const sortDirection = order === 'asc' ? 'ASC' : 'DESC';
     const { rows } = await pool.query(
       `
       WITH following_reviews AS (
@@ -181,7 +182,7 @@ export const FeedModel = {
         UNION ALL
         SELECT * FROM following_collection_additions
       ) feed_items
-      ORDER BY activity_created_at DESC
+      ORDER BY activity_created_at ${sortDirection}
       LIMIT $2 OFFSET $3;
       `,
       [userId, limit, offset]

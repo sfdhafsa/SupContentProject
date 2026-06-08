@@ -5,6 +5,7 @@ export const getFeed = async (req, res, next) => {
     const result = await getFeedService(req.user.userId, {
       limit: req.query.limit,
       offset: req.query.offset,
+      order: req.query.order,
     });
 
     return res.status(result.status).json(result.data);
