@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { LIBRARY_STATUSES, libraryApi } from "../../services/api/library.api";
+import { getYear, toDisplayNumber } from "../../utils/format";
 
 const FilmIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-gray-400">
@@ -62,6 +63,7 @@ function EmptyLibrary({ filtered }) {
 
 function LibraryCard({ item, onStatusChange, onRemove, busy }) {
   const movieHref = item.external_id ? `/movies/${item.external_id}` : "/discover";
+  const releaseYear = getYear(item.release_date);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
@@ -81,7 +83,7 @@ function LibraryCard({ item, onStatusChange, onRemove, busy }) {
             {item.title}
           </Link>
           <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            {getReleaseYear(item.release_date)}
+            {releaseYear || "Date inconnue"}
           </p>
         </div>
 
@@ -141,6 +143,8 @@ export default function Library() {
   }, [loadLibrary]);
 
   const totals = useMemo(() => stats?.counts || {}, [stats]);
+  const totalMovies = toDisplayNumber(stats?.totalMovies);
+  const totalHoursWatched = toDisplayNumber(stats?.totalHoursWatched);
 
   const handleStatusChange = async (item, status) => {
     setBusyId(item.id);
@@ -172,7 +176,7 @@ export default function Library() {
         <div>
           <h1 className="text-2xl font-black text-gray-950 dark:text-white">Ma bibliotheque</h1>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            {stats ? `${stats.totalMovies} film(s), ${stats.totalHoursWatched || 0}h vues` : "Vos films sauvegardes"}
+            {stats ? `${totalMovies} film(s), ${totalHoursWatched}h vues` : "Vos films sauvegardes"}
           </p>
         </div>
 
@@ -187,7 +191,7 @@ export default function Library() {
           onClick={() => setFilter("")}
           className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm font-bold transition-colors ${filter === "" ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900" : "bg-white text-gray-600 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800"}`}
         >
-          Tous {stats ? `(${stats.totalMovies})` : ""}
+          Tous {stats ? `(${totalMovies})` : ""}
         </button>
         {LIBRARY_STATUSES.map((status) => (
           <button
@@ -196,7 +200,7 @@ export default function Library() {
             onClick={() => setFilter(status.value)}
             className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm font-bold transition-colors ${filter === status.value ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900" : "bg-white text-gray-600 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800"}`}
           >
-            {status.label} ({totals[status.value] || 0})
+            {status.label} ({toDisplayNumber(totals[status.value])})
           </button>
         ))}
       </div>

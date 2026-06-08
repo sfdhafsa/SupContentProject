@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { listsApi } from "../../services/api/lists.api";
+import { toDisplayNumber } from "../../utils/format";
 
 const ListIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-gray-400">
@@ -64,7 +65,7 @@ function EmptyLists() {
 
 function ListCard({ list, onDelete, deleting, canManage = false }) {
   const previewMovies = list.preview_movies || list.movies || [];
-  const movieCount = Number(list.movie_count ?? previewMovies.length ?? 0);
+  const movieCount = toDisplayNumber(list.movie_count ?? previewMovies.length);
   const handleDeleteClick = (event) => {
     event.stopPropagation();
     onDelete(list);
