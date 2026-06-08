@@ -1,6 +1,26 @@
 import pool from "../config/db.js";
 
 export const MessageModel = {
+  async findById(messageId) {
+    const { rows } = await pool.query(
+      `
+      SELECT
+        m.*,
+        sender.username AS sender_username,
+        sender.avatar_url AS sender_avatar_url,
+        receiver.username AS receiver_username,
+        receiver.avatar_url AS receiver_avatar_url
+      FROM messages m
+      JOIN users sender ON sender.id = m.sender_id
+      JOIN users receiver ON receiver.id = m.receiver_id
+      WHERE m.id = $1;
+      `,
+      [messageId]
+    );
+
+    return rows[0] || null;
+  },
+
   async createMessage(senderId, receiverId, content) {
     const { rows } = await pool.query(
       `
@@ -11,7 +31,7 @@ export const MessageModel = {
       [senderId, receiverId, content]
     );
 
-    return rows[0];
+    return this.findById(rows[0].id);
   },
 
   async getConversation(userId, otherUserId) {

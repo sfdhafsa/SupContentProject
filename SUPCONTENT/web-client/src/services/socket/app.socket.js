@@ -1,5 +1,9 @@
 const SOCKET_IO_CDN = "https://cdn.socket.io/4.8.1/socket.io.min.js";
-const SOCKET_URL = "http://localhost:3000";
+
+const getSocketUrl = () => {
+  const rawUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || "http://localhost:3000";
+  return rawUrl.replace(/\/api\/?$/, "");
+};
 
 let socketIoLoadPromise = null;
 
@@ -23,8 +27,8 @@ const loadSocketIoClient = () => {
 export const createAppSocket = async (token) => {
   const io = await loadSocketIoClient();
 
-  return io(SOCKET_URL, {
+  return io(getSocketUrl(), {
     auth: { token },
-    transports: ["websocket"],
+    withCredentials: true,
   });
 };

@@ -25,10 +25,19 @@ const BackIcon = () => (
 
 const formatTime = (value) => {
   if (!value) return "";
-  return new Date(value).toLocaleTimeString("en-US", {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+const getMessageTime = (message) => {
+  const date = new Date(message.created_at);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 };
 
 const SEARCH_HISTORY_KEY = "supcontent_conversation_user_search_history";
@@ -121,7 +130,7 @@ export default function Messages() {
   }, [user?.id]);
 
   const sortedMessages = useMemo(
-    () => [...messages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
+    () => [...messages].sort((a, b) => getMessageTime(a) - getMessageTime(b)),
     [messages]
   );
 
