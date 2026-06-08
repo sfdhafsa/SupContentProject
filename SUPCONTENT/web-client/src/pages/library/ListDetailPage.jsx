@@ -6,17 +6,6 @@ import { getYear } from '../../utils/format';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 
-function getReleaseYear(releaseDate) {
-  if (!releaseDate) return '';
-
-  if (typeof releaseDate === 'string') {
-    return releaseDate.slice(0, 4);
-  }
-
-  const date = new Date(releaseDate);
-  return Number.isNaN(date.getTime()) ? '' : String(date.getFullYear());
-}
-
 export default function ListDetailPage() {
   const { listId } = useParams();
   const { user } = useAuth();
