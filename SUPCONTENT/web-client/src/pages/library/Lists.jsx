@@ -50,9 +50,9 @@ function PosterPreview({ movie, index }) {
 
 function ListsSkeleton() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-4">
       {Array.from({ length: 6 }).map((_, index) => (
-        <div key={index} className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div key={index} className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
           <div className="grid h-40 grid-cols-4 gap-1 p-3">
             {Array.from({ length: 4 }).map((__, posterIndex) => (
               <div key={posterIndex} className="animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
@@ -71,8 +71,8 @@ function ListsSkeleton() {
 
 function EmptyLists({ isAuthenticated }) {
   return (
-    <div className="flex min-h-80 flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center dark:border-gray-800 dark:bg-gray-900">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
+    <div className="flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-5 py-10 text-center dark:border-gray-800 dark:bg-gray-900">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
         <ListIcon />
       </div>
       <p className="text-base font-bold text-gray-950 dark:text-white">
@@ -97,8 +97,8 @@ function ListCard({ list, onDelete, deleting, canManage = false }) {
   };
 
   return (
-    <article className="group/list overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
-      <Link to={`/lists/${list.id}`} className="block focus:outline-none focus:ring-2 focus:ring-[#D0021B]/50">
+    <article className="group/list overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+      <Link to={`/lists/${list.id}`} className="block focus:outline-none focus:ring-2 focus:ring-gray-400/60">
         <div className="relative p-3 pb-0">
           {visiblePosters.length > 0 ? (
             <div className="grid h-44 grid-cols-4 gap-2">
@@ -107,7 +107,7 @@ function ListCard({ list, onDelete, deleting, canManage = false }) {
               ))}
             </div>
           ) : (
-            <div className="flex h-44 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-500">
+            <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-500">
               <ListIcon />
             </div>
           )}
@@ -140,7 +140,7 @@ function ListCard({ list, onDelete, deleting, canManage = false }) {
               <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 {movieCount} film{movieCount !== 1 ? "s" : ""}
               </span>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${list.is_public ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300"}`}>
+              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 {list.is_public ? "Publique" : "Privee"}
               </span>
             </div>
@@ -156,18 +156,18 @@ function ListCard({ list, onDelete, deleting, canManage = false }) {
 
 function CreateListPanel({ form, setForm, creating, onSubmit }) {
   return (
-    <form onSubmit={onSubmit} className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+    <form onSubmit={onSubmit} className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-black text-gray-950 dark:text-white">Nouvelle liste</h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Creez une collection rapide et ajoutez vos films ensuite.</p>
         </div>
-        <div className="hidden h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-[#D0021B] dark:bg-red-950/30 sm:flex">
+        <div className="hidden h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:flex">
           <PlusIcon />
         </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
         <label className="block">
           <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Nom</span>
           <input
@@ -175,7 +175,7 @@ function CreateListPanel({ form, setForm, creating, onSubmit }) {
             onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
             maxLength={100}
             placeholder="Ex: Films a voir ce mois-ci"
-            className="mt-1 h-11 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-medium text-gray-950 outline-none transition-colors focus:border-[#D0021B] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            className="mt-1 h-11 w-full rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-medium text-gray-950 outline-none transition-colors focus:border-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
         </label>
 
@@ -185,24 +185,24 @@ function CreateListPanel({ form, setForm, creating, onSubmit }) {
             value={form.description}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
             placeholder="Optionnel"
-            className="mt-1 h-11 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-medium text-gray-950 outline-none transition-colors focus:border-[#D0021B] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            className="mt-1 h-11 w-full rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-medium text-gray-950 outline-none transition-colors focus:border-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
         </label>
 
         <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-          <label className="flex h-11 items-center gap-2 rounded-lg border border-gray-200 px-3 text-sm font-bold text-gray-600 dark:border-gray-700 dark:text-gray-300">
+          <label className="flex h-11 items-center gap-2 rounded-md border border-gray-200 px-3 text-sm font-bold text-gray-600 dark:border-gray-700 dark:text-gray-300">
             <input
               type="checkbox"
               checked={form.isPublic}
               onChange={(event) => setForm((current) => ({ ...current, isPublic: event.target.checked }))}
-              className="h-4 w-4 rounded border-gray-300 accent-[#D0021B]"
+              className="h-4 w-4 rounded border-gray-300 accent-gray-950"
             />
             Publique
           </label>
           <button
             type="submit"
             disabled={creating || !form.name.trim()}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#D0021B] px-4 text-sm font-bold text-white transition-colors hover:bg-[#b30218] disabled:opacity-50"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 text-sm font-bold text-white transition-colors hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
           >
             <PlusIcon />
             {creating ? "Creation..." : "Creer"}
@@ -292,10 +292,10 @@ export default function Lists() {
 
   return (
     <div className="mx-auto max-w-screen-xl">
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-5 flex flex-col gap-4 sm:mb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#D0021B]">Lists</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-950 dark:text-white sm:text-4xl">
+          <p className="text-xs font-black uppercase text-gray-400">Lists</p>
+          <h1 className="mt-2 text-2xl font-black tracking-tight text-gray-950 dark:text-white sm:text-4xl">
             {isAuthenticated ? "Mes listes" : "Listes publiques"}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">
@@ -338,7 +338,7 @@ export default function Lists() {
       ) : lists.length === 0 ? (
         <EmptyLists isAuthenticated={isAuthenticated} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-4">
           {lists.map((list) => (
             <ListCard
               key={list.id}
