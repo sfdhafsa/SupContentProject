@@ -179,6 +179,7 @@ function FeedItem({ item }) {
   const isReview     = item.type === "REVIEW_CREATED";
   const isRating     = item.type === "RATING_GIVEN";
   const isCollection = item.type === "COLLECTION_MOVIE_ADDED";
+  const collectionHref = isCollection && item.collection?.id ? `/lists/${item.collection.id}` : null;
 
   const timeAgo = (dateStr) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -254,17 +255,35 @@ function FeedItem({ item }) {
 
       {/* ── Collection info ── */}
       {isCollection && item.collection && (
-        <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-          <CollectionIcon />
-          <div>
-            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">{item.collection.name}</p>
-            {item.collection.description && (
-              <p className="text-xs text-purple-500 dark:text-purple-400 mt-0.5 line-clamp-1">
-                {item.collection.description}
-              </p>
-            )}
+        collectionHref ? (
+          <Link
+            to={collectionHref}
+            className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+            aria-label={`Open ${item.collection.name} collection`}
+          >
+            <CollectionIcon />
+            <div>
+              <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">{item.collection.name}</p>
+              {item.collection.description && (
+                <p className="text-xs text-purple-500 dark:text-purple-400 mt-0.5 line-clamp-1">
+                  {item.collection.description}
+                </p>
+              )}
+            </div>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+            <CollectionIcon />
+            <div>
+              <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">{item.collection.name}</p>
+              {item.collection.description && (
+                <p className="text-xs text-purple-500 dark:text-purple-400 mt-0.5 line-clamp-1">
+                  {item.collection.description}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* ── Review text ── */}
