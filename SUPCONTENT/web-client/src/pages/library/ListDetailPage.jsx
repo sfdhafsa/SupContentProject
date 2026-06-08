@@ -6,6 +6,58 @@ import { getYear } from '../../utils/format';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 
+const ArrowLeftIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" style={styles.icon}>
+    <path d="M12.5 15L7.5 10l5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const GlobeIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" style={{ width: 18, height: 18 }}>
+    <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M2 10h16M10 2c2 2.2 3 4.9 3 8s-1 5.8-3 8c-2-2.2-3-4.9-3-8s1-5.8 3-8z" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" style={{ width: 18, height: 18 }}>
+    <rect x="4" y="8.5" width="12" height="9" rx="2" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M7 8.5V6a3 3 0 016 0v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" style={styles.icon}>
+    <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+const MoreIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" style={styles.icon}>
+    <circle cx="5" cy="10" r="1.5" fill="currentColor" />
+    <circle cx="10" cy="10" r="1.5" fill="currentColor" />
+    <circle cx="15" cy="10" r="1.5" fill="currentColor" />
+  </svg>
+);
+
+const BookmarkIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" style={styles.iconSmall}>
+    <path d="M5.5 3.5h9v13l-4.5-3-4.5 3v-13z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+  </svg>
+);
+
+const StarIcon = () => (
+  <svg viewBox="0 0 20 20" style={styles.starIcon}>
+    <path d="M10 1.8l2.5 5.1 5.6.8-4 3.9.9 5.5-5-2.7-5 2.7.9-5.5-4-3.9 5.6-.8L10 1.8z" fill="currentColor" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" style={styles.icon}>
+    <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+);
+
 export default function ListDetailPage() {
   const { listId } = useParams();
   const { user } = useAuth();
@@ -14,6 +66,7 @@ export default function ListDetailPage() {
   const [error, setError] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
   const navigate = useNavigate();
+
   async function fetchList() {
     try {
       const res = await getListById(listId);
@@ -60,92 +113,59 @@ export default function ListDetailPage() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.backRow}>
+      <div style={styles.toolbar}>
         <Link to="/lists" style={styles.backLink}>
-          ← My Lists
+          <ArrowLeftIcon />
+          Back to Lists
         </Link>
-      </div>
-
-      <div style={styles.header}>
-        <div style={styles.headerLeft}>
-          <div style={styles.headerTop}>
-            <span style={{
-              ...styles.visibilityBadge,
-              ...(list.is_public ? styles.publicBadge : styles.privateBadge),
-            }}>
-              {list.is_public ? '🌐 Public' : '🔒 Private'}
-            </span>
-          </div>
-          <h1 style={styles.title}>{list.name}</h1>
-          {list.description && <p style={styles.description}>{list.description}</p>}
-          <div style={styles.meta}>
-            <span style={styles.metaItem}>
-              <span style={{ marginRight: 4 }}>🎬</span>
-              {movies.length} film{movies.length !== 1 ? 's' : ''}
-            </span>
-            <span style={styles.metaDot}>·</span>
-            <span style={styles.metaItem}>
-              By <Link to={`/profile/${list.user_id}`} style={styles.ownerLink}>
-                {list.owner_username}
-              </Link>
-            </span>
-          </div>
-        </div>
 
         {isOwner && (
-          <div style={styles.headerActions}>
-            <button style={styles.editBtn} onClick={() => setShowEdit(true)}>
-              ✎ Edit
-            </button>
-            <button style={styles.deleteBtn} onClick={handleDelete}>
-              🗑 Delete
+          <div style={styles.actions}>
+            <Link to="/discover" style={styles.addBtn}>
+              <PlusIcon />
+              Add Movie
+            </Link>
+            <button type="button" style={styles.moreBtn} onClick={() => setShowEdit(true)} aria-label="Edit list">
+              <MoreIcon />
             </button>
           </div>
         )}
       </div>
 
+      <header style={styles.header}>
+        <div>
+          <div style={styles.titleRow}>
+            <h1 style={styles.title}>{list.name}</h1>
+            <span style={styles.visibilityIcon} title={list.is_public ? 'Public' : 'Private'}>
+              {list.is_public ? <GlobeIcon /> : <LockIcon />}
+            </span>
+          </div>
+          {list.description && <p style={styles.description}>{list.description}</p>}
+          <div style={styles.meta}>
+            <Link to={`/profile/${list.user_id}`} style={styles.owner}>
+              <span style={styles.avatar}>{getInitials(list.owner_username)}</span>
+              <span>by {list.owner_username}</span>
+            </Link>
+            <span style={styles.count}>{movies.length} movie{movies.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+      </header>
+
       {movies.length === 0 ? (
         <div style={styles.empty}>
-          <p style={styles.emptyIcon}>🎬</p>
           <p style={styles.emptyTitle}>This list is empty</p>
-          {isOwner && (
-            <Link to="/discover" style={styles.emptyBtn}>Browse films to add</Link>
-          )}
+          {isOwner && <Link to="/discover" style={styles.addBtn}>Add Movie</Link>}
         </div>
       ) : (
         <div style={styles.grid}>
-          {movies.map((movie) => {
-            const poster = movie.poster_url
-              ? movie.poster_url.startsWith('http') ? movie.poster_url : `${TMDB_IMG}${movie.poster_url}`
-              : null;
-            const year = getYear(movie.release_date);
-            return (
-              <div key={movie.id} style={styles.card}>
-                <Link to={`/movies/${movie.external_id}`} style={styles.posterLink}>
-                  {poster ? (
-                    <img src={poster} alt={movie.title} style={styles.poster} loading="lazy" />
-                  ) : (
-                    <div style={styles.posterFallback}>🎬</div>
-                  )}
-                  <div style={styles.posterOverlay}>
-                    <span style={styles.viewBtn}>View</span>
-                  </div>
-                </Link>
-                <div style={styles.cardBody}>
-                  <p style={styles.movieTitle}>{movie.title}</p>
-                  <p style={styles.movieYear}>{year}</p>
-                  {isOwner && (
-                    <button
-                      style={styles.removeBtn}
-                      onClick={() => handleRemoveMovie(movie.id)}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {movies.map((movie) => (
+            <MoviePosterCard
+              key={movie.id}
+              movie={movie}
+              isOwner={isOwner}
+              onRemove={() => handleRemoveMovie(movie.id)}
+            />
+          ))}
         </div>
       )}
 
@@ -153,6 +173,7 @@ export default function ListDetailPage() {
         <EditModal
           list={list}
           onSubmit={handleUpdate}
+          onDelete={handleDelete}
           onClose={() => setShowEdit(false)}
         />
       )}
@@ -160,7 +181,55 @@ export default function ListDetailPage() {
   );
 }
 
-function EditModal({ list, onSubmit, onClose }) {
+function MoviePosterCard({ movie, isOwner, onRemove }) {
+  const poster = getPoster(movie);
+  const year = getYear(movie.release_date);
+  const rating = movie.vote_average ? Number(movie.vote_average).toFixed(1) : null;
+
+  return (
+    <article style={styles.card}>
+      <Link to={`/movies/${movie.external_id}`} style={styles.posterLink} title={`${movie.title}${year ? ` (${year})` : ''}`}>
+        {poster ? (
+          <img src={poster} alt={movie.title} style={styles.poster} loading="lazy" />
+        ) : (
+          <div style={styles.posterFallback}>{movie.title}</div>
+        )}
+
+        {rating && (
+          <span style={styles.ratingBadge}>
+            <StarIcon />
+            {rating}
+          </span>
+        )}
+
+        {isOwner && (
+          <button
+            type="button"
+            style={styles.bookmarkBtn}
+            onClick={(e) => {
+              e.preventDefault();
+              onRemove();
+            }}
+            aria-label={`Remove ${movie.title} from list`}
+          >
+            <BookmarkIcon />
+          </button>
+        )}
+      </Link>
+    </article>
+  );
+}
+
+function getPoster(movie) {
+  if (!movie?.poster_url) return null;
+  return movie.poster_url.startsWith('http') ? movie.poster_url : `${TMDB_IMG}${movie.poster_url}`;
+}
+
+function getInitials(name = '') {
+  return name.trim().slice(0, 1).toUpperCase() || 'U';
+}
+
+function EditModal({ list, onSubmit, onDelete, onClose }) {
   const [name, setName] = useState(list.name);
   const [description, setDescription] = useState(list.description || '');
   const [isPublic, setIsPublic] = useState(list.is_public);
@@ -176,7 +245,9 @@ function EditModal({ list, onSubmit, onClose }) {
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h2 style={styles.modalTitle}>Edit list</h2>
-          <button style={styles.modalClose} onClick={onClose}>✕</button>
+          <button type="button" style={styles.modalClose} onClick={onClose} aria-label="Close">
+            <CloseIcon />
+          </button>
         </div>
         <form onSubmit={handleSubmit}>
           <div style={styles.formGroup}>
@@ -207,6 +278,7 @@ function EditModal({ list, onSubmit, onClose }) {
               type="button"
               onClick={() => setIsPublic(!isPublic)}
               style={{ ...styles.toggle, ...(isPublic ? styles.toggleOn : {}) }}
+              aria-pressed={isPublic}
             >
               <span style={{
                 ...styles.toggleThumb,
@@ -215,8 +287,11 @@ function EditModal({ list, onSubmit, onClose }) {
             </button>
           </div>
           <div style={styles.modalActions}>
-            <button type="button" style={styles.cancelBtn} onClick={onClose}>Cancel</button>
-            <button type="submit" style={styles.submitBtn}>Save changes</button>
+            <button type="button" style={styles.deleteTextBtn} onClick={onDelete}>Delete</button>
+            <div style={styles.modalRightActions}>
+              <button type="button" style={styles.cancelBtn} onClick={onClose}>Cancel</button>
+              <button type="submit" style={styles.submitBtn}>Save changes</button>
+            </div>
           </div>
         </form>
       </div>
@@ -227,7 +302,7 @@ function EditModal({ list, onSubmit, onClose }) {
 function LoadingState() {
   return (
     <div style={{ ...styles.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: '#444' }}>Loading…</p>
+      <p style={{ color: '#6b7280' }}>Loading...</p>
     </div>
   );
 }
@@ -236,8 +311,11 @@ function ErrorState({ message }) {
   return (
     <div style={{ ...styles.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
-        <p style={{ color: '#f87171', fontSize: 16 }}>{message}</p>
-        <Link to="/lists" style={{ color: '#6666cc', textDecoration: 'none' }}>← Back to lists</Link>
+        <p style={{ color: '#D0021B', fontSize: 15, marginBottom: 12 }}>{message}</p>
+        <Link to="/lists" style={styles.backLink}>
+          <ArrowLeftIcon />
+          Back to Lists
+        </Link>
       </div>
     </div>
   );
@@ -245,169 +323,230 @@ function ErrorState({ message }) {
 
 const styles = {
   page: {
-    minHeight: '100vh',
-    background: '#0a0a0f',
-    color: '#e8e8f0',
-    padding: '2rem',
+    minHeight: 'calc(100vh - 64px)',
+    background: '#f8fafc',
+    color: '#0f172a',
+    padding: '1.75rem 0 5.5rem',
     fontFamily: "'DM Sans', system-ui, sans-serif",
   },
-  backRow: { marginBottom: '1.5rem' },
+  toolbar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginBottom: '1.5rem',
+  },
   backLink: {
-    color: '#555',
+    color: '#64748b',
     textDecoration: 'none',
-    fontSize: 14,
+    fontSize: 13,
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
+  },
+  actions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    background: '#D0021B',
+    color: '#fff',
+    border: '1px solid #D0021B',
+    borderRadius: 10,
+    padding: '0.65rem 1rem',
+    textDecoration: 'none',
+    fontSize: 13,
+    fontWeight: 700,
+    lineHeight: 1,
+    minHeight: 40,
+    cursor: 'pointer',
+  },
+  moreBtn: {
+    width: 40,
+    height: 40,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#fff',
+    color: '#111827',
+    border: '1px solid #e5e7eb',
+    borderRadius: 10,
+    cursor: 'pointer',
   },
   header: {
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: '2rem',
     gap: 16,
-    flexWrap: 'wrap',
+    marginBottom: '2rem',
   },
-  headerLeft: { flex: 1 },
-  headerTop: { marginBottom: 8 },
-  visibilityBadge: {
-    display: 'inline-block',
-    borderRadius: 20,
-    padding: '3px 10px',
-    fontSize: 12,
-    fontWeight: 500,
-  },
-  publicBadge: {
-    background: '#0f2a1e',
-    color: '#4ade80',
-    border: '1px solid #1a4a2e',
-  },
-  privateBadge: {
-    background: '#1a1a2e',
-    color: '#6666aa',
-    border: '1px solid #2a2a4a',
+  titleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 700,
-    margin: '0 0 8px',
-    letterSpacing: '-0.5px',
-    color: '#fff',
+    fontSize: 28,
+    lineHeight: 1.15,
+    fontWeight: 800,
+    margin: 0,
+    color: '#030712',
+    letterSpacing: 0,
+  },
+  visibilityIcon: {
+    color: '#6b7280',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   description: {
-    color: '#666',
-    fontSize: 15,
-    margin: '0 0 12px',
+    color: '#64748b',
+    fontSize: 14,
+    margin: '0 0 1.1rem',
     lineHeight: 1.6,
   },
-  meta: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  metaItem: { fontSize: 13, color: '#555', display: 'flex', alignItems: 'center' },
-  metaDot: { color: '#333' },
-  ownerLink: { color: '#7777cc', textDecoration: 'none', marginLeft: 4 },
-  headerActions: { display: 'flex', gap: 8, flexShrink: 0 },
-  editBtn: {
-    background: 'transparent',
-    border: '1px solid #2a2a4a',
-    color: '#888',
-    borderRadius: 8,
-    padding: '8px 16px',
+  meta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    flexWrap: 'wrap',
+    color: '#64748b',
     fontSize: 13,
-    cursor: 'pointer',
   },
-  deleteBtn: {
-    background: 'transparent',
-    border: '1px solid #4a1a1a',
-    color: '#f87171',
-    borderRadius: 8,
-    padding: '8px 16px',
-    fontSize: 13,
-    cursor: 'pointer',
+  owner: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    color: '#111827',
+    textDecoration: 'none',
+  },
+  avatar: {
+    width: 22,
+    height: 22,
+    borderRadius: '50%',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#e5e7eb',
+    color: '#64748b',
+    fontSize: 11,
+    fontWeight: 800,
+    border: '1px solid #d1d5db',
+  },
+  count: {
+    color: '#64748b',
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-    gap: 16,
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 214px))',
+    gap: 14,
+    alignItems: 'start',
   },
   card: {
-    background: '#0e0e1e',
-    border: '1px solid #1a1a2e',
-    borderRadius: 12,
-    overflow: 'hidden',
+    width: '100%',
+    maxWidth: 214,
   },
   posterLink: {
     display: 'block',
     position: 'relative',
-    aspectRatio: '2/3',
+    aspectRatio: '2 / 3',
     overflow: 'hidden',
+    borderRadius: 10,
+    background: '#e5e7eb',
     textDecoration: 'none',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
   },
-  poster: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+  poster: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
   posterFallback: {
     width: '100%',
     height: '100%',
-    background: '#1a1a2e',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 180,
-    fontSize: 32,
-  },
-  posterOverlay: {
-    position: 'absolute',
-    inset: 0,
-    background: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    opacity: 0,
-    transition: 'opacity 0.2s',
-  },
-  viewBtn: {
-    background: 'rgba(255,255,255,0.15)',
-    color: '#fff',
-    border: '1px solid rgba(255,255,255,0.3)',
-    borderRadius: 6,
-    padding: '6px 14px',
-    fontSize: 12,
-  },
-  cardBody: { padding: '10px 12px' },
-  movieTitle: {
-    margin: 0,
-    fontSize: 13,
-    fontWeight: 500,
-    color: '#d0d0e8',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  movieYear: { margin: '2px 0 8px', fontSize: 12, color: '#444' },
-  removeBtn: {
-    background: 'transparent',
-    border: '1px solid #4a1a1a',
-    color: '#f87171',
-    borderRadius: 6,
-    padding: '4px 10px',
-    fontSize: 11,
-    cursor: 'pointer',
-    width: '100%',
-  },
-  empty: { textAlign: 'center', padding: '6rem 2rem' },
-  emptyIcon: { fontSize: 48, margin: '0 0 1rem' },
-  emptyTitle: { color: '#555', fontSize: 16, margin: '0 0 1.5rem' },
-  emptyBtn: {
-    display: 'inline-block',
-    background: '#e53e3e',
-    color: '#fff',
-    borderRadius: 8,
-    padding: '10px 24px',
-    textDecoration: 'none',
+    padding: 16,
+    color: '#64748b',
+    textAlign: 'center',
     fontSize: 14,
-    fontWeight: 500,
+    fontWeight: 700,
+  },
+  ratingBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    background: 'rgba(17, 24, 39, 0.88)',
+    color: '#fff',
+    borderRadius: 999,
+    padding: '4px 8px',
+    fontSize: 12,
+    fontWeight: 800,
+    lineHeight: 1,
+  },
+  bookmarkBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    border: '1px solid rgba(255,255,255,0.22)',
+    background: 'rgba(17, 24, 39, 0.78)',
+    color: '#fff',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  },
+  starIcon: {
+    width: 12,
+    height: 12,
+    color: '#facc15',
+  },
+  icon: {
+    width: 16,
+    height: 16,
+    flexShrink: 0,
+  },
+  iconSmall: {
+    width: 15,
+    height: 15,
+    flexShrink: 0,
+  },
+  empty: {
+    minHeight: 240,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    border: '1px dashed #d1d5db',
+    borderRadius: 12,
+    background: '#fff',
+  },
+  emptyTitle: {
+    margin: 0,
+    color: '#64748b',
+    fontSize: 15,
+    fontWeight: 600,
   },
   overlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.8)',
+    background: 'rgba(15, 23, 42, 0.45)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -415,12 +554,13 @@ const styles = {
     padding: '1rem',
   },
   modal: {
-    background: '#111120',
-    border: '1px solid #2a2a4a',
+    background: '#fff',
+    border: '1px solid #e5e7eb',
     borderRadius: 16,
     padding: '1.5rem',
     width: '100%',
     maxWidth: 440,
+    boxShadow: '0 24px 80px rgba(15, 23, 42, 0.18)',
   },
   modalHeader: {
     display: 'flex',
@@ -428,22 +568,26 @@ const styles = {
     justifyContent: 'space-between',
     marginBottom: '1.5rem',
   },
-  modalTitle: { margin: 0, fontSize: 18, fontWeight: 600, color: '#fff' },
+  modalTitle: { margin: 0, fontSize: 18, fontWeight: 800, color: '#111827' },
   modalClose: {
+    width: 32,
+    height: 32,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     background: 'transparent',
     border: 'none',
-    color: '#555',
-    fontSize: 16,
+    color: '#6b7280',
     cursor: 'pointer',
   },
-  formGroup: { marginBottom: '1.25rem' },
-  label: { display: 'block', fontSize: 13, color: '#888', marginBottom: 6, fontWeight: 500 },
+  formGroup: { marginBottom: '1.1rem' },
+  label: { display: 'block', fontSize: 13, color: '#475569', marginBottom: 6, fontWeight: 700 },
   input: {
     width: '100%',
-    background: '#0a0a1a',
-    border: '1px solid #2a2a4a',
-    borderRadius: 8,
-    color: '#e0e0f0',
+    background: '#f8fafc',
+    border: '1px solid #e5e7eb',
+    borderRadius: 10,
+    color: '#111827',
     padding: '10px 12px',
     fontSize: 14,
     outline: 'none',
@@ -454,18 +598,18 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    background: '#0a0a1a',
-    border: '1px solid #2a2a4a',
-    borderRadius: 8,
+    background: '#f8fafc',
+    border: '1px solid #e5e7eb',
+    borderRadius: 10,
     padding: '12px 14px',
     marginBottom: '1.5rem',
   },
-  toggleLabel: { margin: 0, fontSize: 14, color: '#d0d0e8', fontWeight: 500 },
-  toggleDesc: { margin: '2px 0 0', fontSize: 12, color: '#444' },
+  toggleLabel: { margin: 0, fontSize: 14, color: '#111827', fontWeight: 700 },
+  toggleDesc: { margin: '2px 0 0', fontSize: 12, color: '#64748b' },
   toggle: {
     width: 44,
     height: 24,
-    background: '#2a2a4a',
+    background: '#d1d5db',
     borderRadius: 12,
     border: 'none',
     cursor: 'pointer',
@@ -473,7 +617,7 @@ const styles = {
     flexShrink: 0,
     transition: 'background 0.2s',
   },
-  toggleOn: { background: '#4a4aff' },
+  toggleOn: { background: '#D0021B' },
   toggleThumb: {
     position: 'absolute',
     top: 3,
@@ -485,24 +629,43 @@ const styles = {
     transition: 'transform 0.2s',
     display: 'block',
   },
-  modalActions: { display: 'flex', gap: 10, justifyContent: 'flex-end' },
-  cancelBtn: {
+  modalActions: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalRightActions: {
+    display: 'flex',
+    gap: 10,
+  },
+  deleteTextBtn: {
     background: 'transparent',
-    border: '1px solid #2a2a4a',
-    color: '#888',
-    borderRadius: 8,
-    padding: '10px 20px',
+    border: 'none',
+    color: '#D0021B',
     fontSize: 14,
+    fontWeight: 700,
+    cursor: 'pointer',
+    padding: '10px 0',
+  },
+  cancelBtn: {
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    color: '#475569',
+    borderRadius: 10,
+    padding: '10px 18px',
+    fontSize: 14,
+    fontWeight: 700,
     cursor: 'pointer',
   },
   submitBtn: {
-    background: '#e53e3e',
+    background: '#D0021B',
     border: 'none',
     color: '#fff',
-    borderRadius: 8,
-    padding: '10px 20px',
+    borderRadius: 10,
+    padding: '10px 18px',
     fontSize: 14,
-    fontWeight: 600,
+    fontWeight: 800,
     cursor: 'pointer',
   },
 };
