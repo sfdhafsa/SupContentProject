@@ -5,6 +5,7 @@ import { useTheme } from "../context/ThemeContext";
 import api from "../services/api/axios";
 import { messagesApi } from "../services/api/messages.api";
 import { moviesApi } from "../services/api/movies.api";
+import { createAppSocket } from "../services/socket/app.socket";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useI18n } from "../i18n/I18nContext";
 
@@ -250,7 +251,7 @@ function SearchDropdown({ movies, users, loading, query, onSelectMovie, onSelect
 }
 
 export default function Navbar() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, token, logout, isAuthenticated } = useAuth();
   const { darkMode, toggleTheme } = useTheme();
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -338,7 +339,7 @@ export default function Navbar() {
 
     fetchUnreadNotifications();
 
-    const intervalId = window.setInterval(fetchUnreadNotifications, 30000);
+    const intervalId = window.setInterval(fetchUnreadNotifications, 5000);
     window.addEventListener("focus", fetchUnreadNotifications);
 
     return () => {
@@ -346,6 +347,39 @@ export default function Navbar() {
       window.removeEventListener("focus", fetchUnreadNotifications);
     };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) return undefined;
+
+    let mounted = true;
+    let nextSocket;
+
+    createAppSocket(token)
+      .then((createdSocket) => {
+        if (!mounted) {
+          createdSocket.disconnect();
+          return;
+        }
+
+        nextSocket = createdSocket;
+        createdSocket.on("notifications_changed", (payload = {}) => {
+          if (Number.isFinite(payload.unreadCount)) {
+            setUnreadNotifications(payload.unreadCount);
+            return;
+          }
+
+          api.get("/social/notifications/unread-count")
+            .then((res) => setUnreadNotifications(res.data.count || 0))
+            .catch(() => null);
+        });
+      })
+      .catch(() => null);
+
+    return () => {
+      mounted = false;
+      nextSocket?.disconnect();
+    };
+  }, [isAuthenticated, token]);
 
   const handleLogout = () => {
     logout();

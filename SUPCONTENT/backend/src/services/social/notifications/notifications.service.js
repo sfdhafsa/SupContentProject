@@ -2,6 +2,7 @@ import { NotificationModel } from '../../../models/notification.model.js';
 import { UserModel } from '../../../models/user.model.js';
 import { sendNotificationEmail } from './emailNotification.service.js';
 import { notificationTypes } from '../../../utils/notificationTypes.js';
+import { emitNotificationSync } from '../messages/messages.socket.js';
 
 const getNotificationChannelPreferences = async (userId) => {
   const preferences = await UserModel.getNotificationPreferences(userId);
@@ -41,6 +42,19 @@ const sendEmailSafely = async (payload) => {
   }
 };
 
+const syncNotifications = async (userId, reason, notification = null) => {
+  try {
+    const unreadCount = await NotificationModel.getUnreadCount(userId);
+    emitNotificationSync(userId, {
+      reason,
+      unreadCount,
+      notification,
+    });
+  } catch (err) {
+    globalThis.console.error('[NOTIFICATIONS] Failed to sync notification socket:', err);
+  }
+};
+
 // CREATE NOTIFICATION (internal use only)
 export const createNotification = async ({
   userId,
@@ -71,13 +85,17 @@ export const createNotification = async ({
 
   if (!channels.push) return;
 
-  return await NotificationModel.create({
+  const notification = await NotificationModel.create({
     user_id: userId,
     actor_user_id: actorUserId,
     type,
     entity_type: entityType,
     entity_id: entityId,
   });
+
+  await syncNotifications(userId, 'created', notification);
+
+  return notification;
 };
 
 // CREATE SYSTEM NOTIFICATION (internal use only)
@@ -104,13 +122,17 @@ export const createSystemNotification = async ({
 
   if (!channels.push) return;
 
-  return await NotificationModel.create({
+  const notification = await NotificationModel.create({
     user_id: userId,
     actor_user_id: null,
     type,
     entity_type: entityType,
     entity_id: entityId,
   });
+
+  await syncNotifications(userId, 'created', notification);
+
+  return notification;
 };
 
 // GET notifications
@@ -149,6 +171,8 @@ export const markAsRead = async (notificationId, userId) => {
     };
   }
 
+  await syncNotifications(userId, 'read', updated);
+
   return {
     status: 200,
     data: updated,
@@ -158,6 +182,8 @@ export const markAsRead = async (notificationId, userId) => {
 // MARK ALL AS READ
 export const markAllAsRead = async (userId) => {
   const updated = await NotificationModel.markAllAsRead(userId);
+
+  await syncNotifications(userId, 'read-all');
 
   return {
     status: 200,

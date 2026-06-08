@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { messagesApi } from "../../services/api/messages.api";
-import { createMessagesSocket } from "../../services/socket/messages.socket";
+import { createAppSocket } from "../../services/socket/app.socket";
 
 const SendIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
@@ -234,7 +234,7 @@ export default function Messages() {
     let mounted = true;
     let nextSocket;
 
-    createMessagesSocket(token)
+    createAppSocket(token)
       .then((createdSocket) => {
         if (!mounted) {
           createdSocket.disconnect();

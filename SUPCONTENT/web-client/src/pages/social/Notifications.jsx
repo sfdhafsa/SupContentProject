@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.jsx";
 import api from "../../services/api/axios.js";
+import { createAppSocket } from "../../services/socket/app.socket.js";
 
 const LIMIT = 30;
-const REFRESH_INTERVAL_MS = 15000;
+const REFRESH_INTERVAL_MS = 5000;
 
 const HeartIcon = () => (
   <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-[#D0021B]">
@@ -67,7 +69,7 @@ function formatDate(value) {
 function buildMessage(notification) {
   const actorName = notification.username || "Someone";
 
-  if (notification.message) return notification.message;
+  if (notification.message && notification.type !== "MOVIE_RECOMMENDATION") return notification.message;
   if (notification.type === "FOLLOW" && notification.viewer_follows_actor) return `${actorName} followed you back`;
   if (notification.type === "FOLLOW") return `${actorName} started following you`;
   if (notification.type === "REVIEW_LIKE") return `${actorName} liked your review`;
@@ -77,6 +79,68 @@ function buildMessage(notification) {
   if (notification.type === "MOVIE_RECOMMENDATION") return "A new movie recommendation is ready for you";
 
   return "You have a new notification";
+}
+
+function MovieTitleLink({ notification, tmdbId, title, onOpen }) {
+  if (!tmdbId || !title) return title || null;
+
+  return (
+    <Link
+      to={`/movies/${tmdbId}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen(notification);
+      }}
+      onKeyDown={(e) => e.stopPropagation()}
+      className="font-bold text-[#D0021B] hover:text-[#b30218] hover:underline focus:outline-none focus:ring-2 focus:ring-[#D0021B]/30 rounded"
+    >
+      {title}
+    </Link>
+  );
+}
+
+function NotificationMessage({ notification, onMovieOpen }) {
+  if (notification.type === "MOVIE_RECOMMENDATION") {
+    const sourceTitle = notification.source_movie_title;
+    const recommendedTitle = notification.movie_title;
+
+    if (sourceTitle && recommendedTitle) {
+      return (
+        <>
+          because you added{" "}
+          <MovieTitleLink
+            notification={notification}
+            tmdbId={notification.source_movie_tmdb_id}
+            title={sourceTitle}
+            onOpen={onMovieOpen}
+          />
+          , you might enjoy{" "}
+          <MovieTitleLink
+            notification={notification}
+            tmdbId={notification.movie_tmdb_id}
+            title={recommendedTitle}
+            onOpen={onMovieOpen}
+          />
+        </>
+      );
+    }
+
+    if (recommendedTitle) {
+      return (
+        <>
+          A new movie recommendation is ready for you:{" "}
+          <MovieTitleLink
+            notification={notification}
+            tmdbId={notification.movie_tmdb_id}
+            title={recommendedTitle}
+            onOpen={onMovieOpen}
+          />
+        </>
+      );
+    }
+  }
+
+  return buildMessage(notification);
 }
 
 function buildNotificationTarget(notification) {
@@ -190,6 +254,7 @@ function EmptyNotifications({ unreadOnly }) {
 
 export default function Notifications() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -218,11 +283,37 @@ export default function Notifications() {
     fetchNotifications();
 
     const intervalId = window.setInterval(fetchNotifications, REFRESH_INTERVAL_MS);
+    window.addEventListener("focus", fetchNotifications);
 
     return () => {
       window.clearInterval(intervalId);
+      window.removeEventListener("focus", fetchNotifications);
     };
   }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+
+    let mounted = true;
+    let nextSocket;
+
+    createAppSocket(token)
+      .then((createdSocket) => {
+        if (!mounted) {
+          createdSocket.disconnect();
+          return;
+        }
+
+        nextSocket = createdSocket;
+        createdSocket.on("notifications_changed", fetchNotifications);
+      })
+      .catch(() => null);
+
+    return () => {
+      mounted = false;
+      nextSocket?.disconnect();
+    };
+  }, [fetchNotifications, token]);
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.is_read).length,
@@ -412,7 +503,10 @@ export default function Notifications() {
                 <NotificationAvatar notification={notification} />
                 <div className="min-w-0 flex-1">
                   <p className="text-base font-medium text-gray-950 dark:text-white">
-                    {buildMessage(notification)}
+                    <NotificationMessage
+                      notification={notification}
+                      onMovieOpen={handleNotificationClick}
+                    />
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {formatDate(notification.created_at)}
