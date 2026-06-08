@@ -35,7 +35,7 @@ function statusLabel(status) {
 
 function LibrarySkeleton() {
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-4">
       {Array.from({ length: 12 }).map((_, index) => (
         <div key={index} className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
           <div className="aspect-[2/3] animate-pulse bg-gray-100 dark:bg-gray-800" />
@@ -252,7 +252,7 @@ export default function Library() {
       ) : items.length === 0 ? (
         <EmptyLibrary filtered={Boolean(filter)} />
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-4">
           {items.map((item) => (
             <LibraryCard
               key={item.id}
