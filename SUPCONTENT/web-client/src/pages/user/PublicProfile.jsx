@@ -207,10 +207,13 @@ export default function PublicProfile() {
     setFollowLoading(true);
     try {
       const res = await api.post(`/social/follow/${id}`);
-      setIsFollowing(res.data.status === "followed");
+      const nextFollowing = res.data.status === "followed";
+      setIsFollowing(nextFollowing);
       setStats((current) => ({
         ...current,
-        followers: Math.max(0, current.followers + (res.data.status === "followed" ? 1 : -1)),
+        followers: Number.isFinite(Number(res.data.count))
+          ? Number(res.data.count)
+          : Math.max(0, current.followers + (nextFollowing ? 1 : -1)),
       }));
     } catch (err) {
       console.error("Follow error:", err);

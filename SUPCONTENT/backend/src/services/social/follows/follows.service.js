@@ -22,12 +22,14 @@ export const followUser = async (followerId, followedId) => {
   const existingFollow = await FollowModel.findFollow(followerId, followedId);
   if (existingFollow) {
     await FollowModel.deleteFollow(followerId, followedId);
+    const count = await FollowModel.countFollowers(followedId);
 
     return {
       status: 200,
       data: {
         status: 'unfollowed',
         message: 'Utilisateur unfollow avec succes.',
+        count,
       },
     };
   }
@@ -48,6 +50,7 @@ export const followUser = async (followerId, followedId) => {
       status: 'followed',
       message: 'Utilisateur suivi avec succes.',
       follow,
+      count: await FollowModel.countFollowers(followedId),
     },
   };
 };

@@ -185,7 +185,10 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
       const res = await api.post(`/reviews/${review.id}/likes`);
       const nextLiked = res.data.status === "liked";
       setLiked(nextLiked);
-      onLiked(review.id, nextLiked ? 1 : -1);
+      onLiked(review.id, {
+        count: Number.isFinite(Number(res.data.count)) ? Number(res.data.count) : null,
+        delta: nextLiked ? 1 : -1,
+      });
     } finally {
       setLikeLoading(false);
     }
@@ -402,11 +405,11 @@ export default function ReviewsSection({ tmdbId }) {
     if (editingReview?.id === reviewId) setEditingReview(null);
   };
 
-  const updateLikes = (reviewId, delta) => {
+  const updateLikes = (reviewId, { count, delta }) => {
     setReviews((items) =>
       items.map((item) =>
         item.id === reviewId
-          ? { ...item, likes_count: Math.max(0, (item.likes_count || 0) + delta) }
+          ? { ...item, likes_count: count ?? Math.max(0, (item.likes_count || 0) + delta) }
           : item
       )
     );

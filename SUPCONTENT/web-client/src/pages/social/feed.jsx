@@ -199,7 +199,11 @@ function FeedItem({ item }) {
       const res = await api.post(`/reviews/${item.review.id}/likes`);
       const nextLiked = res.data.status === "liked";
       setLiked(nextLiked);
-      setLikesCount((count) => Math.max(0, count + (nextLiked ? 1 : -1)));
+      setLikesCount((count) =>
+        Number.isFinite(Number(res.data.count))
+          ? Number(res.data.count)
+          : Math.max(0, count + (nextLiked ? 1 : -1))
+      );
     } catch (err) {
       console.error("Like error:", err);
     } finally {

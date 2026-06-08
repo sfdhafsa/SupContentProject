@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { useI18n } from "../../i18n/I18nContext";
 
 const HELP_TOPICS = [
   {
@@ -42,18 +41,16 @@ const FAQ = [
 ];
 
 export default function Help() {
-  const { translate } = useI18n();
-
   return (
     <main className="bg-white dark:bg-gray-950 text-gray-900 dark:text-white">
       <section className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-14 md:py-16">
-          <p className="text-sm font-semibold text-[#D0021B] mb-3">{translate("SUPMOVIES Help")}</p>
+          <p className="text-sm font-semibold text-[#D0021B] mb-3">SUPMOVIES Help</p>
           <h1 className="text-3xl md:text-5xl font-bold max-w-3xl leading-tight">
-            {translate("Find answers and keep moving through the app.")}
+            Find answers and keep moving through the app.
           </h1>
           <p className="mt-4 max-w-2xl text-sm md:text-base leading-7 text-gray-500 dark:text-gray-400">
-            {translate("Quick help for account access, profile settings, movie discovery, password reset, and project features.")}
+            Quick help for account access, profile settings, movie discovery, password reset, and project features.
           </p>
         </div>
       </section>
@@ -65,15 +62,15 @@ export default function Help() {
               key={topic.title}
               className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5"
             >
-              <h2 className="text-lg font-bold">{translate(topic.title)}</h2>
+              <h2 className="text-lg font-bold">{topic.title}</h2>
               <p className="mt-2 min-h-20 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                {translate(topic.text)}
+                {topic.text}
               </p>
               <Link
                 to={topic.to}
                 className="mt-4 inline-flex items-center text-sm font-semibold text-[#D0021B] hover:underline"
               >
-                {translate(topic.action)}
+                {topic.action}
               </Link>
             </article>
           ))}
@@ -85,16 +82,16 @@ export default function Help() {
           <div>
             <h2 className="text-2xl font-bold">FAQ</h2>
             <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
-              {translate("The essentials for testing and presenting your authentication/profile part.")}
+              The essentials for testing and presenting your authentication/profile part.
             </p>
           </div>
 
           <div className="divide-y divide-gray-200 dark:divide-gray-800 border-y border-gray-200 dark:border-gray-800">
             {FAQ.map((item) => (
               <article key={item.question} className="py-5">
-                <h3 className="text-base font-semibold">{translate(item.question)}</h3>
+                <h3 className="text-base font-semibold">{item.question}</h3>
                 <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                  {translate(item.answer)}
+                  {item.answer}
                 </p>
               </article>
             ))}

@@ -5,6 +5,17 @@ import { useAuth } from '../../context/AuthContext';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w300';
 
+function getReleaseYear(releaseDate) {
+  if (!releaseDate) return '';
+
+  if (typeof releaseDate === 'string') {
+    return releaseDate.slice(0, 4);
+  }
+
+  const date = new Date(releaseDate);
+  return Number.isNaN(date.getTime()) ? '' : String(date.getFullYear());
+}
+
 export default function ListDetailPage() {
   const { listId } = useParams();
   const { user } = useAuth();
@@ -117,7 +128,7 @@ export default function ListDetailPage() {
             const poster = movie.poster_url
               ? movie.poster_url.startsWith('http') ? movie.poster_url : `${TMDB_IMG}${movie.poster_url}`
               : null;
-            const year = movie.release_date ? movie.release_date.slice(0, 4) : '';
+            const year = getReleaseYear(movie.release_date);
             return (
               <div key={movie.id} style={styles.card}>
                 <Link to={`/movies/${movie.external_id}`} style={styles.posterLink}>

@@ -17,7 +17,8 @@ export const toggleLikeReview = async (userId, reviewId) => {
 
   if (alreadyLiked) {
     await ReviewLikeModel.delete(userId, reviewId);
-    return { status: "unliked" };
+    const count = await ReviewLikeModel.countByReviewId(reviewId);
+    return { status: "unliked", count };
   }
 
   await ReviewLikeModel.create(userId, reviewId);
@@ -30,7 +31,8 @@ export const toggleLikeReview = async (userId, reviewId) => {
     entityId: reviewId.toString(),
   });
 }
-  return { status: "liked" };
+  const count = await ReviewLikeModel.countByReviewId(reviewId);
+  return { status: "liked", count };
 };
 
 export const countReviewLikes = async (reviewId) => {

@@ -23,14 +23,14 @@ export default function AddToLibraryButton({ movieId, tmdbId, variant = 'default
   async function fetchStatus() {
     try {
       const res = await getMovieStatus(movieId);
-      setCurrentStatus(res.data?.status || null);
+      setCurrentStatus(res.data?.status || res.status || null);
     } catch (err) { console.error(err); }
   }
 
   async function fetchLists() {
     try {
       const res = await getMyLists(user.id || user.userId);
-      setLists(res.data || []);
+      setLists(res.data || res.lists || []);
     } catch (err) { console.error(err); }
   }
 

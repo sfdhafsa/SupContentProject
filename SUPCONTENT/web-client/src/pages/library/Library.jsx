@@ -19,6 +19,17 @@ function statusLabel(status) {
   return LIBRARY_STATUSES.find((item) => item.value === status)?.label || status;
 }
 
+function getReleaseYear(releaseDate) {
+  if (!releaseDate) return "Date inconnue";
+
+  if (typeof releaseDate === "string") {
+    return releaseDate.slice(0, 4);
+  }
+
+  const date = new Date(releaseDate);
+  return Number.isNaN(date.getTime()) ? "Date inconnue" : date.getFullYear();
+}
+
 function LibrarySkeleton() {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -70,7 +81,7 @@ function LibraryCard({ item, onStatusChange, onRemove, busy }) {
             {item.title}
           </Link>
           <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            {item.release_date ? item.release_date.slice(0, 4) : "Date inconnue"}
+            {getReleaseYear(item.release_date)}
           </p>
         </div>
 

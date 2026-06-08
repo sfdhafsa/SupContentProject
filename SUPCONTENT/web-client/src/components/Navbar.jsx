@@ -7,8 +7,6 @@ import { listsApi } from "../services/api/lists.api";
 import { messagesApi } from "../services/api/messages.api";
 import { moviesApi } from "../services/api/movies.api";
 import { createAppSocket } from "../services/socket/app.socket";
-import LanguageSwitcher from "./LanguageSwitcher";
-import { useI18n } from "../i18n/I18nContext";
 
 /* ── Icons ── */
 const FilmIcon = () => (
@@ -287,7 +285,6 @@ function SearchDropdown({ movies, users, lists, loading, query, onSelectMovie, o
 export default function Navbar() {
   const { user, token, logout, isAuthenticated } = useAuth();
   const { darkMode, toggleTheme } = useTheme();
-  const { t } = useI18n();
   const navigate = useNavigate();
 
   const [search, setSearch]           = useState("");
@@ -301,10 +298,7 @@ export default function Navbar() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const searchRef                     = useRef(null);
 
-  const navLinks = (isAuthenticated ? NAV_LINKS_AUTH : NAV_LINKS_PUBLIC).map((link) => ({
-    ...link,
-    label: t(`nav.${link.label.toLowerCase()}`, link.label),
-  }));
+  const navLinks = isAuthenticated ? NAV_LINKS_AUTH : NAV_LINKS_PUBLIC;
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "U";
 
   // Debounced search
@@ -484,7 +478,7 @@ export default function Navbar() {
             <span className="absolute left-3"><SearchIcon /></span>
             <input
               type="text"
-              placeholder={t("search.placeholder")}
+              placeholder="Search movies, users, lists..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => search.trim() && setSearchOpen(true)}
@@ -523,13 +517,11 @@ export default function Navbar() {
           {/* Help */}
           <Link
             to="/help"
-            title={t("nav.help")}
+            title="Help"
             className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all"
           >
             <HelpIcon />
           </Link>
-
-          <LanguageSwitcher compact />
 
           {/* Dark mode toggle */}
           <button
@@ -650,12 +642,8 @@ export default function Navbar() {
             className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             <HelpIcon />
-            {t("nav.help")}
+            Help
           </Link>
-
-          <div className="px-3 py-1">
-            <LanguageSwitcher compact />
-          </div>
 
           {/* Dark mode toggle mobile */}
           <button
