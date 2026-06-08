@@ -50,7 +50,7 @@ function PosterPreview({ movie, index }) {
 
 function ListsSkeleton() {
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-4">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),320px))] justify-start gap-4">
       {Array.from({ length: 6 }).map((_, index) => (
         <div key={index} className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
           <div className="grid h-40 grid-cols-4 gap-1 p-3">
@@ -97,23 +97,23 @@ function ListCard({ list, onDelete, deleting, canManage = false }) {
   };
 
   return (
-    <article className="group/list overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+    <article className="group/list h-full max-w-[320px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
       <Link to={`/lists/${list.id}`} className="block focus:outline-none focus:ring-2 focus:ring-gray-400/60">
-        <div className="relative p-3 pb-0">
+        <div className="relative border-b border-gray-100 p-3 dark:border-gray-800">
           {visiblePosters.length > 0 ? (
-            <div className="grid h-44 grid-cols-4 gap-2">
+            <div className="grid h-40 grid-cols-4 gap-2">
               {Array.from({ length: 4 }).map((_, index) => (
                 <PosterPreview key={visiblePosters[index]?.id || index} movie={visiblePosters[index]} index={index} />
               ))}
             </div>
           ) : (
-            <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-500">
+            <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-500">
               <ListIcon />
             </div>
           )}
         </div>
 
-        <div className="space-y-3 p-4">
+        <div className="space-y-3 p-4 pt-3">
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="line-clamp-1 text-base font-black text-gray-950 dark:text-white">{list.name}</h2>
@@ -338,7 +338,7 @@ export default function Lists() {
       ) : lists.length === 0 ? (
         <EmptyLists isAuthenticated={isAuthenticated} />
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),320px))] justify-start gap-4">
           {lists.map((list) => (
             <ListCard
               key={list.id}
