@@ -23,6 +23,22 @@ const csvEscape = (value) => {
   return `"${String(value).replace(/"/g, '""')}"`;
 };
 
+const normalizeDate = (value) => {
+  if (!value) return null;
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const normalizeDateFields = (row, fields) =>
+  fields.reduce(
+    (normalized, field) => ({
+      ...normalized,
+      [field]: normalizeDate(row[field]),
+    }),
+    { ...row }
+  );
+
 const toCsvSection = (title, rows) => {
   if (!rows.length) return `${title}\n`;
 
@@ -122,10 +138,17 @@ const getExportData = async (userId) => {
 
   return {
     exported_at: new Date().toISOString(),
-    profile,
-    library: library.rows,
-    custom_lists: customLists.rows,
-    reviews: reviews.rows,
+    profile: normalizeDateFields(profile, ['created_at', 'updated_at', 'banned_at']),
+    library: library.rows.map((row) =>
+      normalizeDateFields(row, ['started_at', 'completed_at', 'last_interaction_at', 'created_at', 'updated_at', 'release_date'])
+    ),
+    custom_lists: customLists.rows.map((row) => ({
+      ...normalizeDateFields(row, ['created_at', 'updated_at']),
+      movies: (row.movies || []).map((movie) => normalizeDateFields(movie, ['release_date', 'added_at'])),
+    })),
+    reviews: reviews.rows.map((row) =>
+      normalizeDateFields(row, ['created_at', 'updated_at', 'deleted_at', 'release_date'])
+    ),
   };
 };
 
@@ -141,7 +164,7 @@ export const getMe = async (req, res, next) => {
     }
 
     const { password_hash, ...safeUser } = user;
-    res.json({ user: safeUser });
+    res.json({ user: normalizeDateFields(safeUser, ['created_at', 'updated_at', 'banned_at']) });
 
   } catch (err) {
     next(err);
@@ -163,7 +186,7 @@ export const updateMe = async (req, res, next) => {
 
     res.json({
       message: 'Profil mis à jour.',
-      user: updatedUser,
+      user: normalizeDateFields(updatedUser, ['created_at', 'updated_at', 'banned_at']),
     });
 
   } catch (err) {
@@ -288,7 +311,7 @@ export const updateAvatar = async (req, res, next) => {
 
     res.json({
       message: 'Avatar mis à jour.',
-      user: safeUser,
+      user: normalizeDateFields(safeUser, ['created_at', 'updated_at', 'banned_at']),
     });
 
   } catch (err) {
@@ -367,7 +390,7 @@ export const getUserById = async (req, res, next) => {
 
     const { password_hash, is_banned, email, ...publicUser } = user;
 
-    res.json({ user: publicUser });
+    res.json({ user: normalizeDateFields(publicUser, ['created_at', 'updated_at', 'banned_at']) });
 
   } catch (err) {
     next(err);
@@ -467,8 +490,10 @@ export const getPublicUserActivity = async (req, res, next) => {
     ]);
 
     res.json({
-      reviews: reviews.rows,
-      lists: publicLists.rows,
+      reviews: reviews.rows.map((row) =>
+        normalizeDateFields(row, ['created_at', 'updated_at', 'release_date'])
+      ),
+      lists: publicLists.rows.map((row) => normalizeDateFields(row, ['created_at', 'updated_at'])),
       stats: {
         followers: followers.rows[0]?.count || 0,
         following: following.rows[0]?.count || 0,

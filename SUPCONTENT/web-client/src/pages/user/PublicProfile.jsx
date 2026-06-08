@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api/axios";
+import { firstPresent, formatMonthYear, formatShortDate, getYear } from "../../utils/format";
 
 /* ── Icons ── */
 const UserIcon = () => (
@@ -83,11 +84,9 @@ const formatReview = (review) => ({
   movieId: review.external_id,
   poster: review.poster_url,
   movie: review.title,
-  year: review.release_date ? new Date(review.release_date).getFullYear() : null,
+  year: getYear(firstPresent(review.release_date, review.release_year, review.year)),
   rating: Number(review.rating || 0),
-  date: review.created_at
-    ? new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : null,
+  date: formatShortDate(firstPresent(review.created_at, review.updated_at)),
   review: review.text || "Rated this movie.",
 });
 
@@ -188,9 +187,7 @@ export default function PublicProfile() {
   const avatar     = profile?.avatar_url || null;
   const websiteUrl = profile?.website_url || null;
   const roles      = profile?.roles      || [];
-  const joinDate   = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
-    : null;
+  const joinDate   = formatMonthYear(firstPresent(profile?.created_at, profile?.createdAt));
 
   const isOwnProfile = currentUser?.id === profile?.id;
 

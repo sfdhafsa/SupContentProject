@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api/axios";
+import { firstPresent, formatMonthYear, formatShortDate, getYear } from "../../utils/format";
 
 /* ── Icons ── */
 const EditIcon = () => (
@@ -64,11 +65,9 @@ const formatReview = (review) => ({
   movieId: review.external_id,
   poster: review.poster_url,
   movie: review.title,
-  year: review.release_date ? new Date(review.release_date).getFullYear() : null,
+  year: getYear(firstPresent(review.release_date, review.release_year, review.year)),
   rating: Number(review.rating || 0),
-  date: review.created_at
-    ? new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : null,
+  date: formatShortDate(firstPresent(review.created_at, review.updated_at)),
   review: review.text || "Rated this movie.",
 });
 
@@ -96,9 +95,7 @@ export default function Profile() {
   const roles       = user?.roles       || [];
   const isAdmin     = roles.map((role) => String(role).toLowerCase()).includes("admin");
   const initials    = username.slice(0, 2).toUpperCase();
-  const joinDate    = user?.created_at
-    ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
-    : null;
+  const joinDate    = formatMonthYear(firstPresent(user?.created_at, user?.createdAt, user?.profile?.created_at));
 
   /* ── Fetch reviews quand dispo ── */
   useEffect(() => {
