@@ -7,7 +7,7 @@ export function getOAuthRedirectUri() {
     return `${window.location.origin}/auth/callback`;
   }
 
-  return Linking.createURL('auth/callback', { scheme: 'supcontent' });
+  return Linking.createURL('auth/callback');
 }
 
 export async function startGoogleOAuth() {
