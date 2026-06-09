@@ -1,9 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  ImageBackground,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
 import { useI18n } from '../src/i18n';
 import { getAuthUser } from '../src/services/authStorage';
+import FeedList from '../src/components/feed/FeedList';
+import { useFeed } from '../src/hooks/useFeed';
 
 const friends = [
   { name: 'You', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80' },
@@ -40,15 +51,21 @@ function SectionHeader({ icon, title }) {
   );
 }
 
+
 export default function Home() {
   const [username, setUsername] = useState('User');
-  const { t } = useI18n();
+  const {
+    items: feedItems,
+    loading: feedLoading,
+    error: feedError,
+  } = useFeed();
 
   useEffect(() => {
     getAuthUser().then((user) => {
       setUsername(user?.username || user?.email || 'User');
     });
   }, []);
+
 
   return (
     <View style={styles.page}>
@@ -121,9 +138,11 @@ export default function Home() {
             ))}
           </View>
 
-          <View style={styles.activity}>
-            <Text style={styles.activityTitle}>{t('friendActivity')}</Text>
-            <Text style={styles.activityText}>{t('sarahRated')}</Text>
+          <View style={styles.feedSection}>
+            <SectionHeader icon="A" title="Activité des amis" />
+            <View style={styles.feedList}>
+              <FeedList items={feedItems} loading={feedLoading} error={feedError}/>
+            </View>
           </View>
         </ScrollView>
 
@@ -364,20 +383,16 @@ const styles = StyleSheet.create({
     height: 3,
     width: '62%',
   },
-  activity: {
+
+  feedSection: {
     borderTopColor: '#eef0f3',
     borderTopWidth: 1,
-    marginHorizontal: 12,
     paddingTop: 10,
   },
-  activityTitle: {
-    color: '#111827',
-    fontSize: 12,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  activityText: {
-    color: '#6b7280',
-    fontSize: 10,
+  feedList: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+    gap: 10,
   },
 });
