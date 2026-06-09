@@ -8,6 +8,8 @@ export default function RootLayout() {
       <Stack.Screen name="register" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="home" />
+      <Stack.Screen name="messages" />
+      <Stack.Screen name="conversation/[userId]" />
       <Stack.Screen name="auth/callback" />
     </Stack>
   );
