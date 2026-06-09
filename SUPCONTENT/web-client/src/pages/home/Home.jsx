@@ -10,41 +10,99 @@ import { getYear, toDisplayNumber } from "../../utils/format.js";
    ICONS
 ══════════════════════════════════════ */
 const StarIcon = ({ filled }) => (
-  <svg viewBox="0 0 14 14" fill={filled ? "#F59E0B" : "none"} className="w-3.5 h-3.5 flex-shrink-0">
-    <path d="M7 1l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 9 3.8 10.7l.6-3.5L2 4.7l3.5-.5L7 1z"
-      stroke="#F59E0B" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg
+    viewBox="0 0 14 14"
+    fill={filled ? "#F59E0B" : "none"}
+    className="w-3.5 h-3.5 flex-shrink-0"
+  >
+    <path
+      d="M7 1l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 9 3.8 10.7l.6-3.5L2 4.7l3.5-.5L7 1z"
+      stroke="#F59E0B"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 const HeartIcon = ({ filled }) => (
-  <svg viewBox="0 0 20 20" fill={filled ? "#D0021B" : "none"} className="w-4 h-4">
-    <path d="M10 17s-7-4.5-7-9a4 4 0 017-2.65A4 4 0 0117 8c0 4.5-7 9-7 9z"
-      stroke={filled ? "#D0021B" : "currentColor"} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg
+    viewBox="0 0 20 20"
+    fill={filled ? "#D0021B" : "none"}
+    className="w-4 h-4"
+  >
+    <path
+      d="M10 17s-7-4.5-7-9a4 4 0 017-2.65A4 4 0 0117 8c0 4.5-7 9-7 9z"
+      stroke={filled ? "#D0021B" : "currentColor"}
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 const CommentIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5">
-    <path d="M4 4h12a1 1 0 011 1v7a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z"
-      stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path
+      d="M4 4h12a1 1 0 011 1v7a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 const FilmIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-400">
-    <rect x="2" y="4" width="16" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
-    <path d="M2 7h16M2 13h16M6 4v3M6 13v3M10 4v3M10 13v3M14 4v3M14 13v3"
-      stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    <rect
+      x="2"
+      y="4"
+      width="16"
+      height="12"
+      rx="1.5"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    />
+    <path
+      d="M2 7h16M2 13h16M6 4v3M6 13v3M10 4v3M10 13v3M14 4v3M14 13v3"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+    />
   </svg>
 );
 const CollectionIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-400">
-    <rect x="2" y="6" width="16" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
-    <path d="M6 6V4.5A1.5 1.5 0 017.5 3h5A1.5 1.5 0 0114 4.5V6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    <path d="M2 10h16" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    <rect
+      x="2"
+      y="6"
+      width="16"
+      height="11"
+      rx="1.5"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    />
+    <path
+      d="M6 6V4.5A1.5 1.5 0 017.5 3h5A1.5 1.5 0 0114 4.5V6"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+    />
+    <path
+      d="M2 10h16"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+    />
   </svg>
 );
 const UserIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-gray-400">
-    <circle cx="10" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.3"/>
-    <path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    <circle cx="10" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.3" />
+    <path
+      d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -57,21 +115,24 @@ function FeedSkeleton() {
   return (
     <div className="flex flex-col gap-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 animate-pulse">
+        <div
+          key={i}
+          className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 animate-pulse"
+        >
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800"/>
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800" />
             <div className="flex flex-col gap-1.5 flex-1">
-              <div className="h-3.5 bg-gray-100 dark:bg-gray-800 rounded-lg w-36 sm:w-56"/>
-              <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-lg w-24"/>
+              <div className="h-3.5 bg-gray-100 dark:bg-gray-800 rounded-lg w-36 sm:w-56" />
+              <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-lg w-24" />
             </div>
           </div>
-          <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-3/4 mb-3"/>
+          <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-3/4 mb-3" />
           <div className="flex gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
-            <div className="w-16 h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex-shrink-0"/>
+            <div className="w-16 h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex-shrink-0" />
             <div className="flex flex-col gap-2 flex-1 justify-center">
-              <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded-lg w-32"/>
-              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-lg w-20"/>
-              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-lg w-16"/>
+              <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded-lg w-32" />
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-lg w-20" />
+              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-lg w-16" />
             </div>
           </div>
         </div>
@@ -85,11 +146,20 @@ function Avatar({ user }) {
   const initials = user?.username?.slice(0, 2).toUpperCase() || "?";
   return (
     <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-      {user?.avatar_url
-        ? <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover"
-            onError={(e) => { e.target.style.display = "none"; }}/>
-        : <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{initials}</span>
-      }
+      {user?.avatar_url ? (
+        <img
+          src={user.avatar_url}
+          alt={user.username}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.target.style.display = "none";
+          }}
+        />
+      ) : (
+        <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+          {initials}
+        </span>
+      )}
     </div>
   );
 }
@@ -97,13 +167,17 @@ function Avatar({ user }) {
 /* Headline avec parties en gras */
 function Headline({ item, currentUser }) {
   const author = item.author?.username || "";
-  const movie  = item.movie?.title     || "";
-  const isViewerReviewAuthor = String(item.review_author?.id) === String(currentUser?.id);
+  const movie = item.movie?.title || "";
+  const isViewerReviewAuthor =
+    String(item.review_author?.id) === String(currentUser?.id);
 
   if (item.type === "REVIEW_CREATED") {
     return (
       <p className="text-sm text-gray-700 dark:text-gray-300">
-        <Link to={`/profile/${item.author?.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+        <Link
+          to={`/profile/${item.author?.id}`}
+          className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]"
+        >
           {author}
         </Link>
         {" reviewed "}
@@ -114,7 +188,10 @@ function Headline({ item, currentUser }) {
   if (item.type === "RATING_GIVEN") {
     return (
       <p className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1.5 flex-wrap">
-        <Link to={`/profile/${item.author?.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+        <Link
+          to={`/profile/${item.author?.id}`}
+          className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]"
+        >
           {author}
         </Link>
         {" rated "}
@@ -131,18 +208,26 @@ function Headline({ item, currentUser }) {
   if (item.type === "COLLECTION_MOVIE_ADDED") {
     return (
       <p className="text-sm text-gray-700 dark:text-gray-300">
-        <Link to={`/profile/${item.author?.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+        <Link
+          to={`/profile/${item.author?.id}`}
+          className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]"
+        >
           {author}
         </Link>
         {" added "}
         <span className="font-bold text-gray-900 dark:text-white">{movie}</span>
         {" to "}
         {item.collection?.id ? (
-          <Link to={`/lists/${item.collection.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+          <Link
+            to={`/lists/${item.collection.id}`}
+            className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]"
+          >
             {item.collection?.name}
           </Link>
         ) : (
-          <span className="font-bold text-gray-900 dark:text-white">{item.collection?.name}</span>
+          <span className="font-bold text-gray-900 dark:text-white">
+            {item.collection?.name}
+          </span>
         )}
       </p>
     );
@@ -150,7 +235,10 @@ function Headline({ item, currentUser }) {
   if (item.type === "REVIEW_COMMENTED") {
     return (
       <p className="text-sm text-gray-700 dark:text-gray-300">
-        <Link to={`/profile/${item.author?.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+        <Link
+          to={`/profile/${item.author?.id}`}
+          className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]"
+        >
           {author}
         </Link>
         {" commented on "}
@@ -158,20 +246,29 @@ function Headline({ item, currentUser }) {
           <span className="font-bold text-gray-900 dark:text-white">your</span>
         ) : item.review_author?.id ? (
           <>
-            <Link to={`/profile/${item.review_author.id}`} className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]">
+            <Link
+              to={`/profile/${item.review_author.id}`}
+              className="font-bold text-gray-900 dark:text-white hover:text-[#D0021B]"
+            >
               {item.review_author.username}
             </Link>
             {"'s"}
           </>
         ) : (
-          <span className="font-bold text-gray-900 dark:text-white">a user's</span>
+          <span className="font-bold text-gray-900 dark:text-white">
+            a user's
+          </span>
         )}
         {" review of "}
         <span className="font-bold text-gray-900 dark:text-white">{movie}</span>
       </p>
     );
   }
-  return <p className="text-sm text-gray-700 dark:text-gray-300">{item.activity?.headline}</p>;
+  return (
+    <p className="text-sm text-gray-700 dark:text-gray-300">
+      {item.activity?.headline}
+    </p>
+  );
 }
 
 /* Movie card — style Figma avec grand poster */
@@ -183,21 +280,32 @@ function MovieCard({ movie, rating }) {
     <>
       {/* Poster */}
       <div className="w-16 h-[88px] rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center">
-        {movie.poster_url
-          ? <img src={movie.poster_url} alt={movie.title} className="w-full h-full object-cover"/>
-          : <FilmIcon />
-        }
+        {movie.poster_url ? (
+          <img
+            src={movie.poster_url}
+            alt={movie.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <FilmIcon />
+        )}
       </div>
       {/* Info */}
       <div className="flex flex-col justify-center gap-1">
-        <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight group-hover:text-[#D0021B] transition-colors">{movie.title}</p>
+        <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight group-hover:text-[#D0021B] transition-colors">
+          {movie.title}
+        </p>
         {releaseYear && (
-          <p className="text-xs text-gray-400 dark:text-gray-500">{releaseYear}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            {releaseYear}
+          </p>
         )}
         {rating && (
           <div className="flex items-center gap-1 mt-0.5">
             <StarIcon filled={true} />
-            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{rating}</span>
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              {rating}
+            </span>
           </div>
         )}
       </div>
@@ -206,7 +314,10 @@ function MovieCard({ movie, rating }) {
 
   if (movieHref) {
     return (
-      <Link to={movieHref} className="group flex gap-4 bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+      <Link
+        to={movieHref}
+        className="group flex gap-4 bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      >
         {content}
       </Link>
     );
@@ -221,18 +332,21 @@ function MovieCard({ movie, rating }) {
 
 /* Feed Item — style Figma */
 function FeedItem({ item, currentUser }) {
-  const [liked, setLiked]           = useState(item.review?.has_liked || false);
+  const [liked, setLiked] = useState(item.review?.has_liked || false);
   const [likesCount, setLikesCount] = useState(item.review?.likes_count || 0);
   const [likeLoading, setLikeLoading] = useState(false);
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [commentsCount, setCommentsCount] = useState(item.review?.comments_count || 0);
+  const [commentsCount, setCommentsCount] = useState(
+    item.review?.comments_count || 0,
+  );
 
-  const isReview     = item.type === "REVIEW_CREATED";
-  const isRating     = item.type === "RATING_GIVEN";
+  const isReview = item.type === "REVIEW_CREATED";
+  const isRating = item.type === "RATING_GIVEN";
   const isCollection = item.type === "COLLECTION_MOVIE_ADDED";
-  const isComment    = item.type === "REVIEW_COMMENTED";
-  const collectionHref = isCollection && item.collection?.id ? `/lists/${item.collection.id}` : null;
+  const isComment = item.type === "REVIEW_COMMENTED";
+  const collectionHref =
+    isCollection && item.collection?.id ? `/lists/${item.collection.id}` : null;
 
   const getActivityDate = () =>
     item.activity?.created_at ||
@@ -248,15 +362,19 @@ function FeedItem({ item, currentUser }) {
 
     if (Number.isNaN(timestamp)) return "";
 
-    const diff  = Date.now() - timestamp;
-    const mins  = Math.floor(diff / 60000);
+    const diff = Date.now() - timestamp;
+    const mins = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
-    const days  = Math.floor(diff / 86400000);
-    if (mins < 1)   return "just now";
-    if (mins < 60)  return `${mins}m ago`;
+    const days = Math.floor(diff / 86400000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
     if (hours < 24) return `${hours}h ago`;
-    if (days < 7)   return `${days}d ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
   const activityTimeLabel = timeAgo(getActivityDate());
 
@@ -270,7 +388,7 @@ function FeedItem({ item, currentUser }) {
       setLikesCount((count) =>
         Number.isFinite(Number(res.data.count))
           ? Number(res.data.count)
-          : Math.max(0, count + (nextLiked ? 1 : -1))
+          : Math.max(0, count + (nextLiked ? 1 : -1)),
       );
     } catch (err) {
       console.error("Like error:", err);
@@ -281,7 +399,6 @@ function FeedItem({ item, currentUser }) {
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 transition-all">
-
       {/* Header — Avatar + infos + icon */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -299,28 +416,44 @@ function FeedItem({ item, currentUser }) {
         </div>
 
         {/* Icon droite — couleur selon type */}
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-          isReview     ? "text-blue-400"  :
-          isRating     ? "text-amber-400" :
-          isComment    ? "text-blue-400"  :
-          isCollection ? "text-purple-400": "text-gray-400"
-        }`}>
-          {isReview     ? <CommentIcon /> :
-           isRating     ? <StarIcon filled={true} /> :
-           isComment    ? <CommentIcon /> :
-           isCollection ? <CollectionIcon /> : null
-          }
+        <div
+          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+            isReview
+              ? "text-blue-400"
+              : isRating
+                ? "text-amber-400"
+                : isComment
+                  ? "text-blue-400"
+                  : isCollection
+                    ? "text-purple-400"
+                    : "text-gray-400"
+          }`}
+        >
+          {isReview ? (
+            <CommentIcon />
+          ) : isRating ? (
+            <StarIcon filled={true} />
+          ) : isComment ? (
+            <CommentIcon />
+          ) : isCollection ? (
+            <CollectionIcon />
+          ) : null}
         </div>
       </div>
 
       {/* Review or comment text */}
-      {((isReview && item.review?.text) || (isComment && item.comment?.text)) && (
+      {((isReview && item.review?.text) ||
+        (isComment && item.comment?.text)) && (
         <div className="mb-3 sm:ml-[52px]">
           {isReview && item.review.contains_spoiler && !showSpoiler ? (
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">⚠️ Contains spoilers</p>
-              <button onClick={() => setShowSpoiler(true)}
-                className="text-xs font-semibold text-amber-700 dark:text-amber-300 hover:underline">
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                ⚠️ Contains spoilers
+              </p>
+              <button
+                onClick={() => setShowSpoiler(true)}
+                className="text-xs font-semibold text-amber-700 dark:text-amber-300 hover:underline"
+              >
                 Show anyway
               </button>
             </div>
@@ -338,23 +471,27 @@ function FeedItem({ item, currentUser }) {
       </div>
 
       {/* Collection badge */}
-      {isCollection && item.collection && (
-        collectionHref ? (
+      {isCollection &&
+        item.collection &&
+        (collectionHref ? (
           <Link
             to={collectionHref}
             className="sm:ml-[52px] flex items-center gap-2 mb-4 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
             aria-label={`Open ${item.collection.name} collection`}
           >
             <CollectionIcon />
-            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">{item.collection.name}</p>
+            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+              {item.collection.name}
+            </p>
           </Link>
         ) : (
           <div className="sm:ml-[52px] flex items-center gap-2 mb-4 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
             <CollectionIcon />
-            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">{item.collection.name}</p>
+            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+              {item.collection.name}
+            </p>
           </div>
-        )
-      )}
+        ))}
 
       {/* Actions */}
       {(isReview || isRating || isComment) && item.review?.id && (
@@ -365,7 +502,9 @@ function FeedItem({ item, currentUser }) {
                 onClick={handleLike}
                 disabled={likeLoading}
                 className={`transition-all ${
-                  liked ? "text-[#D0021B]" : "text-gray-700 dark:text-gray-300 hover:text-[#D0021B]"
+                  liked
+                    ? "text-[#D0021B]"
+                    : "text-gray-700 dark:text-gray-300 hover:text-[#D0021B]"
                 } disabled:opacity-50`}
                 title="Like"
               >
@@ -375,7 +514,9 @@ function FeedItem({ item, currentUser }) {
                 type="button"
                 onClick={() => setCommentsOpen((value) => !value)}
                 className={`transition-colors ${
-                  commentsOpen ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                  commentsOpen
+                    ? "text-gray-900 dark:text-white"
+                    : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 }`}
                 title="Comment"
               >
@@ -396,7 +537,10 @@ function FeedItem({ item, currentUser }) {
                 onClick={() => setCommentsOpen(true)}
                 className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               >
-                View {commentsCount === 1 ? "1 comment" : `all ${commentsCount} comments`}
+                View{" "}
+                {commentsCount === 1
+                  ? "1 comment"
+                  : `all ${commentsCount} comments`}
               </button>
             )}
           </div>
@@ -420,7 +564,9 @@ function EmptyFeed() {
       <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
         <UserIcon />
       </div>
-      <p className="text-sm font-semibold text-gray-900 dark:text-white">Your feed is empty</p>
+      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+        Your feed is empty
+      </p>
       <p className="text-sm text-gray-400 dark:text-gray-500 max-w-xs">
         Follow other users to see their reviews, ratings and collections here.
       </p>
@@ -438,9 +584,11 @@ function TrendingCard({ movie }) {
   const title = movie.title || movie.name || "Untitled";
   const rating = Number(movie.vote_average);
   const displayRating = Number.isFinite(rating) ? rating.toFixed(1) : "-";
-  const posterUrl = movie.poster_url || (
-    movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null
-  );
+  const posterUrl =
+    movie.poster_url ||
+    (movie.poster_path
+      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+      : null);
 
   return (
     <article className="group overflow-visible rounded-md border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
@@ -464,14 +612,12 @@ function TrendingCard({ movie }) {
       <div className="flex h-7 items-center justify-between gap-2 border-t border-gray-100 px-2 dark:border-gray-800">
         <div className="flex min-w-0 items-center gap-1">
           <StarIcon filled={true} />
-          <span className="text-[11px] font-bold leading-none text-gray-900 dark:text-gray-100">{displayRating}</span>
+          <span className="text-[11px] font-bold leading-none text-gray-900 dark:text-gray-100">
+            {displayRating}
+          </span>
         </div>
 
-        <AddToLibraryButton
-          movieId={null}
-          tmdbId={tmdbId}
-          variant="icon"
-        />
+        <AddToLibraryButton movieId={null} tmdbId={tmdbId} variant="icon" />
       </div>
     </article>
   );
@@ -480,8 +626,11 @@ function TrendingCard({ movie }) {
 function TrendingSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-3">
-      {[1,2,3,4].map(i => (
-        <div key={i} className="aspect-[2/3] rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse"/>
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="aspect-[2/3] rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse"
+        />
       ))}
     </div>
   );
@@ -502,16 +651,25 @@ function StatsCard({ stats, loading }) {
 
   return (
     <section className="mt-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-6">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Stats</h2>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+        Your Stats
+      </h2>
 
       <div className="mt-6 space-y-4">
         {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between gap-4">
-            <span className="text-sm text-gray-500 dark:text-gray-400">{row.label}</span>
+          <div
+            key={row.label}
+            className="flex items-center justify-between gap-4"
+          >
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {row.label}
+            </span>
             {loading ? (
               <span className="h-4 w-12 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
             ) : (
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatStat(row.value)}</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                {formatStat(row.value)}
+              </span>
             )}
           </div>
         ))}
@@ -531,16 +689,16 @@ export default function Home() {
   const { user } = useAuth();
 
   /* Feed state */
-  const [items, setItems]               = useState([]);
-  const [feedLoading, setFeedLoading]   = useState(true);
-  const [loadingMore, setLoadingMore]   = useState(false);
-  const [feedError, setFeedError]       = useState("");
-  const [offset, setOffset]             = useState(0);
-  const [hasMore, setHasMore]           = useState(true);
-  const [feedOrder, setFeedOrder]       = useState("desc");
+  const [items, setItems] = useState([]);
+  const [feedLoading, setFeedLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [feedError, setFeedError] = useState("");
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [feedOrder, setFeedOrder] = useState("desc");
 
   /* Trending state */
-  const [trending, setTrending]         = useState([]);
+  const [trending, setTrending] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
   const [stats, setStats] = useState({
     moviesWatched: 0,
@@ -550,45 +708,50 @@ export default function Home() {
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
-  const LIMIT     = 20;
+  const LIMIT = 20;
   const loaderRef = useRef(null);
   const previousFeedOrderRef = useRef(feedOrder);
 
   /* ── Fetch feed ── */
-  const fetchFeed = useCallback(async (reset = false) => {
-    const currentOffset = reset ? 0 : offset;
-    if (reset) setFeedLoading(true);
-    else setLoadingMore(true);
+  const fetchFeed = useCallback(
+    async (reset = false) => {
+      const currentOffset = reset ? 0 : offset;
+      if (reset) setFeedLoading(true);
+      else setLoadingMore(true);
 
-    try {
-      const res = await api.get("/social/feed", {
-        params: { limit: LIMIT, offset: currentOffset, order: feedOrder },
-      });
-      const newItems = res.data.items || [];
+      try {
+        const res = await api.get("/social/feed", {
+          params: { limit: LIMIT, offset: currentOffset, order: feedOrder },
+        });
+        const newItems = res.data.items || [];
 
-      if (reset) {
-        setItems(newItems);
-        setOffset(LIMIT);
-      } else {
-        setItems((prev) => [...prev, ...newItems]);
-        setOffset((prev) => prev + LIMIT);
+        if (reset) {
+          setItems(newItems);
+          setOffset(LIMIT);
+        } else {
+          setItems((prev) => [...prev, ...newItems]);
+          setOffset((prev) => prev + LIMIT);
+        }
+        setHasMore(newItems.length === LIMIT);
+      } catch (err) {
+        setFeedError("Failed to load feed.");
+        console.error("Feed error:", err);
+      } finally {
+        setFeedLoading(false);
+        setLoadingMore(false);
       }
-      setHasMore(newItems.length === LIMIT);
-    } catch (err) {
-      setFeedError("Failed to load feed.");
-      console.error("Feed error:", err);
-    } finally {
-      setFeedLoading(false);
-      setLoadingMore(false);
-    }
-  }, [feedOrder, offset]);
+    },
+    [feedOrder, offset],
+  );
 
   /* ── Fetch popular movies ── */
   useEffect(() => {
     const fetchTrending = async () => {
       try {
         const res = await api.get("/movies/popular");
-        setTrending(res.data.data?.results || res.data.results || res.data.movies || []);
+        setTrending(
+          res.data.data?.results || res.data.results || res.data.movies || [],
+        );
       } catch (err) {
         console.error("Trending error:", err);
       } finally {
@@ -611,8 +774,11 @@ export default function Home() {
 
         const libraryStats = libraryRes.data.data || {};
         setStats({
-          moviesWatched: libraryStats.counts?.COMPLETED || libraryStats.totalMovies || 0,
-          reviewsWritten: exportRes.data.reviews?.filter((review) => !review.deleted_at).length || 0,
+          moviesWatched:
+            libraryStats.counts?.COMPLETED || libraryStats.totalMovies || 0,
+          reviewsWritten:
+            exportRes.data.reviews?.filter((review) => !review.deleted_at)
+              .length || 0,
           listsCreated: exportRes.data.custom_lists?.length || 0,
           followers: followersRes.data.count || 0,
         });
@@ -643,9 +809,10 @@ export default function Home() {
     if (!loaderRef.current || !hasMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loadingMore && hasMore) fetchFeed(false);
+        if (entries[0].isIntersecting && !loadingMore && hasMore)
+          fetchFeed(false);
       },
-      { threshold: 0.5 }
+      { threshold: 0.5 },
     );
     observer.observe(loaderRef.current);
     return () => observer.disconnect();
@@ -661,12 +828,13 @@ export default function Home() {
   return (
     <div className="max-w-screen-xl mx-auto px-0 sm:px-4 py-0 sm:py-8">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
-
         {/* ══ LEFT — ACTIVITY FEED ══ */}
         <div>
           {/* Feed header */}
           <div className="mb-5 sm:mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Activity Feed</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              Activity Feed
+            </h1>
             <div
               className="grid h-10 w-full grid-cols-2 rounded-2xl border border-gray-100 bg-gray-50 p-1 dark:border-gray-800 dark:bg-gray-900 sm:w-auto"
               role="group"
@@ -701,7 +869,12 @@ export default function Home() {
           {feedError && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 text-sm text-red-600 flex items-center justify-between">
               {feedError}
-              <button onClick={handleRetry} className="font-semibold hover:underline ml-2">Retry</button>
+              <button
+                onClick={handleRetry}
+                className="font-semibold hover:underline ml-2"
+              >
+                Retry
+              </button>
             </div>
           )}
 
@@ -711,30 +884,28 @@ export default function Home() {
           {/* Items */}
           {!feedLoading && (
             <>
-              {items.length === 0
-                ? <EmptyFeed />
-                : (
-                  <div className="flex flex-col gap-4">
-                    {items.map((item, idx) => (
-                      <FeedItem
-                        key={`${item.type}-${item.review?.id || item.collection?.id}-${idx}`}
-                        item={item}
-                        currentUser={user}
-                      />
-                    ))}
-                  </div>
-                )
-              }
+              {items.length === 0 ? (
+                <EmptyFeed />
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {items.map((item, idx) => (
+                    <FeedItem
+                      key={`${item.type}-${item.review?.id || item.collection?.id}-${idx}`}
+                      item={item}
+                      currentUser={user}
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* Infinite scroll */}
               {hasMore && (
                 <div ref={loaderRef} className="flex justify-center py-8">
                   {loadingMore && (
-                    <div className="w-6 h-6 border-2 border-[#D0021B] border-t-transparent rounded-full animate-spin"/>
+                    <div className="w-6 h-6 border-2 border-[#D0021B] border-t-transparent rounded-full animate-spin" />
                   )}
                 </div>
               )}
-
             </>
           )}
         </div>
@@ -742,8 +913,13 @@ export default function Home() {
         {/* ══ RIGHT — TRENDING NOW ══ */}
         <div className="lg:sticky lg:top-24">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Popular Movies</h2>
-            <Link to="/discover" className="text-sm font-semibold text-[#D0021B] hover:underline">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              Popular Movies
+            </h2>
+            <Link
+              to="/discover"
+              className="text-sm font-semibold text-[#D0021B] hover:underline"
+            >
               See all
             </Link>
           </div>
@@ -752,7 +928,9 @@ export default function Home() {
             <TrendingSkeleton />
           ) : trending.length === 0 ? (
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-8 text-center">
-              <p className="text-sm text-gray-400">No popular movies available</p>
+              <p className="text-sm text-gray-400">
+                No popular movies available
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -764,7 +942,6 @@ export default function Home() {
 
           <StatsCard stats={stats} loading={statsLoading} />
         </div>
-
       </div>
     </div>
   );

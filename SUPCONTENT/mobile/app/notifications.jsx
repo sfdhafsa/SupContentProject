@@ -1,5 +1,5 @@
 import PlaceholderScreen from '../src/components/PlaceholderScreen';
 
 export default function Notifications() {
-  return <PlaceholderScreen titleKey="alerts" />;
+  return <PlaceholderScreen title="Alertes" />;
 }

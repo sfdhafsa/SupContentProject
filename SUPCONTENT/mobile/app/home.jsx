@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  ImageBackground,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
-import { useI18n } from '../src/i18n';
 import { getAuthUser } from '../src/services/authStorage';
+import FeedList from '../src/components/feed/FeedList';
+import { useFeed } from '../src/hooks/useFeed';
 
 const friends = [
   { name: 'You', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80' },
@@ -25,8 +35,6 @@ const watching = [
 ];
 
 function SectionHeader({ icon, title }) {
-  const { t } = useI18n();
-
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitleWrap}>
@@ -34,21 +42,27 @@ function SectionHeader({ icon, title }) {
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       <Pressable>
-        <Text style={styles.seeAll}>{t('seeAll')}</Text>
+        <Text style={styles.seeAll}>Tout voir</Text>
       </Pressable>
     </View>
   );
 }
 
+
 export default function Home() {
   const [username, setUsername] = useState('User');
-  const { t } = useI18n();
+  const {
+    items: feedItems,
+    loading: feedLoading,
+    error: feedError,
+  } = useFeed();
 
   useEffect(() => {
     getAuthUser().then((user) => {
       setUsername(user?.username || user?.email || 'User');
     });
   }, []);
+
 
   return (
     <View style={styles.page}>
@@ -66,14 +80,14 @@ export default function Home() {
           >
             <View style={styles.heroOverlay}>
               <View style={styles.heroBadgeRow}>
-                <Text style={styles.featuredBadge}>{t('featured')}</Text>
+                <Text style={styles.featuredBadge}>A LA UNE</Text>
                 <Text style={styles.ratingBadge}>8.4</Text>
               </View>
               <Text style={styles.heroTitle}>Inception</Text>
               <View style={styles.heroActions}>
                 <Pressable style={styles.detailsButton}>
-                  <Text style={styles.playIcon}>{t('play')}</Text>
-                  <Text style={styles.detailsText}>{t('details')}</Text>
+                  <Text style={styles.playIcon}>Lire</Text>
+                  <Text style={styles.detailsText}>Details</Text>
                 </Pressable>
                 <Pressable style={styles.saveButton}>
                   <Text style={styles.saveText}>+</Text>
@@ -86,12 +100,12 @@ export default function Home() {
             {friends.map((friend) => (
               <View key={friend.name} style={styles.friendItem}>
                 <Image source={{ uri: friend.image }} style={styles.friendImage} />
-                <Text style={styles.friendName}>{friend.name === 'You' ? t('userYou') : friend.name}</Text>
+                <Text style={styles.friendName}>{friend.name === 'You' ? 'Vous' : friend.name}</Text>
               </View>
             ))}
           </ScrollView>
 
-          <SectionHeader icon="T" title={t('trendingNow')} />
+          <SectionHeader icon="T" title="Tendances" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.movieRow}>
             {trending.map((movie) => (
               <View key={movie.title} style={styles.movieCard}>
@@ -106,7 +120,7 @@ export default function Home() {
             ))}
           </ScrollView>
 
-          <SectionHeader icon="C" title={t('continueWatching')} />
+          <SectionHeader icon="C" title="Continuer le visionnage" />
           <View style={styles.watchGrid}>
             {watching.map((movie) => (
               <View key={movie.title} style={styles.watchCard}>
@@ -121,9 +135,11 @@ export default function Home() {
             ))}
           </View>
 
-          <View style={styles.activity}>
-            <Text style={styles.activityTitle}>{t('friendActivity')}</Text>
-            <Text style={styles.activityText}>{t('sarahRated')}</Text>
+          <View style={styles.feedSection}>
+            <SectionHeader icon="A" title="Activité des amis" />
+            <View style={styles.feedList}>
+              <FeedList items={feedItems} loading={feedLoading} error={feedError}/>
+            </View>
           </View>
         </ScrollView>
 
@@ -364,20 +380,16 @@ const styles = StyleSheet.create({
     height: 3,
     width: '62%',
   },
-  activity: {
+
+  feedSection: {
     borderTopColor: '#eef0f3',
     borderTopWidth: 1,
-    marginHorizontal: 12,
     paddingTop: 10,
   },
-  activityTitle: {
-    color: '#111827',
-    fontSize: 12,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  activityText: {
-    color: '#6b7280',
-    fontSize: 10,
+  feedList: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+    gap: 10,
   },
 });

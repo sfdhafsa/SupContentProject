@@ -54,6 +54,7 @@ function Stars({ rating, size = 10 }) {
       ))}
     </View>
   );
+
 }
 
 // ── Movie Card (grille) ──

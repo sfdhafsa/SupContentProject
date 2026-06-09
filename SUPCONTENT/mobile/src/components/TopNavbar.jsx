@@ -1,5 +1,4 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SUPPORTED_LANGUAGES, useI18n } from '../i18n';
 import LogoMark from './LogoMark';
 
 function SearchIcon() {
@@ -21,7 +20,6 @@ function BellIcon() {
 }
 
 export default function TopNavbar({ username = 'User' }) {
-  const { language, setLanguage } = useI18n();
   const initial = username.slice(0, 1).toUpperCase();
 
   return (
@@ -38,19 +36,6 @@ export default function TopNavbar({ username = 'User' }) {
         <Pressable style={styles.iconButton}>
           <BellIcon />
         </Pressable>
-        <View style={styles.languageSwitch}>
-          {SUPPORTED_LANGUAGES.map((option) => (
-            <Pressable
-              key={option}
-              onPress={() => setLanguage(option)}
-              style={[styles.languageButton, language === option && styles.languageButtonActive]}
-            >
-              <Text style={[styles.languageText, language === option && styles.languageTextActive]}>
-                {option.toUpperCase()}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
         <Pressable style={styles.avatar}>
           <Text style={styles.avatarText}>{initial}</Text>
         </Pressable>
@@ -152,28 +137,5 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontSize: 11,
     fontWeight: '800',
-  },
-  languageSwitch: {
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-    flexDirection: 'row',
-    padding: 2,
-  },
-  languageButton: {
-    borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 3,
-  },
-  languageButtonActive: {
-    backgroundColor: '#ef0d1a',
-  },
-  languageText: {
-    color: '#6b7280',
-    fontSize: 8,
-    fontWeight: '800',
-  },
-  languageTextActive: {
-    color: '#ffffff',
   },
 });

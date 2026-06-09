@@ -1,13 +1,12 @@
 import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useI18n } from '../i18n';
 
 const tabs = [
-  { labelKey: 'home', route: '/home', icon: 'home' },
-  { labelKey: 'discover', route: '/discover', icon: 'search' },
-  { labelKey: 'library', route: '/library', icon: 'library' },
-  { labelKey: 'alerts', route: '/notifications', icon: 'bell', badge: 3 },
-  { labelKey: 'profile', route: '/profile', icon: 'profile' },
+  { label: 'Accueil', route: '/home', icon: 'home' },
+  { label: 'Decouvrir', route: '/discover', icon: 'search' },
+  { label: 'Bibliotheque', route: '/library', icon: 'library' },
+  { label: 'Alertes', route: '/notifications', icon: 'bell', badge: 3 },
+  { label: 'Profil', route: '/profile', icon: 'profile' },
 ];
 
 function TabIcon({ type, active }) {
@@ -43,7 +42,6 @@ function TabIcon({ type, active }) {
 export default function BottomTabBar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useI18n();
 
   return (
     <View style={styles.container}>
@@ -60,7 +58,7 @@ export default function BottomTabBar() {
                 </View>
               ) : null}
             </View>
-            <Text style={[styles.label, active && styles.activeLabel]}>{t(tab.labelKey)}</Text>
+            <Text style={[styles.label, active && styles.activeLabel]}>{tab.label}</Text>
           </Pressable>
         );
       })}

@@ -1,15 +1,16 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
 import { API_BASE_URL } from '../config/api';
+import {
+  clearAuthSession,
+  getAuthToken,
+  getAuthUser,
+  saveAuthSession,
+} from './authStorage';
 
-const LANGUAGE_KEY = 'supcontent.language';
-
-async function getJsonHeaders() {
-  const language = await AsyncStorage.getItem(LANGUAGE_KEY) || 'fr';
+function getJsonHeaders() {
   return {
     Accept: 'application/json',
-    'Accept-Language': language,
     'Content-Type': 'application/json',
-    'X-Language': language,
   };
 }
 
@@ -23,7 +24,7 @@ function getErrorMessage(data, fallback) {
 export async function loginWithEmail({ email, password }) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
-    headers: await getJsonHeaders(),
+    headers: getJsonHeaders(),
     body: JSON.stringify({ email, password }),
   });
 
@@ -39,7 +40,7 @@ export async function loginWithEmail({ email, password }) {
 export async function registerWithEmail({ username, email, password }) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
-    headers: await getJsonHeaders(),
+    headers: getJsonHeaders(),
     body: JSON.stringify({ username, email, password }),
   });
 
@@ -55,7 +56,7 @@ export async function registerWithEmail({ username, email, password }) {
 export async function getCurrentUser(token) {
   const response = await fetch(`${API_BASE_URL}/users/me`, {
     headers: {
-      ...(await getJsonHeaders()),
+      ...getJsonHeaders(),
       Authorization: `Bearer ${token}`,
     },
   });
@@ -72,4 +73,52 @@ export async function getCurrentUser(token) {
 export function getGoogleOAuthUrl(redirectUri) {
   const params = new URLSearchParams({ redirect_uri: redirectUri });
   return `${API_BASE_URL}/auth/google?${params.toString()}`;
+}
+
+export function useAuth() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadUser() {
+      try {
+        const storedToken = await getAuthToken();
+        const storedUser = await getAuthUser();
+
+        if (!mounted) return;
+        setToken(storedToken);
+        setUser(storedUser);
+
+        if (storedToken) {
+          const freshUser = await getCurrentUser(storedToken);
+          if (!mounted) return;
+          setUser(freshUser);
+          await saveAuthSession(storedToken, freshUser);
+        }
+      } catch {
+        await clearAuthSession();
+        if (!mounted) return;
+        setToken(null);
+        setUser(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadUser();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return {
+    isAuthenticated: !!token && !!user,
+    loading,
+    token,
+    user,
+  };
 }

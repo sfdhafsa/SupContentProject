@@ -1,5 +1,4 @@
 import { Stack } from 'expo-router';
-import { I18nProvider } from '../src/i18n';
 
 export default function RootLayout() {
   return (
@@ -15,5 +14,5 @@ export default function RootLayout() {
         <Stack.Screen name="auth/callback" />
       </Stack>
     </I18nProvider>
-  );
-}
+  )
+  }
