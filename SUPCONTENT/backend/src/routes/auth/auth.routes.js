@@ -45,72 +45,69 @@ const resetPasswordRules = [
     .matches(/[0-9]/).withMessage('Au moins un chiffre.'),
 ];
 
-const encodeOAuthState = (payload) =>
-  Buffer.from(JSON.stringify(payload)).toString('base64url');
+const oauthFailure = (provider) =>
+  `${process.env.CLIENT_URL}/login?error=oauth_${provider}`;
 
-const decodeOAuthState = (state) => {
-  if (!state) return {};
-
-  try {
-    return JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
-  } catch {
-    return {};
-  }
-};
-
-const getOAuthFailureUrl = (provider, state, errorCode = `oauth_${provider}`) => {
-  const { redirectUri } = decodeOAuthState(state);
-  const fallbackUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
-  const failureUrl = new URL(redirectUri || fallbackUrl);
-  failureUrl.searchParams.set('error', errorCode);
-  return failureUrl.toString();
-};
-
-const getRequestOrigin = (req) => {
-  const protocol = req.get('x-forwarded-proto') || req.protocol;
-  return `${protocol}://${req.get('host')}`;
-};
-
-const getGoogleCallbackUrl = (req) => {
-  const envCallbackUrl = process.env.GOOGLE_CALLBACK_URL;
-
-  if (process.env.NODE_ENV === 'production' && envCallbackUrl) {
-    return envCallbackUrl;
-  }
-
-  return `${getRequestOrigin(req)}/api/auth/google/callback`;
-};
-
-const isDevelopmentRedirect = (url) => {
-  if (process.env.NODE_ENV === 'production') return false;
-
-  const localPorts = new Set(['8081', '8082', '8083', '5173']);
-  const hostname = url.hostname;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isLanIp = /^(10|172\.(1[6-9]|2\d|3[0-1])|192\.168)\.\d{1,3}\.\d{1,3}$/.test(hostname);
-
-  return (isLocalhost || isLanIp) && localPorts.has(url.port);
-};
+const isPrivateDevHost = (hostname) =>
+  hostname === 'localhost' ||
+  hostname === '127.0.0.1' ||
+  hostname.startsWith('192.168.') ||
+  hostname.startsWith('10.') ||
+  /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
 
 const getOAuthRedirectUrl = (req) => {
   const redirectUri = typeof req.query.redirect_uri === 'string' ? req.query.redirect_uri : '';
+  const client = typeof req.query.client === 'string' ? req.query.client : '';
   const allowedRedirects = new Set([
     process.env.CLIENT_URL,
     process.env.MOBILE_CLIENT_URL,
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'http://localhost:8081',
+    'http://127.0.0.1:8081',
     'http://localhost:8082',
     'http://127.0.0.1:8082',
     'http://localhost:8083',
     'http://127.0.0.1:8083',
+    'http://localhost:19006',
+    'http://127.0.0.1:19006',
     'supcontent://',
   ].filter(Boolean));
+  const allowedProtocols = new Set(['supcontent:', 'exp:', 'exps:']);
 
-  if (!redirectUri) return undefined;
+  if (!redirectUri) {
+    if (client !== 'mobile') return undefined;
+
+    const requestOrigin = req.get('origin');
+    if (requestOrigin && process.env.NODE_ENV !== 'production') {
+      try {
+        const originUrl = new URL(requestOrigin);
+        if (isPrivateDevHost(originUrl.hostname)) {
+          return `${originUrl.origin}/auth/callback`;
+        }
+      } catch {
+        // Fall through to the configured mobile callback.
+      }
+    }
+
+    return process.env.MOBILE_CLIENT_URL || 'supcontent://auth/callback';
+  }
 
   try {
     const url = new URL(redirectUri);
-    const origin = url.protocol === 'supcontent:' ? 'supcontent://' : url.origin;
+    if (allowedProtocols.has(url.protocol)) return redirectUri;
+
+    const origin = url.origin;
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      client === 'mobile' &&
+      ['http:', 'https:'].includes(url.protocol) &&
+      url.pathname === '/auth/callback' &&
+      isPrivateDevHost(url.hostname)
+    ) {
+      return redirectUri;
+    }
+
 
     if (url.protocol === 'exp:' || url.protocol === 'exps:') {
       return redirectUri;
@@ -135,12 +132,15 @@ router.post('/reset-password',  authLimiter, resetPasswordRules,  resetPassword)
 // ── Google ───────────────────────────────────────────────────────
 router.get('/google', (req, res, next) => {
   const redirectUri = getOAuthRedirectUrl(req);
+  const client = typeof req.query.client === 'string' ? req.query.client : undefined;
 
   return passport.authenticate('google', {
     scope: ['profile', 'email'],
     session: false,
     callbackURL: getGoogleCallbackUrl(req),
-    state: redirectUri ? encodeOAuthState({ redirectUri }) : undefined,
+    state: redirectUri
+      ? encodeOAuthState({ client, redirectUri })
+      : undefined,
   })(req, res, next);
 });
 
@@ -154,6 +154,8 @@ router.get('/google/callback',
           ? 'banned'
           : 'oauth_google';
 
+        req.oauthError = errorCode;
+        return oauthCallback(req, res);
         return res.redirect(getOAuthFailureUrl('google', req.query.state, errorCode));
       }
 

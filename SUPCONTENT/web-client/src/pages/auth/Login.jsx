@@ -27,6 +27,14 @@ const FEATURES = [
 
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const authBaseUrl = apiUrl.endsWith("/api") ? apiUrl : `${apiUrl}/api`;
+const getGoogleAuthUrl = () => {
+  const params = new URLSearchParams({
+    client: "web",
+    redirect_uri: `${window.location.origin}/auth/callback`,
+  });
+
+  return `${authBaseUrl}/auth/google?${params.toString()}`;
+};
 
 export default function Login() {
   const navigate    = useNavigate();
@@ -149,7 +157,7 @@ export default function Login() {
           {/* Google */}
           <button
             type="button"
-            onClick={() => window.location.href = `${authBaseUrl}/auth/google`}
+            onClick={() => window.location.href = getGoogleAuthUrl()}
             className="w-full flex items-center justify-center gap-2.5 py-3 px-4 mb-5 border border-gray-200 rounded-xl bg-white text-sm font-medium text-gray-800 hover:border-gray-400 hover:shadow-sm transition-all"
           >
             <GoogleIcon />

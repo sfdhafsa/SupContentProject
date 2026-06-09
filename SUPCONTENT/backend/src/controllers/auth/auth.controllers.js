@@ -16,12 +16,17 @@ const hashResetToken = (token) =>
 
 const getClientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
 
+const getMobileClientUrl = () =>
+  process.env.MOBILE_CLIENT_URL || 'supcontent://auth/callback';
+
 const getOAuthCallbackUrl = (state) => {
   if (!state) return `${getClientUrl()}/auth/callback`;
 
   try {
     const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
-    return parsed.redirectUri || `${getClientUrl()}/auth/callback`;
+    if (parsed.redirectUri) return parsed.redirectUri;
+    if (parsed.client === 'mobile') return getMobileClientUrl();
+    return `${getClientUrl()}/auth/callback`;
   } catch {
     return `${getClientUrl()}/auth/callback`;
   }
@@ -241,7 +246,7 @@ export const oauthCallback = (req, res) => {
   const callbackUrl = new URL(getOAuthCallbackUrl(req.query.state));
 
   if (!user) {
-    callbackUrl.searchParams.set('error', 'oauth_failed');
+    callbackUrl.searchParams.set('error', req.oauthError || 'oauth_failed');
     return res.redirect(callbackUrl.toString());
   }
 
