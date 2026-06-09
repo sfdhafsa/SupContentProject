@@ -1,5 +1,5 @@
 import PlaceholderScreen from '../src/components/PlaceholderScreen';
 
 export default function Discover() {
-  return <PlaceholderScreen titleKey="discover" />;
+  return <PlaceholderScreen title="Decouvrir" />;
 }

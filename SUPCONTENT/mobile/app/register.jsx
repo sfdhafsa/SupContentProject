@@ -4,12 +4,10 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { registerWithEmail } from '../src/services/authApi';
 import { saveAuthSession } from '../src/services/authStorage';
-import { useI18n } from '../src/i18n';
 import { startGoogleOAuth } from '../src/services/oauth';
 
 export default function Register() {
   const router = useRouter();
-  const { t } = useI18n();
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -25,12 +23,12 @@ export default function Register() {
   };
 
   const validate = () => {
-    if (form.username.trim().length < 3) return t('usernameValidation');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return t('emailValidation');
-    if (form.password.length < 8) return t('passwordLengthValidation');
-    if (!/[A-Z]/.test(form.password)) return t('passwordUppercaseValidation');
-    if (!/[0-9]/.test(form.password)) return t('passwordNumberValidation');
-    if (form.password !== form.confirmPassword) return t('passwordsMatchValidation');
+    if (form.username.trim().length < 3) return "Le nom d'utilisateur doit contenir au moins 3 caracteres.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Saisissez une adresse e-mail valide.';
+    if (form.password.length < 8) return 'Le mot de passe doit contenir au moins 8 caracteres.';
+    if (!/[A-Z]/.test(form.password)) return 'Le mot de passe doit contenir au moins une majuscule.';
+    if (!/[0-9]/.test(form.password)) return 'Le mot de passe doit contenir au moins un chiffre.';
+    if (form.password !== form.confirmPassword) return 'Les mots de passe ne correspondent pas.';
     return '';
   };
 
@@ -54,7 +52,7 @@ export default function Register() {
       await saveAuthSession(data.token, data.user);
       router.replace('/home');
     } catch (err) {
-      setError(err.message || t('unableCreateAccount'));
+      setError(err.message || 'Impossible de creer le compte.');
     } finally {
       setLoading(false);
     }
@@ -74,8 +72,8 @@ export default function Register() {
           </View>
         </View>
 
-        <Text style={styles.title}>{t('createAccount')}</Text>
-        <Text style={styles.subtitle}>{t('registerSubtitle')}</Text>
+        <Text style={styles.title}>Creer un compte</Text>
+        <Text style={styles.subtitle}>Inscrivez-vous pour commencer avec SUPMOVIES</Text>
 
         <Pressable onPress={startGoogleOAuth} style={styles.socialButton}>
           <Text style={styles.googleIcon}>G</Text>
@@ -84,11 +82,11 @@ export default function Register() {
 
         <View style={styles.dividerRow}>
           <View style={styles.divider} />
-          <Text style={styles.dividerText}>{t('or')}</Text>
+          <Text style={styles.dividerText}>OU</Text>
           <View style={styles.divider} />
         </View>
 
-        <Text style={styles.label}>{t('username')}</Text>
+        <Text style={styles.label}>Nom d'utilisateur</Text>
         <TextInput
           autoCapitalize="none"
           onChangeText={(value) => updateField('username', value)}
@@ -98,7 +96,7 @@ export default function Register() {
           value={form.username}
         />
 
-        <Text style={styles.label}>{t('email')}</Text>
+        <Text style={styles.label}>E-mail</Text>
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
@@ -109,20 +107,20 @@ export default function Register() {
           value={form.email}
         />
 
-        <Text style={styles.label}>{t('password')}</Text>
+        <Text style={styles.label}>Mot de passe</Text>
         <TextInput
           onChangeText={(value) => updateField('password', value)}
-          placeholder={t('createPasswordPlaceholder')}
+          placeholder="Creer un mot de passe (8 caracteres min.)"
           placeholderTextColor="#7f8a9b"
           secureTextEntry
           style={styles.input}
           value={form.password}
         />
 
-        <Text style={styles.label}>{t('confirmPassword')}</Text>
+        <Text style={styles.label}>Confirmer le mot de passe</Text>
         <TextInput
           onChangeText={(value) => updateField('confirmPassword', value)}
-          placeholder={t('confirmPasswordPlaceholder')}
+          placeholder="Confirmez votre mot de passe"
           placeholderTextColor="#7f8a9b"
           secureTextEntry
           style={styles.input}
@@ -136,14 +134,14 @@ export default function Register() {
           onPress={handleRegister}
           style={[styles.createButton, loading && styles.disabledButton]}
         >
-          <Text style={styles.createText}>{loading ? t('creating') : t('createAccount')}</Text>
+          <Text style={styles.createText}>{loading ? 'Creation...' : 'Creer un compte'}</Text>
         </Pressable>
 
         <View style={styles.signInRow}>
-          <Text style={styles.mutedText}>{t('alreadyHaveAccount')}</Text>
+          <Text style={styles.mutedText}>Vous avez deja un compte ? </Text>
           <Link href="/login" asChild>
             <Pressable>
-              <Text style={styles.signInText}>{t('signIn')}</Text>
+              <Text style={styles.signInText}>Se connecter</Text>
             </Pressable>
           </Link>
         </View>

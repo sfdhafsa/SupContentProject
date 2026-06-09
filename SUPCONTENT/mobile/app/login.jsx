@@ -4,12 +4,10 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { loginWithEmail } from '../src/services/authApi';
 import { saveAuthSession } from '../src/services/authStorage';
-import { useI18n } from '../src/i18n';
 import { startGoogleOAuth } from '../src/services/oauth';
 
 export default function Login() {
   const router = useRouter();
-  const { t } = useI18n();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -23,7 +21,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (!form.email.trim() || !form.password) {
-      setError(t('emailPasswordRequired'));
+      setError("L'e-mail et le mot de passe sont requis.");
       return;
     }
 
@@ -38,10 +36,10 @@ export default function Login() {
       });
 
       await saveAuthSession(data.token, data.user);
-      setSuccess(t('connectedAs', { name: data.user?.username || data.user?.email || 'user' }));
+      setSuccess(`Connecte en tant que ${data.user?.username || data.user?.email || 'user'}.`);
       router.replace('/home');
     } catch (err) {
-      setError(err.message || t('unableSignIn'));
+      setError(err.message || 'Impossible de se connecter.');
     } finally {
       setLoading(false);
     }
@@ -61,8 +59,8 @@ export default function Login() {
           </View>
         </View>
 
-        <Text style={styles.title}>{t('welcomeBack')}</Text>
-        <Text style={styles.subtitle}>{t('signInSubtitle')}</Text>
+        <Text style={styles.title}>Bon retour</Text>
+        <Text style={styles.subtitle}>Connectez-vous a votre compte pour continuer</Text>
 
         <View style={styles.socialRow}>
           <Pressable onPress={startGoogleOAuth} style={styles.socialButton}>
@@ -73,11 +71,11 @@ export default function Login() {
 
         <View style={styles.dividerRow}>
           <View style={styles.divider} />
-          <Text style={styles.dividerText}>{t('or')}</Text>
+          <Text style={styles.dividerText}>OU</Text>
           <View style={styles.divider} />
         </View>
 
-        <Text style={styles.label}>{t('email')}</Text>
+        <Text style={styles.label}>E-mail</Text>
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
@@ -89,17 +87,17 @@ export default function Login() {
         />
 
         <View style={styles.passwordHeader}>
-          <Text style={styles.label}>{t('password')}</Text>
+          <Text style={styles.label}>Mot de passe</Text>
           <Link href="/forgot-password" asChild>
             <Pressable>
-              <Text style={styles.forgotText}>{t('forgot')}</Text>
+              <Text style={styles.forgotText}>Oublie ?</Text>
             </Pressable>
           </Link>
         </View>
 
         <TextInput
           onChangeText={(value) => updateField('password', value)}
-          placeholder={t('passwordPlaceholder')}
+          placeholder="Saisissez votre mot de passe"
           placeholderTextColor="#7f8a9b"
           secureTextEntry
           style={styles.input}
@@ -114,14 +112,14 @@ export default function Login() {
           onPress={handleLogin}
           style={[styles.signInButton, loading && styles.disabledButton]}
         >
-          <Text style={styles.signInText}>{loading ? t('signingIn') : t('signIn')}</Text>
+          <Text style={styles.signInText}>{loading ? 'Connexion...' : 'Se connecter'}</Text>
         </Pressable>
 
         <View style={styles.signUpRow}>
-          <Text style={styles.mutedText}>{t('noAccount')}</Text>
+          <Text style={styles.mutedText}>Vous n'avez pas de compte ? </Text>
           <Link href="/register" asChild>
             <Pressable>
-              <Text style={styles.signUpText}>{t('signUp')}</Text>
+              <Text style={styles.signUpText}>S'inscrire</Text>
             </Pressable>
           </Link>
         </View>
