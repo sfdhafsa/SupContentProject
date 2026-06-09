@@ -137,16 +137,15 @@ router.get('/google', (req, res, next) => {
   return passport.authenticate('google', {
     scope: ['profile', 'email'],
     session: false,
-    callbackURL: getGoogleCallbackUrl(req),
     state: redirectUri
-      ? encodeOAuthState({ client, redirectUri })
+      ? Buffer.from(JSON.stringify({ client, redirectUri })).toString('base64url')
       : undefined,
   })(req, res, next);
 });
 
 router.get('/google/callback',
   (req, res, next) => {
-    passport.authenticate('google', { session: false, callbackURL: getGoogleCallbackUrl(req) }, (err, user, info) => {
+    passport.authenticate('google', { session: false }, (err, user, info) => {
       if (err) return next(err);
 
       if (!user) {
@@ -156,7 +155,6 @@ router.get('/google/callback',
 
         req.oauthError = errorCode;
         return oauthCallback(req, res);
-        return res.redirect(getOAuthFailureUrl('google', req.query.state, errorCode));
       }
 
       req.user = user;
@@ -170,7 +168,7 @@ router.get('/github',
   passport.authenticate('github', { scope: ['user:email'], session: false })
 );
 router.get('/github/callback',
-  passport.authenticate('github', { failureRedirect: getOAuthFailureUrl('github'), session: false }),
+  passport.authenticate('github', { failureRedirect: oauthFailure('github'), session: false }),
   oauthCallback
 );
 
@@ -179,7 +177,7 @@ router.get('/facebook',
   passport.authenticate('facebook', { scope: ['email'], session: false })
 );
 router.get('/facebook/callback',
-  passport.authenticate('facebook', { failureRedirect: getOAuthFailureUrl('facebook'), session: false }),
+  passport.authenticate('facebook', { failureRedirect: oauthFailure('facebook'), session: false }),
   oauthCallback
 );
 
