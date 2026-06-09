@@ -45,8 +45,52 @@ const resetPasswordRules = [
     .matches(/[0-9]/).withMessage('Au moins un chiffre.'),
 ];
 
-const oauthFailure = (provider) =>
-  `${process.env.CLIENT_URL}/login?error=oauth_${provider}`;
+const encodeOAuthState = (payload) =>
+  Buffer.from(JSON.stringify(payload)).toString('base64url');
+
+const decodeOAuthState = (state) => {
+  if (!state) return {};
+
+  try {
+    return JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+  } catch {
+    return {};
+  }
+};
+
+const getOAuthFailureUrl = (provider, state, errorCode = `oauth_${provider}`) => {
+  const { redirectUri } = decodeOAuthState(state);
+  const fallbackUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+  const failureUrl = new URL(redirectUri || fallbackUrl);
+  failureUrl.searchParams.set('error', errorCode);
+  return failureUrl.toString();
+};
+
+const getRequestOrigin = (req) => {
+  const protocol = req.get('x-forwarded-proto') || req.protocol;
+  return `${protocol}://${req.get('host')}`;
+};
+
+const getGoogleCallbackUrl = (req) => {
+  const envCallbackUrl = process.env.GOOGLE_CALLBACK_URL;
+
+  if (process.env.NODE_ENV === 'production' && envCallbackUrl) {
+    return envCallbackUrl;
+  }
+
+  return `${getRequestOrigin(req)}/api/auth/google/callback`;
+};
+
+const isDevelopmentRedirect = (url) => {
+  if (process.env.NODE_ENV === 'production') return false;
+
+  const localPorts = new Set(['8081', '8082', '8083', '5173']);
+  const hostname = url.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLanIp = /^(10|172\.(1[6-9]|2\d|3[0-1])|192\.168)\.\d{1,3}\.\d{1,3}$/.test(hostname);
+
+  return (isLocalhost || isLanIp) && localPorts.has(url.port);
+};
 
 const getOAuthRedirectUrl = (req) => {
   const redirectUri = typeof req.query.redirect_uri === 'string' ? req.query.redirect_uri : '';
@@ -67,6 +111,15 @@ const getOAuthRedirectUrl = (req) => {
   try {
     const url = new URL(redirectUri);
     const origin = url.protocol === 'supcontent:' ? 'supcontent://' : url.origin;
+
+    if (url.protocol === 'exp:' || url.protocol === 'exps:') {
+      return redirectUri;
+    }
+
+    if (isDevelopmentRedirect(url)) {
+      return redirectUri;
+    }
+
     return allowedRedirects.has(origin) ? redirectUri : undefined;
   } catch {
     return undefined;
@@ -86,13 +139,14 @@ router.get('/google', (req, res, next) => {
   return passport.authenticate('google', {
     scope: ['profile', 'email'],
     session: false,
-    state: redirectUri ? Buffer.from(JSON.stringify({ redirectUri })).toString('base64url') : undefined,
+    callbackURL: getGoogleCallbackUrl(req),
+    state: redirectUri ? encodeOAuthState({ redirectUri }) : undefined,
   })(req, res, next);
 });
 
 router.get('/google/callback',
   (req, res, next) => {
-    passport.authenticate('google', { session: false }, (err, user, info) => {
+    passport.authenticate('google', { session: false, callbackURL: getGoogleCallbackUrl(req) }, (err, user, info) => {
       if (err) return next(err);
 
       if (!user) {
@@ -100,7 +154,7 @@ router.get('/google/callback',
           ? 'banned'
           : 'oauth_google';
 
-        return res.redirect(`${process.env.CLIENT_URL}/login?error=${errorCode}`);
+        return res.redirect(getOAuthFailureUrl('google', req.query.state, errorCode));
       }
 
       req.user = user;
@@ -114,7 +168,7 @@ router.get('/github',
   passport.authenticate('github', { scope: ['user:email'], session: false })
 );
 router.get('/github/callback',
-  passport.authenticate('github', { failureRedirect: oauthFailure('github'), session: false }),
+  passport.authenticate('github', { failureRedirect: getOAuthFailureUrl('github'), session: false }),
   oauthCallback
 );
 
@@ -123,7 +177,7 @@ router.get('/facebook',
   passport.authenticate('facebook', { scope: ['email'], session: false })
 );
 router.get('/facebook/callback',
-  passport.authenticate('facebook', { failureRedirect: oauthFailure('facebook'), session: false }),
+  passport.authenticate('facebook', { failureRedirect: getOAuthFailureUrl('facebook'), session: false }),
   oauthCallback
 );
 
