@@ -10,6 +10,8 @@ export default function RootLayout() {
         <Stack.Screen name="register" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="home" />
+        <Stack.Screen name="discover" />
+        <Stack.Screen name="movie/[id]" />
         <Stack.Screen name="auth/callback" />
       </Stack>
     </I18nProvider>
