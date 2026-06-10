@@ -1,11 +1,19 @@
-import { Redirect } from 'expo-router';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import useAuthSession from '../src/hooks/useAuthSession';
+import useAuthSession from '../hooks/useAuthSession';
 
-export default function Index() {
+export default function RequireAuth({ children }) {
+  const router = useRouter();
   const { loading, isAuthenticated } = useAuthSession();
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, loading, router]);
+
+  if (loading || !isAuthenticated) {
     return (
       <View style={styles.page}>
         <ActivityIndicator size="large" color="#ef0d1a" />
@@ -13,7 +21,7 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={isAuthenticated ? '/home' : '/discover'} />;
+  return children;
 }
 
 const styles = StyleSheet.create({

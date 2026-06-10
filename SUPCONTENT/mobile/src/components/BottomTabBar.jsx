@@ -1,12 +1,21 @@
 import { usePathname, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import useAuthSession from '../hooks/useAuthSession';
+import { clearAuthSession } from '../services/authStorage';
 
-const tabs = [
+const publicTabs = [
+  { label: 'Decouvrir', route: '/discover', icon: 'search' },
+  { label: 'Listes', route: '/library', icon: 'library' },
+  { label: 'Sign in', route: '/login', icon: 'signin' },
+];
+
+const privateTabs = [
   { label: 'Accueil', route: '/home', icon: 'home' },
   { label: 'Decouvrir', route: '/discover', icon: 'search' },
   { label: 'Bibliotheque', route: '/library', icon: 'library' },
-  { label: 'Alertes', route: '/notifications', icon: 'bell', badge: 3 },
   { label: 'Profil', route: '/profile', icon: 'profile' },
+  { label: 'Sortir', action: 'logout', icon: 'logout' },
 ];
 
 function TabIcon({ type, active }) {
@@ -29,6 +38,18 @@ function TabIcon({ type, active }) {
         </View>
       )}
       {type === 'bell' && <View style={[styles.bellIcon, { borderColor: color }]} />}
+      {type === 'signin' && (
+        <View style={styles.authIcon}>
+          <View style={[styles.authDoor, { borderColor: color }]} />
+          <View style={[styles.authArrow, { borderColor: color }]} />
+        </View>
+      )}
+      {type === 'logout' && (
+        <View style={styles.authIcon}>
+          <View style={[styles.authDoor, { borderColor: color }]} />
+          <View style={[styles.logoutArrow, { borderColor: color }]} />
+        </View>
+      )}
       {type === 'profile' && (
         <View style={styles.profileWrap}>
           <View style={[styles.profileHead, { borderColor: color }]} />
@@ -42,14 +63,33 @@ function TabIcon({ type, active }) {
 export default function BottomTabBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isAuthenticated } = useAuthSession();
+  const [sessionOverride, setSessionOverride] = useState(null);
+  const authed = sessionOverride ?? isAuthenticated;
+  const tabs = authed ? privateTabs : publicTabs;
+
+  useEffect(() => {
+    setSessionOverride(null);
+  }, [isAuthenticated]);
+
+  const handlePress = async (tab) => {
+    if (tab.action === 'logout') {
+      await clearAuthSession();
+      setSessionOverride(false);
+      router.replace('/discover');
+      return;
+    }
+
+    router.push(tab.route);
+  };
 
   return (
     <View style={styles.container}>
       {tabs.map((tab) => {
-        const active = pathname === tab.route;
+        const active = tab.route && pathname === tab.route;
 
         return (
-          <Pressable key={tab.route} onPress={() => router.push(tab.route)} style={styles.tab}>
+          <Pressable key={tab.route || tab.action} onPress={() => handlePress(tab)} style={styles.tab}>
             <View style={styles.iconSlot}>
               <TabIcon type={tab.icon} active={active} />
               {tab.badge ? (
@@ -153,6 +193,42 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     marginTop: 4,
     width: 12,
+  },
+  authIcon: {
+    height: 20,
+    marginLeft: 3,
+    marginTop: 3,
+    position: 'relative',
+    width: 20,
+  },
+  authDoor: {
+    borderRadius: 3,
+    borderWidth: 1.4,
+    height: 14,
+    left: 1,
+    position: 'absolute',
+    top: 2,
+    width: 10,
+  },
+  authArrow: {
+    borderRightWidth: 1.6,
+    borderTopWidth: 1.6,
+    height: 7,
+    position: 'absolute',
+    right: 1,
+    top: 6,
+    transform: [{ rotate: '45deg' }],
+    width: 7,
+  },
+  logoutArrow: {
+    borderLeftWidth: 1.6,
+    borderTopWidth: 1.6,
+    height: 7,
+    position: 'absolute',
+    right: 1,
+    top: 6,
+    transform: [{ rotate: '-45deg' }],
+    width: 7,
   },
   profileWrap: {
     alignItems: 'center',

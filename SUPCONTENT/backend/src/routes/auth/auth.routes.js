@@ -55,6 +55,27 @@ const isPrivateDevHost = (hostname) =>
   hostname.startsWith('10.') ||
   /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
 
+const isDevelopmentRedirect = (url) =>
+  process.env.NODE_ENV !== 'production' &&
+  ['http:', 'https:'].includes(url.protocol) &&
+  url.pathname === '/auth/callback' &&
+  isPrivateDevHost(url.hostname);
+
+const getGoogleCallbackUrl = () =>
+  process.env.GOOGLE_CALLBACK_URL ||
+  'http://localhost:3000/api/auth/google/callback';
+
+const isUnsupportedGoogleCallback = (callbackUrl) => {
+  try {
+    const url = new URL(callbackUrl);
+    return url.protocol === 'http:' &&
+      isPrivateDevHost(url.hostname) &&
+      !['localhost', '127.0.0.1'].includes(url.hostname);
+  } catch {
+    return true;
+  }
+};
+
 const getOAuthRedirectUrl = (req) => {
   const redirectUri = typeof req.query.redirect_uri === 'string' ? req.query.redirect_uri : '';
   const client = typeof req.query.client === 'string' ? req.query.client : '';
@@ -133,8 +154,16 @@ router.post('/reset-password',  authLimiter, resetPasswordRules,  resetPassword)
 router.get('/google', (req, res, next) => {
   const redirectUri = getOAuthRedirectUrl(req);
   const client = typeof req.query.client === 'string' ? req.query.client : undefined;
+  const callbackURL = getGoogleCallbackUrl();
+
+  if (isUnsupportedGoogleCallback(callbackURL)) {
+    return res.status(500).json({
+      message: 'Google OAuth requires GOOGLE_CALLBACK_URL to use localhost or a public HTTPS URL. Use an HTTPS tunnel when testing from Expo Go.',
+    });
+  }
 
   return passport.authenticate('google', {
+    callbackURL,
     scope: ['profile', 'email'],
     session: false,
     state: redirectUri
@@ -145,7 +174,10 @@ router.get('/google', (req, res, next) => {
 
 router.get('/google/callback',
   (req, res, next) => {
-    passport.authenticate('google', { session: false }, (err, user, info) => {
+    passport.authenticate('google', {
+      callbackURL: getGoogleCallbackUrl(),
+      session: false,
+    }, (err, user, info) => {
       if (err) return next(err);
 
       if (!user) {
