@@ -1,5 +1,9 @@
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import LogoMark from './LogoMark';
+import useAuthSession from '../hooks/useAuthSession';
+import { clearAuthSession } from '../services/authStorage';
 
 function SearchIcon() {
   return (
@@ -20,7 +24,26 @@ function BellIcon() {
 }
 
 export default function TopNavbar({ username = 'User' }) {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthSession();
+  const [sessionOverride, setSessionOverride] = useState(null);
+  const authed = sessionOverride ?? isAuthenticated;
   const initial = username.slice(0, 1).toUpperCase();
+
+  useEffect(() => {
+    setSessionOverride(null);
+  }, [isAuthenticated]);
+
+  const handleAuthPress = async () => {
+    if (authed) {
+      await clearAuthSession();
+      setSessionOverride(false);
+      router.replace('/discover');
+      return;
+    }
+
+    router.push('/login');
+  };
 
   return (
     <View style={styles.container}>
@@ -30,15 +53,27 @@ export default function TopNavbar({ username = 'User' }) {
       </View>
 
       <View style={styles.actions}>
-        <Pressable style={styles.iconButton}>
+        <Pressable style={styles.iconButton} onPress={() => router.push('/discover')}>
           <SearchIcon />
         </Pressable>
-        <Pressable style={styles.iconButton}>
-          <BellIcon />
+        {authed && (
+          <Pressable style={styles.iconButton} onPress={() => router.push('/notifications')}>
+            <BellIcon />
+          </Pressable>
+        )}
+        <Pressable
+          style={authed ? styles.authButton : styles.signInButton}
+          onPress={handleAuthPress}
+        >
+          <Text style={authed ? styles.authButtonText : styles.signInButtonText}>
+            {authed ? 'Sortir' : 'Sign in'}
+          </Text>
         </Pressable>
-        <Pressable style={styles.avatar}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </Pressable>
+        {authed && (
+          <Pressable style={styles.avatar} onPress={() => router.push('/profile')}>
+            <Text style={styles.avatarText}>{initial}</Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -75,6 +110,33 @@ const styles = StyleSheet.create({
     height: 26,
     justifyContent: 'center',
     width: 26,
+  },
+  authButton: {
+    alignItems: 'center',
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 26,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  authButtonText: {
+    color: '#374151',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  signInButton: {
+    alignItems: 'center',
+    backgroundColor: '#ef0d1a',
+    borderRadius: 8,
+    height: 26,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  signInButtonText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
   },
   searchIcon: {
     height: 18,

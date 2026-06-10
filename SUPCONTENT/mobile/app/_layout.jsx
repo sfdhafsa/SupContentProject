@@ -8,9 +8,12 @@ export default function RootLayout() {
       <Stack.Screen name="register" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="home" />
-      <Stack.Screen name="messages" />
-      <Stack.Screen name="conversation/[userId]" />
+      <Stack.Screen name="discover" />
+      <Stack.Screen name="library" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="profile" />
       <Stack.Screen name="auth/callback" />
+      <Stack.Screen name="publicProfile" />
     </Stack>
   );
 }

@@ -54,17 +54,28 @@ export async function registerWithEmail({ username, email, password }) {
 }
 
 export async function getCurrentUser(token) {
-  const response = await fetch(`${API_BASE_URL}/users/me`, {
-    headers: {
-      ...getJsonHeaders(),
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/users/me`, {
+      headers: {
+        ...getJsonHeaders(),
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    throw Object.assign(new Error('Unable to reach the API.'), {
+      code: 'NETWORK_ERROR',
+    });
+  }
 
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, 'Unable to load user profile.'));
+    throw Object.assign(
+      new Error(getErrorMessage(data, 'Unable to load user profile.')),
+      { status: response.status }
+    );
   }
 
   return data.user ?? data.data ?? data;
@@ -98,11 +109,15 @@ export function useAuth() {
           setUser(freshUser);
           await saveAuthSession(storedToken, freshUser);
         }
-      } catch {
-        await clearAuthSession();
+      } catch (error) {
+        if (error?.status === 401 || error?.status === 403) {
+          await clearAuthSession();
+        }
         if (!mounted) return;
-        setToken(null);
-        setUser(null);
+        if (error?.status === 401 || error?.status === 403) {
+          setToken(null);
+          setUser(null);
+        }
       } finally {
         if (mounted) setLoading(false);
       }

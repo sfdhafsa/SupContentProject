@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
+import RequireAuth from '../src/components/RequireAuth';
 import TopNavbar from '../src/components/TopNavbar';
 import { getAuthUser } from '../src/services/authStorage';
 import FeedList from '../src/components/feed/FeedList';
@@ -49,7 +50,7 @@ function SectionHeader({ icon, title }) {
 }
 
 
-export default function Home() {
+function HomeContent() {
   const [username, setUsername] = useState('User');
   const {
     items: feedItems,
@@ -146,6 +147,14 @@ export default function Home() {
         <BottomTabBar />
       </View>
     </View>
+  );
+}
+
+export default function Home() {
+  return (
+    <RequireAuth>
+      <HomeContent />
+    </RequireAuth>
   );
 }
 

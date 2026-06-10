@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,11 +13,10 @@ import {
   View,
 } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
-import RequireAuth from '../src/components/RequireAuth';
-import { useAuth } from '../src/services/authApi.js';
-import api from '../src/config/api.js';
+import { getAuthToken } from '../src/services/authStorage';
+import { API_BASE_URL } from '../src/config/api';
 
-/* ── Utilitaires (inline, pas besoin d'import externe) ── */
+/* ── Utilitaires ── */
 
 function firstPresent(...values) {
   for (const v of values) {
@@ -55,9 +54,40 @@ function formatCount(n) {
   return String(num);
 }
 
+function authHeaders(token) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
+async function fetchJson(url, options) {
+  const response = await fetch(url, options);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data?.message || 'Request failed');
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+}
+
+function formatReview(review) {
+  return {
+    id: review.id,
+    poster: review.poster_url,
+    movie: review.title,
+    year: getYear(firstPresent(review.release_date, review.release_year, review.year)),
+    rating: Number(review.rating || 0),
+    date: formatShortDate(firstPresent(review.created_at, review.updated_at)),
+    review: review.text || 'A noté ce film.',
+  };
+}
+
 /* ── Constantes ── */
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (315 - 24 - 8) / 2;
 const TABS = ['Overview', 'Reviews', 'Lists', 'Stats'];
 const RED = '#ef0d1a';
@@ -67,20 +97,7 @@ const TEXT = '#111827';
 const MUTED = '#6b7280';
 const BORDER = '#e5e7eb';
 
-/* ── Formatage review ── */
-
-const formatReview = (review) => ({
-  id: review.id,
-  movieId: review.external_id,
-  poster: review.poster_url,
-  movie: review.title,
-  year: getYear(firstPresent(review.release_date, review.release_year, review.year)),
-  rating: Number(review.rating || 0),
-  date: formatShortDate(firstPresent(review.created_at, review.updated_at)),
-  review: review.text || 'A noté ce film.',
-});
-
-/* ── Composants UI ── */
+/* ── Composants UI partagés ── */
 
 function Banner() {
   return (
@@ -93,10 +110,10 @@ function Banner() {
   );
 }
 
-function Avatar({ uri, initials }) {
+function Avatar({ uri, initials, size = 52 }) {
   return (
-    <View style={styles.avatarRing}>
-      <View style={styles.avatar}>
+    <View style={[styles.avatarRing, { width: size, height: size, borderRadius: size / 2 }]}>
+      <View style={[styles.avatar, { borderRadius: size / 2 }]}>
         {uri ? (
           <Image source={{ uri }} style={styles.avatarImage} />
         ) : (
@@ -107,49 +124,15 @@ function Avatar({ uri, initials }) {
   );
 }
 
-function SearchBar({ value, onChange }) {
-  return (
-    <View style={styles.searchBar}>
-      <View style={styles.searchIconWrap}>
-        <View style={styles.searchCircle} />
-        <View style={styles.searchHandle} />
-      </View>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Rechercher films, personnes..."
-        placeholderTextColor="#9ca3af"
-        value={value}
-        onChangeText={onChange}
-      />
-      {value.length > 0 && (
-        <Pressable onPress={() => onChange('')} style={styles.clearBtn}>
-          <Text style={styles.clearText}>✕</Text>
-        </Pressable>
-      )}
-    </View>
-  );
-}
-
 function Skeleton({ style }) {
   return <View style={[styles.skeleton, style]} />;
 }
 
-function StatsTab({ stats, listsCount }) {
-  // Estimation grossière: durée moyenne film ~1h50
-  const hoursWatched = Math.round(stats.movies_watched * 1.83);
-  const cards = [
-    { label: 'Films vus', value: String(stats.movies_watched) },
-    { label: 'Heures vues', value: String(hoursWatched) },
-    { label: 'Critiques', value: String(stats.reviews) },
-    { label: 'Listes créées', value: String(listsCount) },
-  ];
+function StarRating({ rating }) {
   return (
-    <View style={styles.statsGrid}>
-      {cards.map((c) => (
-        <View key={c.label} style={styles.statCard}>
-          <Text style={styles.statCardLabel}>{c.label}</Text>
-          <Text style={styles.statCardValue}>{c.value}</Text>
-        </View>
+    <View style={styles.starsRow}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Text key={s} style={[styles.starText, s <= rating && styles.starTextFilled]}>★</Text>
       ))}
     </View>
   );
@@ -167,12 +150,22 @@ function EmptyTab({ label, sub }) {
   );
 }
 
-function StarRating({ rating }) {
+function MoviePosterCard({ poster, title }) {
   return (
-    <View style={styles.starsRow}>
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Text key={s} style={[styles.starText, s <= rating && styles.starTextFilled]}>★</Text>
-      ))}
+    <View style={styles.posterCard}>
+      {poster ? (
+        <Image source={{ uri: poster }} style={styles.posterImage} resizeMode="cover" />
+      ) : (
+        <View style={styles.posterPlaceholder}>
+          <View style={styles.filmIconRect} />
+        </View>
+      )}
+      <View style={styles.posterBookmark}>
+        <View style={styles.bookmarkInner} />
+      </View>
+      {title ? (
+        <Text style={styles.posterTitle} numberOfLines={1}>{title}</Text>
+      ) : null}
     </View>
   );
 }
@@ -222,12 +215,31 @@ function ListCard({ list }) {
   );
 }
 
+function StatsTab({ stats, listsCount }) {
+  const hoursWatched = Math.round((stats.movies_watched || 0) * 1.83);
+  const cards = [
+    { label: 'Films vus',     value: String(stats.movies_watched || 0) },
+    { label: 'Heures vues',   value: String(hoursWatched) },
+    { label: 'Critiques',     value: String(stats.reviews || 0) },
+    { label: 'Listes créées', value: String(listsCount) },
+  ];
+  return (
+    <View style={styles.statsGrid}>
+      {cards.map((c) => (
+        <View key={c.label} style={styles.statCard}>
+          <Text style={styles.statCardLabel}>{c.label}</Text>
+          <Text style={styles.statCardValue}>{c.value}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) {
   const [query, setQuery] = useState('');
   const filtered = users.filter((u) =>
     (u.username || '').toLowerCase().includes(query.trim().toLowerCase())
   );
-
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
@@ -284,89 +296,223 @@ function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) 
 
 /* ── Composant principal ── */
 
-function ProfileContent() {
+export default function PublicProfileScreen() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { id } = useLocalSearchParams(); // /public-profile?id=123
 
-  const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('Overview');
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [profileError, setProfileError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [profileUser, setProfileUser] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [lists, setLists] = useState([]);
+  const [favoriteMovies, setFavoriteMovies] = useState([]);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
-  const [stats, setStats] = useState({
-    followers: 0,
-    following: 0,
-    movies_watched: 0,
-    reviews: 0,
-  });
-  const [followModal, setFollowModal] = useState(null); // 'followers' | 'following' | null
+  const [stats, setStats] = useState({ followers: 0, following: 0, movies_watched: 0, reviews: 0 });
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('Overview');
+  const [followModal, setFollowModal] = useState(null);
 
   // Dérivées
-  const username = user?.username || '';
-  const bio = user?.bio || '';
-  const avatar = user?.avatar_url || null;
-  const websiteUrl = user?.website_url || null;
-  const roles = user?.roles || [];
-  const isAdmin = roles.map((r) => String(r).toLowerCase()).includes('admin');
-  const initials = username.slice(0, 2).toUpperCase();
-  const joinDate = formatMonthYear(
-    firstPresent(user?.created_at, user?.createdAt, user?.profile?.created_at)
+  const username  = profileUser?.username || '';
+  const bio       = profileUser?.bio || '';
+  const avatar    = profileUser?.avatar_url || null;
+  const websiteUrl = profileUser?.website_url || null;
+  const roles     = profileUser?.roles || [];
+  const isAdmin   = roles.map((r) => String(r).toLowerCase()).includes('admin');
+  const initials  = username.slice(0, 2).toUpperCase();
+  const joinDate  = formatMonthYear(
+    firstPresent(profileUser?.created_at, profileUser?.createdAt)
   );
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!id) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const token = await getAuthToken();
+        const headers = authHeaders(token);
 
-    const fetchProfileData = async () => {
-      setProfileLoading(true);
-      setProfileError('');
-
-      const [exportResult, libraryResult, followersResult, followingResult] =
-        await Promise.allSettled([
-          api.get('/users/me/export'),
-          api.get('/library/stats'),
-          api.get(`/social/follow/${user.id}/followers`),
-          api.get(`/social/follow/${user.id}/following`),
+        const [userRes, activityRes, followersRes, followingRes] = await Promise.all([
+          fetchJson(`${API_BASE_URL}/users/${id}`, { headers }),
+          fetchJson(`${API_BASE_URL}/users/${id}/activity`, { headers }),
+          fetchJson(`${API_BASE_URL}/social/follow/${id}/followers`, { headers }),
+          fetchJson(`${API_BASE_URL}/social/follow/${id}/following`, { headers }),
         ]);
 
-      try {
-        const exportData =
-          exportResult.status === 'fulfilled' ? exportResult.value.data || {} : {};
-        const activeReviews = (exportData.reviews || []).filter((r) => !r.deleted_at);
-        const customLists = exportData.custom_lists || [];
-        const libraryStats =
-          libraryResult.status === 'fulfilled' ? libraryResult.value.data?.data || {} : {};
-        const followersData =
-          followersResult.status === 'fulfilled' ? followersResult.value.data || {} : {};
-        const followingData =
-          followingResult.status === 'fulfilled' ? followingResult.value.data || {} : {};
+        const userData = userRes.user ?? userRes.data ?? userRes;
+        setProfileUser(userData);
 
-        setReviews(activeReviews.map(formatReview));
-        setLists(customLists);
-        setFollowersList(followersData.followers || []);
-        setFollowingList(followingData.following || []);
-        setStats({
-          followers: followersData.count || 0,
-          following: followingData.count || 0,
-          movies_watched: libraryStats.counts?.COMPLETED || libraryStats.totalMovies || 0,
-          reviews: activeReviews.length,
-        });
+        const followers = followersRes.followers || [];
+        const following = followingRes.following || [];
+        setFollowersList(followers);
+        setFollowingList(following);
 
-        if ([exportResult, libraryResult, followersResult, followingResult]
-          .some((result) => result.status === 'rejected')) {
-          setProfileError('Certaines statistiques ne sont pas disponibles.');
+        // Vérifie si on suit déjà cet utilisateur
+        if (token) {
+          try {
+            const statusRes = await fetchJson(`${API_BASE_URL}/social/follow/${id}/follow-status`, { headers });
+            setIsFollowing(!!statusRes.isFollowing);
+          } catch {
+            setIsFollowing(false);
+          }
+        } else {
+          setIsFollowing(false);
         }
+
+        // Reviews publiques
+        try {
+          const reviewsRes = activityRes;
+          const rawReviews = reviewsRes.reviews ?? reviewsRes.data ?? reviewsRes ?? [];
+          const activeReviews = Array.isArray(rawReviews)
+            ? rawReviews.filter((r) => !r.deleted_at)
+            : [];
+          setReviews(activeReviews.map(formatReview));
+
+          // Films favoris = les 3 mieux notés
+          const sorted = [...activeReviews].sort((a, b) => b.rating - a.rating);
+          setFavoriteMovies(sorted.slice(0, 3).map(formatReview));
+
+          setStats({
+            followers: followersRes.count || followers.length,
+            following: followingRes.count || following.length,
+            movies_watched: reviewsRes.stats?.movies_watched || activeReviews.length,
+            reviews: reviewsRes.stats?.reviews || activeReviews.length,
+          });
+        } catch {
+          setStats({
+            followers: followersRes.count || followers.length,
+            following: followingRes.count || following.length,
+            movies_watched: 0,
+            reviews: 0,
+          });
+        }
+
+        // Listes publiques
+        try {
+          const listsRes = activityRes;
+          const rawLists = listsRes.lists ?? listsRes.data ?? listsRes ?? [];
+          setLists(Array.isArray(rawLists) ? rawLists.filter((l) => l.is_public) : []);
+        } catch {
+          setLists([]);
+        }
+      } catch (err) {
+        console.error('Public profile error:', err);
       } finally {
-        setProfileLoading(false);
+        setLoading(false);
       }
-    };
+    })();
+  }, [id]);
 
-    fetchProfileData();
-  }, [user?.id]);
+  async function handleFollow() {
+    setFollowLoading(true);
+    try {
+      const token = await getAuthToken();
+      const headers = authHeaders(token);
+      if (!token) {
+        router.push('/login');
+        return;
+      }
 
-  if (authLoading || !user) {
+      const res = await fetchJson(`${API_BASE_URL}/social/follow/${id}`, { method: 'POST', headers });
+      const nextFollowing = res.status === 'followed';
+      setIsFollowing(nextFollowing);
+      setStats((s) => ({
+        ...s,
+        followers: Number.isFinite(Number(res.count))
+          ? Number(res.count)
+          : Math.max(0, s.followers + (nextFollowing ? 1 : -1)),
+      }));
+    } catch (err) {
+      console.error('Follow error:', err);
+    } finally {
+      setFollowLoading(false);
+    }
+  }
+
+  function renderTabContent() {
+    if (loading) {
+      return (
+        <View style={{ gap: 8 }}>
+          <Skeleton style={{ height: 80, marginBottom: 8 }} />
+          <Skeleton style={{ height: 80, marginBottom: 8 }} />
+          <Skeleton style={{ height: 80 }} />
+        </View>
+      );
+    }
+
+    switch (activeTab) {
+      case 'Overview':
+        return (
+          <View>
+            {/* Films favoris */}
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={styles.sectionIcon}>
+                  <View style={[styles.filmIconRect, { backgroundColor: RED }]} />
+                </View>
+                <Text style={styles.sectionTitle}>Films favoris</Text>
+              </View>
+              {favoriteMovies.length > 0 && (
+                <Pressable onPress={() => setActiveTab('Reviews')}>
+                  <Text style={styles.viewAll}>Voir tout</Text>
+                </Pressable>
+              )}
+            </View>
+
+            {favoriteMovies.length === 0 ? (
+              <EmptyTab label="Aucun film favori." />
+            ) : (
+              <View style={styles.postersRow}>
+                {favoriteMovies.map((item) => (
+                  <MoviePosterCard key={item.id} poster={item.poster} title={item.movie} />
+                ))}
+              </View>
+            )}
+
+            {/* Critiques récentes */}
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={styles.sectionIcon}>
+                  <View style={[styles.starSmall, { borderColor: '#F59E0B' }]} />
+                </View>
+                <Text style={styles.sectionTitle}>Critiques récentes</Text>
+              </View>
+            </View>
+
+            {reviews.length === 0 ? (
+              <EmptyTab label="Aucune critique." />
+            ) : (
+              reviews.slice(0, 2).map((item) => (
+                <ReviewCard key={item.id} item={item} />
+              ))
+            )}
+          </View>
+        );
+
+      case 'Reviews':
+        return reviews.length === 0 ? (
+          <EmptyTab label="Aucune critique." sub="Cet utilisateur n'a pas encore noté de films." />
+        ) : (
+          <View>{reviews.map((item) => <ReviewCard key={item.id} item={item} />)}</View>
+        );
+
+      case 'Lists':
+        return lists.length === 0 ? (
+          <EmptyTab label="Aucune liste publique." sub="Cet utilisateur n'a pas de listes publiques." />
+        ) : (
+          <View>{lists.map((list) => <ListCard key={list.id} list={list} />)}</View>
+        );
+
+      case 'Stats':
+        return <StatsTab stats={stats} listsCount={lists.length} />;
+
+      default:
+        return null;
+    }
+  }
+
+  if (loading) {
     return (
       <View style={styles.page}>
         <View style={styles.phone}>
@@ -379,85 +525,35 @@ function ProfileContent() {
     );
   }
 
-  function renderTabContent() {
-    if (profileLoading) {
-      return (
-        <View style={styles.skeletonList}>
-          <Skeleton style={{ height: 80, marginBottom: 8 }} />
-          <Skeleton style={{ height: 80, marginBottom: 8 }} />
-          <Skeleton style={{ height: 80 }} />
-        </View>
-      );
-    }
-
-    switch (activeTab) {
-      case 'Stats':
-        return <StatsTab stats={stats} listsCount={lists.length} />;
-
-      case 'Overview':
-        return (
-          <View>
-            <Text style={styles.sectionTitle}>Informations du compte</Text>
-            <View style={styles.infoCard}>
-              {[
-                { label: 'Email', value: user?.email },
-                { label: 'Nom d\'utilisateur', value: `@${username}` },
-                { label: 'Bio', value: bio || '—' },
-                { label: 'Site web', value: websiteUrl || '—' },
-                { label: 'Membre depuis', value: joinDate || '—' },
-              ].map(({ label, value }) => (
-                <View key={label} style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>{label}</Text>
-                  <Text style={styles.infoValue} numberOfLines={1}>{value}</Text>
-                </View>
-              ))}
-            </View>
-
-            <Text style={styles.sectionTitle}>Activité récente</Text>
-            {reviews.length === 0 ? (
-              <EmptyTab
-                label="Aucune activité récente."
-                sub="Commencez à noter des films pour les voir ici."
-              />
-            ) : (
-              reviews.slice(0, 3).map((item) => <ReviewCard key={item.id} item={item} />)
-            )}
-          </View>
-        );
-
-      case 'Reviews':
-        return reviews.length === 0 ? (
-          <EmptyTab label="Aucune critique." sub="Notez et critiquez des films pour les voir ici." />
-        ) : (
-          <View>
-            {reviews.map((item) => (
-              <ReviewCard key={item.id} item={item} />
-            ))}
-          </View>
-        );
-
-      case 'Lists':
-        return lists.length === 0 ? (
-          <EmptyTab label="Aucune liste." sub="Créez des listes pour organiser vos films." />
-        ) : (
-          <View>
-            {lists.map((list) => (
-              <ListCard key={list.id} list={list} />
-            ))}
-          </View>
-        );
-
-      default:
-        return null;
-    }
-  }
-
   return (
     <View style={styles.page}>
       <View style={styles.phone}>
-        {/* Barre de recherche */}
-        <View style={styles.searchWrapper}>
-          <SearchBar value={search} onChange={setSearch} />
+        {/* Header navigation */}
+        <View style={styles.navBar}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <View style={styles.backArrow} />
+          </Pressable>
+          <View style={styles.navActions}>
+            {/* Icône recherche */}
+            <Pressable style={styles.navIconBtn}>
+              <View style={styles.navSearchWrap}>
+                <View style={styles.navSearchCircle} />
+                <View style={styles.navSearchHandle} />
+              </View>
+            </Pressable>
+            {/* Icône message */}
+            <Pressable style={styles.navIconBtn}>
+              <View style={styles.msgIcon} />
+            </Pressable>
+            {/* Avatar mini */}
+            <View style={styles.navAvatar}>
+              {avatar ? (
+                <Image source={{ uri: avatar }} style={styles.navAvatarImg} />
+              ) : (
+                <Text style={styles.navAvatarText}>{initials.slice(0, 1)}</Text>
+              )}
+            </View>
+          </View>
         </View>
 
         <ScrollView
@@ -471,13 +567,33 @@ function ProfileContent() {
             <View style={styles.avatarContainer}>
               <Avatar uri={avatar} initials={initials} />
             </View>
+            {/* Boutons Follow / Message / Share */}
             <View style={styles.actionButtons}>
-              <Pressable style={styles.editBtn} onPress={() => router.push('/settings')}>
-                <View style={styles.gearOuter}>
-                  <View style={styles.gearInner} />
+              <Pressable
+                style={[styles.followBtn, isFollowing && styles.followingBtn]}
+                onPress={handleFollow}
+                disabled={followLoading}
+              >
+                {/* icône personne + plus */}
+                <View style={styles.followIcon}>
+                  <View style={[styles.followHead, { borderColor: isFollowing ? MUTED : CARD }]} />
+                  <View style={[styles.followBody, { borderColor: isFollowing ? MUTED : CARD }]} />
+                  {!isFollowing && (
+                    <>
+                      <View style={styles.followPlus1} />
+                      <View style={styles.followPlus2} />
+                    </>
+                  )}
                 </View>
-                <Text style={styles.editBtnText}>Modifier</Text>
+                <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
+                  {isFollowing ? 'Abonné' : 'Suivre'}
+                </Text>
               </Pressable>
+
+              <Pressable style={styles.messageBtn}>
+                <Text style={styles.messageBtnText}>Message</Text>
+              </Pressable>
+
               <Pressable style={styles.shareBtn}>
                 <View style={styles.shareIcon}>
                   <View style={styles.shareDot} />
@@ -513,10 +629,10 @@ function ProfileContent() {
           {/* Compteurs */}
           <View style={styles.countersRow}>
             {[
-              { value: stats.movies_watched, label: 'Vus', onPress: null },
-              { value: stats.reviews, label: 'Critiques', onPress: null },
-              { value: formatCount(stats.followers), label: 'Abonnés', onPress: () => setFollowModal('followers') },
-              { value: formatCount(stats.following), label: 'Abonnements', onPress: () => setFollowModal('following') },
+              { value: stats.movies_watched,          label: 'Vus',          onPress: null },
+              { value: stats.reviews,                  label: 'Critiques',    onPress: null },
+              { value: formatCount(stats.followers),   label: 'Abonnés',      onPress: () => setFollowModal('followers') },
+              { value: formatCount(stats.following),   label: 'Abonnements',  onPress: () => setFollowModal('following') },
             ].map((item, i) => (
               <Pressable
                 key={item.label}
@@ -549,7 +665,6 @@ function ProfileContent() {
           </View>
 
           {/* Contenu onglet */}
-          {profileError ? <Text style={styles.profileError}>{profileError}</Text> : null}
           <View style={styles.tabContent}>{renderTabContent()}</View>
         </ScrollView>
 
@@ -560,24 +675,16 @@ function ProfileContent() {
           visible={followModal !== null}
           title={followModal === 'followers' ? 'Abonnés' : 'Abonnements'}
           users={followModal === 'followers' ? followersList : followingList}
-          loading={profileLoading}
+          loading={loading}
           emptyMessage={
             followModal === 'followers'
               ? 'Aucun abonné pour le moment.'
-              : 'Vous ne suivez personne pour le moment.'
+              : 'Cet utilisateur ne suit personne.'
           }
           onClose={() => setFollowModal(null)}
         />
       </View>
     </View>
-  );
-}
-
-export default function ProfileScreen() {
-  return (
-    <RequireAuth>
-      <ProfileContent />
-    </RequireAuth>
   );
 }
 
@@ -599,69 +706,87 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: '100%',
   },
-  loadingContainer: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
+  loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
 
-  // Recherche
-  searchWrapper: {
+  // Nav bar
+  navBar: {
+    alignItems: 'center',
     borderBottomColor: BORDER,
     borderBottomWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  searchBar: {
-    alignItems: 'center',
-    backgroundColor: BG,
-    borderRadius: 8,
     flexDirection: 'row',
-    height: 28,
-    paddingHorizontal: 8,
+    height: 40,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
   },
-  searchIconWrap: { height: 14, marginRight: 5, position: 'relative', width: 14 },
-  searchCircle: {
-    borderColor: MUTED,
-    borderRadius: 4,
-    borderWidth: 1.2,
-    height: 8,
+  backBtn: { padding: 4 },
+  backArrow: {
+    borderBottomColor: TEXT,
+    borderBottomWidth: 1.5,
+    borderLeftColor: TEXT,
+    borderLeftWidth: 1.5,
+    height: 10,
+    transform: [{ rotate: '45deg' }],
+    width: 10,
+  },
+  navActions: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  navIconBtn: { alignItems: 'center', height: 24, justifyContent: 'center', width: 24 },
+  navSearchWrap: { height: 16, position: 'relative', width: 16 },
+  navSearchCircle: {
+    borderColor: TEXT,
+    borderRadius: 5,
+    borderWidth: 1.3,
+    height: 9,
     left: 2,
     position: 'absolute',
     top: 2,
-    width: 8,
+    width: 9,
   },
-  searchHandle: {
-    backgroundColor: MUTED,
+  navSearchHandle: {
+    backgroundColor: TEXT,
     borderRadius: 1,
-    height: 5,
-    left: 9,
+    height: 6,
+    left: 10,
     position: 'absolute',
-    top: 9,
+    top: 10,
     transform: [{ rotate: '-45deg' }],
-    width: 1.2,
+    width: 1.3,
   },
-  searchInput: { color: TEXT, flex: 1, fontSize: 11, padding: 0 },
-  clearBtn: { padding: 2 },
-  clearText: { color: MUTED, fontSize: 10 },
+  msgIcon: {
+    borderColor: TEXT,
+    borderRadius: 4,
+    borderWidth: 1.3,
+    height: 12,
+    width: 16,
+  },
+  navAvatar: {
+    alignItems: 'center',
+    backgroundColor: '#e5e7eb',
+    borderRadius: 12,
+    height: 24,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 24,
+  },
+  navAvatarImg: { height: '100%', width: '100%' },
+  navAvatarText: { color: TEXT, fontSize: 9, fontWeight: '700' },
 
   // Scroll
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 8 },
 
   // Bannière
-  bannerWrapper: { height: 100, position: 'relative' },
+  bannerWrapper: { height: 110, position: 'relative' },
   banner: {
     backgroundColor: '#1a1a2e',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    height: 100,
+    height: 110,
     overflow: 'hidden',
   },
   bannerCell: {
     borderColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    height: 50,
+    height: 55,
     width: 315 / 6,
   },
   bannerReel: {
@@ -672,7 +797,7 @@ const styles = StyleSheet.create({
     left: '50%',
     marginLeft: -40,
     position: 'absolute',
-    top: 10,
+    top: 15,
     width: 80,
   },
 
@@ -680,15 +805,11 @@ const styles = StyleSheet.create({
   avatarContainer: { bottom: -22, left: 12, position: 'absolute' },
   avatarRing: {
     borderColor: CARD,
-    borderRadius: 30,
     borderWidth: 2.5,
-    height: 52,
-    width: 52,
   },
   avatar: {
     alignItems: 'center',
     backgroundColor: '#9ca3af',
-    borderRadius: 27,
     flex: 1,
     justifyContent: 'center',
     overflow: 'hidden',
@@ -698,34 +819,78 @@ const styles = StyleSheet.create({
 
   // Boutons d'action
   actionButtons: {
-    bottom: -14,
+    alignItems: 'center',
+    bottom: -16,
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
     position: 'absolute',
     right: 10,
   },
-  editBtn: {
+  followBtn: {
+    alignItems: 'center',
+    backgroundColor: RED,
+    borderRadius: 7,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  followingBtn: {
+    backgroundColor: CARD,
+    borderColor: BORDER,
+    borderWidth: 1,
+  },
+  followIcon: { height: 14, position: 'relative', width: 14 },
+  followHead: {
+    borderRadius: 4,
+    borderWidth: 1.2,
+    height: 6,
+    left: 3,
+    position: 'absolute',
+    top: 0,
+    width: 6,
+  },
+  followBody: {
+    borderRadius: 5,
+    borderWidth: 1.2,
+    bottom: 0,
+    height: 6,
+    left: 0,
+    position: 'absolute',
+    width: 12,
+  },
+  followPlus1: {
+    backgroundColor: CARD,
+    borderRadius: 1,
+    height: 1.5,
+    position: 'absolute',
+    right: -5,
+    top: 2,
+    width: 7,
+  },
+  followPlus2: {
+    backgroundColor: CARD,
+    borderRadius: 1,
+    height: 7,
+    position: 'absolute',
+    right: -2,
+    top: -1,
+    width: 1.5,
+  },
+  followBtnText: { color: CARD, fontSize: 10, fontWeight: '700' },
+  followingBtnText: { color: MUTED },
+
+  messageBtn: {
     alignItems: 'center',
     backgroundColor: CARD,
     borderColor: BORDER,
     borderRadius: 7,
     borderWidth: 1,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  gearOuter: {
-    alignItems: 'center',
-    borderColor: TEXT,
-    borderRadius: 5,
-    borderWidth: 1.2,
-    height: 10,
-    justifyContent: 'center',
-    width: 10,
-  },
-  gearInner: { backgroundColor: TEXT, borderRadius: 2, height: 4, width: 4 },
-  editBtnText: { color: TEXT, fontSize: 10, fontWeight: '600' },
+  messageBtnText: { color: TEXT, fontSize: 10, fontWeight: '600' },
+
   shareBtn: {
     alignItems: 'center',
     backgroundColor: CARD,
@@ -768,7 +933,7 @@ const styles = StyleSheet.create({
   },
 
   // Infos utilisateur
-  userInfo: { marginTop: 28, paddingBottom: 10, paddingHorizontal: 12 },
+  userInfo: { marginTop: 30, paddingBottom: 10, paddingHorizontal: 12 },
   nameRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   userName: { color: TEXT, fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
   adminBadge: {
@@ -797,13 +962,6 @@ const styles = StyleSheet.create({
   counterValue: { color: TEXT, fontSize: 13, fontWeight: '700' },
   counterLabel: { color: MUTED, fontSize: 9, marginTop: 1 },
   counterLabelClickable: { color: '#374151' },
-  profileError: {
-    color: '#b45309',
-    fontSize: 10,
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    textAlign: 'center',
-  },
 
   // Onglets
   tabBar: { borderBottomColor: BORDER, borderBottomWidth: 1, flexDirection: 'row' },
@@ -820,16 +978,64 @@ const styles = StyleSheet.create({
 
   // Contenu onglet
   tabContent: { padding: 10 },
-  sectionTitle: {
-    color: TEXT,
-    fontSize: 13,
-    fontWeight: '700',
+
+  // Section header
+  sectionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 8,
     marginTop: 4,
   },
+  sectionTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 5 },
+  sectionIcon: {
+    alignItems: 'center',
+    backgroundColor: BG,
+    borderRadius: 5,
+    height: 20,
+    justifyContent: 'center',
+    width: 20,
+  },
+  sectionTitle: { color: TEXT, fontSize: 12, fontWeight: '700' },
+  viewAll: { color: RED, fontSize: 10, fontWeight: '600' },
+  starSmall: { borderRadius: 3, borderWidth: 1, height: 10, width: 10 },
+
+  // Grille posters
+  postersRow: { flexDirection: 'row', gap: 6, marginBottom: 14 },
+  posterCard: {
+    backgroundColor: '#e5e7eb',
+    borderRadius: 8,
+    flex: 1,
+    height: 80,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  posterImage: { height: '100%', width: '100%' },
+  posterPlaceholder: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  posterBookmark: {
+    position: 'absolute',
+    right: 5,
+    top: 5,
+  },
+  bookmarkInner: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 3,
+    height: 14,
+    width: 10,
+  },
+  posterTitle: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    bottom: 0,
+    color: '#fff',
+    fontSize: 7,
+    left: 0,
+    padding: 2,
+    position: 'absolute',
+    right: 0,
+  },
 
   // État vide
-  emptyTab: { alignItems: 'center', paddingVertical: 24 },
+  emptyTab: { alignItems: 'center', paddingVertical: 20 },
   emptyIcon: {
     alignItems: 'center',
     backgroundColor: BG,
@@ -851,20 +1057,6 @@ const styles = StyleSheet.create({
 
   // Skeleton
   skeleton: { backgroundColor: '#e5e7eb', borderRadius: 10 },
-  skeletonList: { gap: 8 },
-
-  // Carte info
-  infoCard: {
-    backgroundColor: CARD,
-    borderColor: BORDER,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 10,
-  },
-  infoRow: { marginBottom: 6 },
-  infoLabel: { color: MUTED, fontSize: 9 },
-  infoValue: { color: TEXT, fontSize: 11, fontWeight: '500' },
 
   // Carte critique
   reviewCard: {
@@ -932,12 +1124,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  modalContent: {
-    backgroundColor: CARD,
-    borderRadius: 16,
-    maxHeight: '70%',
-    width: '100%',
-  },
+  modalContent: { backgroundColor: CARD, borderRadius: 16, maxHeight: '70%', width: '100%' },
   modalHeader: {
     alignItems: 'center',
     borderBottomColor: BORDER,
@@ -961,12 +1148,7 @@ const styles = StyleSheet.create({
   },
   modalList: { padding: 10 },
   modalEmpty: { color: MUTED, fontSize: 11, paddingVertical: 20, textAlign: 'center' },
-  followRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    paddingVertical: 8,
-  },
+  followRow: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingVertical: 8 },
   followAvatar: {
     alignItems: 'center',
     backgroundColor: BG,
