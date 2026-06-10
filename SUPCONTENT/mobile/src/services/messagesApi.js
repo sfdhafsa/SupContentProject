@@ -5,7 +5,7 @@ import api from '../config/api';
  * Returns the list of conversations for the current user.
  */
 export async function getConversations() {
-  const { data } = await api.get('/messages/conversations');
+  const { data } = await api.get('/social/messages/conversations');
   return data.conversations || [];
 }
 

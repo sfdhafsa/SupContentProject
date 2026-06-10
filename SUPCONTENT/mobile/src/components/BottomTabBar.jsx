@@ -5,7 +5,7 @@ const tabs = [
   { label: 'Accueil', route: '/home', icon: 'home' },
   { label: 'Decouvrir', route: '/discover', icon: 'search' },
   { label: 'Bibliotheque', route: '/library', icon: 'library' },
-  { label: 'Alertes', route: '/notifications', icon: 'bell', badge: 3 },
+  { label: 'Chat', route: '/messages', icon: 'chat' },
   { label: 'Profil', route: '/profile', icon: 'profile' },
 ];
 
@@ -15,12 +15,14 @@ function TabIcon({ type, active }) {
   return (
     <View>
       {type === 'home' && <View style={[styles.homeIcon, { borderColor: color }]} />}
+
       {type === 'search' && (
         <View style={styles.searchWrap}>
           <View style={[styles.searchCircle, { borderColor: color }]} />
           <View style={[styles.searchHandle, { backgroundColor: color }]} />
         </View>
       )}
+
       {type === 'library' && (
         <View style={styles.libraryWrap}>
           <View style={[styles.libraryLine, { backgroundColor: color }]} />
@@ -28,7 +30,22 @@ function TabIcon({ type, active }) {
           <View style={[styles.libraryLine, { backgroundColor: color }]} />
         </View>
       )}
-      {type === 'bell' && <View style={[styles.bellIcon, { borderColor: color }]} />}
+
+      {type === 'chat' && (
+        <View style={styles.chatWrap}>
+          {/* Bubble body */}
+          <View style={[styles.chatBubble, { borderColor: color }]} />
+          {/* Tail */}
+          <View style={[styles.chatTail, { borderTopColor: color }]} />
+          {/* Dots inside bubble */}
+          <View style={styles.chatDots}>
+            <View style={[styles.chatDot, { backgroundColor: color }]} />
+            <View style={[styles.chatDot, { backgroundColor: color }]} />
+            <View style={[styles.chatDot, { backgroundColor: color }]} />
+          </View>
+        </View>
+      )}
+
       {type === 'profile' && (
         <View style={styles.profileWrap}>
           <View style={[styles.profileHead, { borderColor: color }]} />
@@ -46,19 +63,20 @@ export default function BottomTabBar() {
   return (
     <View style={styles.container}>
       {tabs.map((tab) => {
-        const active = pathname === tab.route;
+        const active = pathname === tab.route || pathname.startsWith('/conversation');
+
+        // Only highlight chat tab for conversation routes
+        const isActive =
+          tab.route === '/messages'
+            ? pathname === '/messages' || pathname.startsWith('/conversation')
+            : pathname === tab.route;
 
         return (
           <Pressable key={tab.route} onPress={() => router.push(tab.route)} style={styles.tab}>
             <View style={styles.iconSlot}>
-              <TabIcon type={tab.icon} active={active} />
-              {tab.badge ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{tab.badge}</Text>
-                </View>
-              ) : null}
+              <TabIcon type={tab.icon} active={isActive} />
             </View>
-            <Text style={[styles.label, active && styles.activeLabel]}>{tab.label}</Text>
+            <Text style={[styles.label, isActive && styles.activeLabel]}>{tab.label}</Text>
           </Pressable>
         );
       })}
@@ -125,7 +143,6 @@ const styles = StyleSheet.create({
     width: 11,
   },
   searchHandle: {
-    backgroundColor: '#9ca3af',
     borderRadius: 1,
     height: 7,
     left: 13,
@@ -141,19 +158,54 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   libraryLine: {
-    backgroundColor: '#9ca3af',
     borderRadius: 1,
     height: 14,
     width: 2,
   },
-  bellIcon: {
-    borderRadius: 7,
+
+  // Chat bubble icon
+  chatWrap: {
+    height: 20,
+    marginLeft: 2,
+    marginTop: 2,
+    position: 'relative',
+    width: 20,
+  },
+  chatBubble: {
+    borderRadius: 8,
     borderWidth: 1.5,
     height: 13,
-    marginLeft: 5,
-    marginTop: 4,
-    width: 12,
+    left: 1,
+    position: 'absolute',
+    top: 1,
+    width: 18,
   },
+  chatTail: {
+    borderLeftColor: 'transparent',
+    borderLeftWidth: 3,
+    borderRightColor: 'transparent',
+    borderRightWidth: 0,
+    borderTopWidth: 4,
+    bottom: 2,
+    height: 0,
+    left: 4,
+    position: 'absolute',
+    width: 0,
+  },
+  chatDots: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 2,
+    left: 5,
+    position: 'absolute',
+    top: 5,
+  },
+  chatDot: {
+    borderRadius: 1.5,
+    height: 3,
+    width: 3,
+  },
+
   profileWrap: {
     alignItems: 'center',
     marginTop: 3,
@@ -170,21 +222,5 @@ const styles = StyleSheet.create({
     height: 8,
     marginTop: 1,
     width: 15,
-  },
-  badge: {
-    alignItems: 'center',
-    backgroundColor: '#ef0d1a',
-    borderRadius: 7,
-    height: 14,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: 0,
-    top: -1,
-    width: 14,
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 8,
-    fontWeight: '800',
   },
 });
