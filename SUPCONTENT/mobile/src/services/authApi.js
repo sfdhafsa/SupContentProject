@@ -70,8 +70,8 @@ export async function getCurrentUser(token) {
   return data.user ?? data.data ?? data;
 }
 
-export function getGoogleOAuthUrl(redirectUri) {
-  const params = new URLSearchParams({ redirect_uri: redirectUri });
+export function getGoogleOAuthUrl(redirectUri, client = 'mobile') {
+  const params = new URLSearchParams({ client, redirect_uri: redirectUri });
   return `${API_BASE_URL}/auth/google?${params.toString()}`;
 }
 
