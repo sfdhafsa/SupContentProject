@@ -1,12 +1,8 @@
 import { API_BASE_URL } from '../config/api';
-import { getAuthToken } from './authStorage';
 
-async function getHeaders() {
-  const token = await getAuthToken();
+function getHeaders() {
   return {
     Accept: 'application/json',
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
@@ -14,7 +10,7 @@ export async function searchMovies({ query, page = 1, genre_id }) {
   const params = new URLSearchParams({ q: query, page });
   if (genre_id) params.append('genre_id', genre_id);
   const res = await fetch(`${API_BASE_URL}/movies/search?${params}`, {
-    headers: await getHeaders(),
+    headers: getHeaders(),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Erreur recherche');
@@ -28,7 +24,7 @@ export async function discoverMovies({ page = 1, genre_ids, year_min, year_max, 
   if (year_max)   params.append('year_max', year_max);
   if (min_rating) params.append('min_rating', min_rating);
   const res = await fetch(`${API_BASE_URL}/movies/discover?${params}`, {
-    headers: await getHeaders(),
+    headers: getHeaders(),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Erreur discover');
@@ -37,7 +33,7 @@ export async function discoverMovies({ page = 1, genre_ids, year_min, year_max, 
 
 export async function getTrending() {
   const res = await fetch(`${API_BASE_URL}/movies/trending`, {
-    headers: await getHeaders(),
+    headers: getHeaders(),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Erreur trending');
@@ -46,7 +42,7 @@ export async function getTrending() {
 
 export async function getTopRated() {
   const res = await fetch(`${API_BASE_URL}/movies/top-rated`, {
-    headers: await getHeaders(),
+    headers: getHeaders(),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Erreur top rated');
@@ -55,7 +51,7 @@ export async function getTopRated() {
 
 export async function getNowPlaying() {
   const res = await fetch(`${API_BASE_URL}/movies/now-playing`, {
-    headers: await getHeaders(),
+    headers: getHeaders(),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Erreur now playing');
@@ -64,7 +60,7 @@ export async function getNowPlaying() {
 
 export async function getMovieById(tmdbId) {
   const res = await fetch(`${API_BASE_URL}/movies/${tmdbId}`, {
-    headers: await getHeaders(),
+    headers: getHeaders(),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Film introuvable');
@@ -73,7 +69,7 @@ export async function getMovieById(tmdbId) {
 
 export async function getGenres() {
   const res = await fetch(`${API_BASE_URL}/movies/genres`, {
-    headers: await getHeaders(),
+    headers: getHeaders(),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Erreur genres');
