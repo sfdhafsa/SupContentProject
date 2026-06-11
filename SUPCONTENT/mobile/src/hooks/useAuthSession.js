@@ -33,6 +33,6 @@ export default function useAuthSession() {
 
   return {
     ...session,
-    isAuthenticated: !!session.token,
+    isAuthenticated: !!session.token && !!session.user,
   };
 }

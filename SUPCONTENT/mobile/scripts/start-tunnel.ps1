@@ -167,7 +167,7 @@ try {
   Write-Host 'Starting Expo Go on port 8081...' -ForegroundColor Cyan
   Push-Location $mobileRoot
   try {
-    & npx expo start --localhost --clear --port 8081
+    & npx.cmd expo start --localhost --clear --port 8081
   } finally {
     Pop-Location
   }

@@ -5,17 +5,18 @@ import useAuthSession from '../hooks/useAuthSession';
 import { clearAuthSession } from '../services/authStorage';
 
 const publicTabs = [
-  { label: 'Decouvrir', route: '/discover', icon: 'search' },
-  { label: 'Listes', route: '/library', icon: 'library' },
+  { label: 'Explore', route: '/discover', icon: 'search' },
+  { label: 'Lists', route: '/library', icon: 'library' },
   { label: 'Sign in', route: '/login', icon: 'signin' },
 ];
 
 const privateTabs = [
-  { label: 'Accueil', route: '/home', icon: 'home' },
-  { label: 'Decouvrir', route: '/discover', icon: 'search' },
-  { label: 'Bibliotheque', route: '/library', icon: 'library' },
-  { label: 'Profil', route: '/profile', icon: 'profile' },
-  { label: 'Sortir', action: 'logout', icon: 'logout' },
+  { label: 'Home', route: '/home', icon: 'home' },
+  { label: 'Explore', route: '/discover', icon: 'search' },
+  { label: 'Messages', route: '/messages', icon: 'chat' },
+  { label: 'Library', route: '/library', icon: 'library' },
+  { label: 'Profile', route: '/profile', icon: 'profile' },
+  { label: 'Out', action: 'logout', icon: 'logout' },
 ];
 
 function TabIcon({ type, active }) {
@@ -39,6 +40,17 @@ function TabIcon({ type, active }) {
         </View>
       )}
       {type === 'bell' && <View style={[styles.bellIcon, { borderColor: color }]} />}
+      {type === 'chat' && (
+        <View style={styles.chatWrap}>
+          <View style={[styles.chatBubble, { borderColor: color }]} />
+          <View style={[styles.chatTail, { borderTopColor: color }]} />
+          <View style={styles.chatDots}>
+            <View style={[styles.chatDot, { backgroundColor: color }]} />
+            <View style={[styles.chatDot, { backgroundColor: color }]} />
+            <View style={[styles.chatDot, { backgroundColor: color }]} />
+          </View>
+        </View>
+      )}
       {type === 'signin' && (
         <View style={styles.authIcon}>
           <View style={[styles.authDoor, { borderColor: color }]} />
@@ -87,8 +99,6 @@ export default function BottomTabBar() {
   return (
     <View style={styles.container}>
       {tabs.map((tab) => {
-        const active = tab.route && pathname === tab.route || pathname.startsWith('/conversation');
-
         // Only highlight chat tab for conversation routes
         const isActive =
           tab.route === '/messages'
