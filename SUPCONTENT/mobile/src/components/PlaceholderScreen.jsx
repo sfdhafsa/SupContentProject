@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 import BottomTabBar from './BottomTabBar';
+import ScreenContainer from './ScreenContainer';
 import TopNavbar from './TopNavbar';
 
 export default function PlaceholderScreen({ title }) {
   return (
-    <View style={styles.page}>
+    <ScreenContainer>
       <View style={styles.phone}>
         <TopNavbar />
         <View style={styles.content}>
@@ -13,23 +14,14 @@ export default function PlaceholderScreen({ title }) {
         </View>
         <BottomTabBar />
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
   phone: {
     backgroundColor: '#ffffff',
-    borderRadius: 22,
-    height: 592,
-    maxWidth: 315,
+    flex: 1,
     overflow: 'hidden',
     position: 'relative',
     width: '100%',
@@ -38,7 +30,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: 28,
+    paddingBottom: 86,
   },
   title: {
     color: '#111827',

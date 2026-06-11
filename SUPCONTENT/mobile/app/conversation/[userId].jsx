@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import ChatView from '../../src/components/messages/ChatView';
+import ScreenContainer from '../../src/components/ScreenContainer';
 import { getAuthUser } from '../../src/services/authStorage';
 
 function BackArrow() {
@@ -24,7 +25,7 @@ export default function ConversationScreen() {
   }, []);
 
   return (
-    <View style={styles.page}>
+    <ScreenContainer>
       <View style={styles.phone}>
         {/* Chat header */}
         <View style={styles.header}>
@@ -49,23 +50,14 @@ export default function ConversationScreen() {
         {/* Chat messages + input */}
         <ChatView userId={userId} username={username} currentUserId={currentUserId} />
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
   phone: {
     backgroundColor: '#ffffff',
-    borderRadius: 22,
-    height: 592,
-    maxWidth: 315,
+    flex: 1,
     overflow: 'hidden',
     width: '100%',
   },
@@ -75,14 +67,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eef0f3',
     borderBottomWidth: 1,
     flexDirection: 'row',
-    height: 46,
-    paddingHorizontal: 10,
+    height: 60,
+    paddingHorizontal: 14,
   },
   backButton: {
     alignItems: 'center',
-    height: 30,
+    height: 42,
     justifyContent: 'center',
-    width: 30,
+    width: 42,
   },
   backArrow: {
     alignItems: 'center',
@@ -115,10 +107,10 @@ const styles = StyleSheet.create({
   avatarSmall: {
     alignItems: 'center',
     backgroundColor: '#f3f4f6',
-    borderRadius: 14,
-    height: 28,
+    borderRadius: 18,
+    height: 36,
     justifyContent: 'center',
-    width: 28,
+    width: 36,
   },
   avatarInitial: {
     color: '#374151',
@@ -127,11 +119,11 @@ const styles = StyleSheet.create({
   },
   username: {
     color: '#111827',
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '700',
     maxWidth: 160,
   },
   headerRight: {
-    width: 30,
+    width: 42,
   },
 });

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
+import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
 import { getAuthUser } from '../src/services/authStorage';
 import FeedList from '../src/components/feed/FeedList';
@@ -66,7 +67,7 @@ function HomeContent() {
 
 
   return (
-    <View style={styles.page}>
+    <ScreenContainer>
       <View style={styles.phone}>
         <TopNavbar username={username} />
 
@@ -146,7 +147,7 @@ function HomeContent() {
 
         <BottomTabBar />
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
@@ -159,27 +160,18 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  page: {
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
   phone: {
     backgroundColor: '#ffffff',
-    borderRadius: 22,
-    height: 592,
-    maxWidth: 315,
+    flex: 1,
     overflow: 'hidden',
     position: 'relative',
     width: '100%',
   },
   content: {
-    paddingBottom: 74,
+    paddingBottom: 88,
   },
   hero: {
-    height: 188,
+    height: 240,
     justifyContent: 'flex-end',
   },
   heroImage: {
@@ -189,7 +181,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.22)',
     flex: 1,
     justifyContent: 'flex-end',
-    padding: 12,
+    padding: 20,
   },
   heroBadgeRow: {
     alignItems: 'center',
@@ -213,7 +205,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 19,
+    fontSize: 28,
     fontWeight: '800',
     marginBottom: 8,
   },
@@ -227,8 +219,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flexDirection: 'row',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
   },
   playIcon: {
     color: '#ffffff',
@@ -237,7 +229,7 @@ const styles = StyleSheet.create({
   },
   detailsText: {
     color: '#ffffff',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
   },
   saveButton: {
@@ -245,9 +237,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.55)',
     borderRadius: 8,
     borderWidth: 1,
-    height: 28,
+    height: 38,
     justifyContent: 'center',
-    width: 30,
+    width: 40,
   },
   saveText: {
     color: '#ffffff',
@@ -255,31 +247,31 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   friendRow: {
-    gap: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
+    gap: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
   },
   friendItem: {
     alignItems: 'center',
-    width: 38,
+    width: 48,
   },
   friendImage: {
     borderColor: '#e5e7eb',
-    borderRadius: 18,
+    borderRadius: 23,
     borderWidth: 2,
-    height: 36,
-    width: 36,
+    height: 46,
+    width: 46,
   },
   friendName: {
     color: '#374151',
-    fontSize: 8,
+    fontSize: 10,
     marginTop: 5,
   },
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 2,
   },
   sectionTitleWrap: {
@@ -294,25 +286,25 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#111827',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '800',
   },
   seeAll: {
     color: '#ef0d1a',
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '600',
   },
   movieRow: {
-    gap: 9,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   movieCard: {
     borderRadius: 8,
-    height: 118,
+    height: 180,
     overflow: 'hidden',
     position: 'relative',
-    width: 82,
+    width: 124,
   },
   movieImage: {
     height: '100%',
@@ -350,14 +342,14 @@ const styles = StyleSheet.create({
   },
   watchGrid: {
     flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   watchCard: {
     borderRadius: 8,
     flex: 1,
-    height: 70,
+    height: 110,
     overflow: 'hidden',
   },
   watchImage: {
@@ -396,9 +388,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   feedList: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
     gap: 10,
   },
 });

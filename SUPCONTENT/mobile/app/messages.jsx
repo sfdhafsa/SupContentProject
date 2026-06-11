@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
+import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
 import ConversationList from '../src/components/messages/ConversationList';
 import { useMessages } from '../src/hooks/useMessages';
@@ -14,7 +15,7 @@ export default function Messages() {
   );
 
   return (
-    <View style={styles.page}>
+    <ScreenContainer>
       <View style={styles.phone}>
         <TopNavbar />
 
@@ -48,35 +49,26 @@ export default function Messages() {
 
         <BottomTabBar />
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
   phone: {
     backgroundColor: '#ffffff',
-    borderRadius: 22,
-    height: 592,
-    maxWidth: 315,
+    flex: 1,
     overflow: 'hidden',
     position: 'relative',
     width: '100%',
   },
   header: {
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 6,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
   title: {
     color: '#111827',
-    fontSize: 16,
+    fontSize: 24,
     fontWeight: '800',
   },
   searchWrap: {
@@ -86,9 +78,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 7,
     marginBottom: 6,
-    marginHorizontal: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    marginBottom: 10,
+    marginHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
   },
   searchIcon: {
     height: 14,
@@ -118,10 +111,10 @@ const styles = StyleSheet.create({
   searchInput: {
     color: '#111827',
     flex: 1,
-    fontSize: 10,
+    fontSize: 14,
   },
   listContainer: {
     flex: 1,
-    marginBottom: 58,
+    marginBottom: 66,
   },
 });

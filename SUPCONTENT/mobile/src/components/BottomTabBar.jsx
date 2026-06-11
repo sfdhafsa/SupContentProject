@@ -117,10 +117,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     bottom: 0,
     flexDirection: 'row',
-    height: 58,
+    height: 66,
     justifyContent: 'space-around',
     left: 0,
-    paddingBottom: 4,
+    paddingBottom: 8,
+    paddingTop: 6,
     paddingHorizontal: 4,
     position: 'absolute',
     right: 0,
@@ -128,7 +129,8 @@ const styles = StyleSheet.create({
   tab: {
     alignItems: 'center',
     flex: 1,
-    gap: 3,
+    gap: 4,
+    minHeight: 48,
     justifyContent: 'center',
   },
   iconSlot: {
@@ -138,7 +140,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#9ca3af',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '600',
   },
   activeLabel: {

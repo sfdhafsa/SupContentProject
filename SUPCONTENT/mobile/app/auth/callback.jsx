@@ -1,6 +1,7 @@
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import ScreenContainer from '../../src/components/ScreenContainer';
 import { getCurrentUser } from '../../src/services/authApi';
 import { saveAuthSession } from '../../src/services/authStorage';
 
@@ -49,20 +50,22 @@ export default function OAuthCallback() {
   }, [oauthError, router, token]);
 
   return (
-    <View style={styles.page}>
-      {error ? (
-        <>
+    <ScreenContainer backgroundColor="#f8fafc" contentStyle={styles.page}>
+      <View style={styles.card}>
+        {error ? (
+          <>
           <Text style={styles.title}>Connexion echouee</Text>
           <Text style={styles.text}>{error}</Text>
           <Link href="/login" style={styles.link}>Retour a la connexion</Link>
-        </>
-      ) : (
-        <>
+          </>
+        ) : (
+          <>
           <View style={styles.spinner} />
           <Text style={styles.text}>Connexion avec Google...</Text>
-        </>
-      )}
-    </View>
+          </>
+        )}
+      </View>
+    </ScreenContainer>
   );
 }
 
@@ -73,6 +76,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#f3f4f6',
     padding: 24,
+  },
+  card: {
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    elevation: 2,
+    maxWidth: 420,
+    padding: 28,
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    width: '100%',
   },
   spinner: {
     width: 30,

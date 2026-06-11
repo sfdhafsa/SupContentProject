@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
+import ScreenContainer from '../src/components/ScreenContainer';
 import { getAuthToken } from '../src/services/authStorage';
 import { API_BASE_URL } from '../src/config/api';
 
@@ -514,19 +515,19 @@ export default function PublicProfileScreen() {
 
   if (loading) {
     return (
-      <View style={styles.page}>
+      <ScreenContainer>
         <View style={styles.phone}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={RED} />
           </View>
           <BottomTabBar />
         </View>
-      </View>
+      </ScreenContainer>
     );
   }
 
   return (
-    <View style={styles.page}>
+    <ScreenContainer>
       <View style={styles.phone}>
         {/* Header navigation */}
         <View style={styles.navBar}>
@@ -684,25 +685,16 @@ export default function PublicProfileScreen() {
           onClose={() => setFollowModal(null)}
         />
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
 /* ── Styles ── */
 
 const styles = StyleSheet.create({
-  page: {
-    alignItems: 'center',
-    backgroundColor: BG,
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
   phone: {
     backgroundColor: CARD,
-    borderRadius: 22,
-    height: 592,
-    maxWidth: 315,
+    flex: 1,
     overflow: 'hidden',
     width: '100%',
   },
@@ -772,7 +764,7 @@ const styles = StyleSheet.create({
 
   // Scroll
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 8 },
+  scrollContent: { paddingBottom: 82 },
 
   // Bannière
   bannerWrapper: { height: 110, position: 'relative' },
@@ -787,7 +779,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
     height: 55,
-    width: 315 / 6,
+    width: '16.6667%',
   },
   bannerReel: {
     borderColor: 'rgba(255,255,255,0.18)',

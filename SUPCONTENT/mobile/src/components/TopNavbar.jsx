@@ -86,9 +86,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eef0f3',
     borderBottomWidth: 1,
     flexDirection: 'row',
-    height: 42,
+    minHeight: 56,
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
   },
   brand: {
     alignItems: 'center',
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   brandText: {
     color: '#111827',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
   },
   actions: {
@@ -107,35 +107,35 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     alignItems: 'center',
-    height: 26,
+    height: 36,
     justifyContent: 'center',
-    width: 26,
+    width: 36,
   },
   authButton: {
     alignItems: 'center',
     borderColor: '#e5e7eb',
     borderRadius: 8,
     borderWidth: 1,
-    height: 26,
+    height: 34,
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
   authButtonText: {
     color: '#374151',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
   },
   signInButton: {
     alignItems: 'center',
     backgroundColor: '#ef0d1a',
     borderRadius: 8,
-    height: 26,
+    height: 34,
     justifyContent: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
   },
   signInButtonText: {
     color: '#ffffff',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
   },
   searchIcon: {
@@ -190,10 +190,10 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     backgroundColor: '#e5e7eb',
-    borderRadius: 13,
-    height: 26,
+    borderRadius: 18,
+    height: 36,
     justifyContent: 'center',
-    width: 26,
+    width: 36,
   },
   avatarText: {
     color: '#111827',

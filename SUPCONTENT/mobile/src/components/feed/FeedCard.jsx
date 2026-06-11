@@ -83,23 +83,28 @@ export default function FeedCard({ item }) {
 const styles = StyleSheet.create({
   feedItem: {
     alignItems: 'flex-start',
+    backgroundColor: '#ffffff',
+    borderColor: '#eef0f3',
+    borderRadius: 14,
+    borderWidth: 1,
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
+    gap: 12,
+    marginBottom: 12,
+    padding: 12,
   },
 
   feedAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 16,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
 
   feedAvatarFallback: {
-    width: 30,
-    height: 30,
-    borderRadius: 16,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f3f4f6',
@@ -107,7 +112,7 @@ const styles = StyleSheet.create({
 
   feedAvatarFallbackText: {
     color: '#374151',
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '800',
   },
 
@@ -118,15 +123,15 @@ const styles = StyleSheet.create({
 
   feedItemHeadline: {
     color: '#111827',
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '700',
-    lineHeight: 14,
+    lineHeight: 18,
   },
 
   feedItemBody: {
     color: '#6b7280',
-    fontSize: 9,
-    lineHeight: 13,
+    fontSize: 12,
+    lineHeight: 17,
   },
 
   feedItemMeta: {
@@ -145,19 +150,19 @@ const styles = StyleSheet.create({
 
   feedRatingText: {
     color: '#92400e',
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: '800',
   },
 
   feedMovieTitle: {
     color: '#9ca3af',
-    fontSize: 8,
+    fontSize: 10,
     flex: 1,
   },
 
   feedPoster: {
-    width: 28,
-    height: 40,
-    borderRadius: 4,
+    width: 48,
+    height: 68,
+    borderRadius: 7,
   },
 });

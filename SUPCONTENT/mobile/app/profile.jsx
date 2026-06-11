@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
+import ScreenContainer from '../src/components/ScreenContainer';
 import { useAuth } from '../src/services/authApi.js';
 import api from '../src/config/api.js';
 
@@ -368,14 +369,14 @@ function ProfileContent() {
 
   if (authLoading || !user) {
     return (
-      <View style={styles.page}>
+      <ScreenContainer>
         <View style={styles.phone}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={RED} />
           </View>
           <BottomTabBar />
         </View>
-      </View>
+      </ScreenContainer>
     );
   }
 
@@ -453,7 +454,7 @@ function ProfileContent() {
   }
 
   return (
-    <View style={styles.page}>
+    <ScreenContainer>
       <View style={styles.phone}>
         {/* Barre de recherche */}
         <View style={styles.searchWrapper}>
@@ -569,7 +570,7 @@ function ProfileContent() {
           onClose={() => setFollowModal(null)}
         />
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
@@ -584,18 +585,9 @@ export default function ProfileScreen() {
 /* ── Styles ── */
 
 const styles = StyleSheet.create({
-  page: {
-    alignItems: 'center',
-    backgroundColor: BG,
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
   phone: {
     backgroundColor: CARD,
-    borderRadius: 22,
-    height: 592,
-    maxWidth: 315,
+    flex: 1,
     overflow: 'hidden',
     width: '100%',
   },
@@ -647,7 +639,7 @@ const styles = StyleSheet.create({
 
   // Scroll
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 8 },
+  scrollContent: { paddingBottom: 82 },
 
   // Bannière
   bannerWrapper: { height: 100, position: 'relative' },
@@ -662,7 +654,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
     height: 50,
-    width: 315 / 6,
+    width: '16.6667%',
   },
   bannerReel: {
     borderColor: 'rgba(255,255,255,0.18)',
@@ -845,7 +837,7 @@ const styles = StyleSheet.create({
 
   // Grille stats
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statCard: { backgroundColor: BG, borderRadius: 10, padding: 12, width: CARD_WIDTH },
+  statCard: { backgroundColor: BG, borderRadius: 10, flexBasis: '47%', flexGrow: 1, padding: 12 },
   statCardLabel: { color: MUTED, fontSize: 9, letterSpacing: 0.2, marginBottom: 4 },
   statCardValue: { color: TEXT, fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
 

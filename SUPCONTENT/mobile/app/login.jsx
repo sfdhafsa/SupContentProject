@@ -1,7 +1,17 @@
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import ScreenContainer from '../src/components/ScreenContainer';
 import { loginWithEmail } from '../src/services/authApi';
 import { saveAuthSession } from '../src/services/authStorage';
 import { startGoogleOAuth } from '../src/services/oauth';
@@ -46,8 +56,16 @@ export default function Login() {
   };
 
   return (
-    <View style={styles.page}>
-      <View style={styles.phone}>
+    <ScreenContainer backgroundColor="#f8fafc">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={styles.phone}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.logo}>
           <View style={styles.logoGrid}>
             <View style={styles.logoCell} />
@@ -123,39 +141,33 @@ export default function Login() {
             </Pressable>
           </Link>
         </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
       <StatusBar style="auto" />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
+  keyboardView: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
   },
   phone: {
+    flexGrow: 1,
+    justifyContent: 'center',
     width: '100%',
-    maxWidth: 315,
-    minHeight: 505,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingTop: 42,
-    paddingBottom: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
   },
   logo: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: '#ef0d1a',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    marginBottom: 28,
+    marginBottom: 32,
   },
   logoGrid: {
     width: 17,
@@ -172,14 +184,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#030712',
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: '800',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     color: '#5f6b7a',
-    fontSize: 12,
+    fontSize: 15,
     textAlign: 'center',
     marginBottom: 26,
   },
@@ -190,10 +202,10 @@ const styles = StyleSheet.create({
   },
   socialButton: {
     width: '100%',
-    height: 25,
+    minHeight: 50,
     borderWidth: 1,
     borderColor: '#d6dae1',
-    borderRadius: 6,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -206,7 +218,7 @@ const styles = StyleSheet.create({
   },
   socialText: {
     color: '#111827',
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '700',
   },
   dividerRow: {
@@ -226,18 +238,18 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#111827',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
     marginBottom: 6,
   },
   input: {
-    height: 25,
+    minHeight: 50,
     borderWidth: 1,
     borderColor: '#d6dae1',
-    borderRadius: 7,
+    borderRadius: 12,
     color: '#111827',
-    fontSize: 12,
-    paddingHorizontal: 10,
+    fontSize: 15,
+    paddingHorizontal: 14,
     marginBottom: 16,
   },
   passwordHeader: {
@@ -252,8 +264,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   signInButton: {
-    height: 29,
-    borderRadius: 7,
+    minHeight: 52,
+    borderRadius: 12,
     backgroundColor: '#ef0d1a',
     alignItems: 'center',
     justifyContent: 'center',
@@ -264,7 +276,7 @@ const styles = StyleSheet.create({
   },
   signInText: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 15,
     fontWeight: '800',
   },
   errorText: {
