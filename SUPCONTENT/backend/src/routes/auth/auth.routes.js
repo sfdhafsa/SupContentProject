@@ -61,9 +61,46 @@ const isDevelopmentRedirect = (url) =>
   url.pathname === '/auth/callback' &&
   isPrivateDevHost(url.hostname);
 
-const getGoogleCallbackUrl = () =>
-  process.env.GOOGLE_CALLBACK_URL ||
-  'http://localhost:3000/api/auth/google/callback';
+const getForwardedValue = (req, header) => {
+  const value = req.get(header);
+  return value?.split(',')[0]?.trim();
+};
+
+const getRequestOrigin = (req) => {
+  const protocol = getForwardedValue(req, 'x-forwarded-proto') || req.protocol;
+  const host = getForwardedValue(req, 'x-forwarded-host') || req.get('host');
+
+  if (!host || !['http', 'https'].includes(protocol)) return undefined;
+  return `${protocol}://${host}`;
+};
+
+const getGoogleCallbackUrl = (req) => {
+  const configuredCallback =
+    process.env.GOOGLE_CALLBACK_URL ||
+    'http://localhost:3000/api/auth/google/callback';
+
+  if (process.env.NODE_ENV === 'production') return configuredCallback;
+
+  try {
+    const requestOrigin = getRequestOrigin(req);
+
+    if (requestOrigin) {
+      const requestUrl = new URL(requestOrigin);
+
+      if (['localhost', '127.0.0.1'].includes(requestUrl.hostname)) {
+        return `${requestUrl.origin}/api/auth/google/callback`;
+      }
+
+      if (requestUrl.protocol === 'https:' && !isPrivateDevHost(requestUrl.hostname)) {
+        return `${requestUrl.origin}/api/auth/google/callback`;
+      }
+    }
+  } catch {
+    // The validation below will return a useful configuration error.
+  }
+
+  return configuredCallback;
+};
 
 const isUnsupportedGoogleCallback = (callbackUrl) => {
   try {
@@ -154,7 +191,7 @@ router.post('/reset-password',  authLimiter, resetPasswordRules,  resetPassword)
 router.get('/google', (req, res, next) => {
   const redirectUri = getOAuthRedirectUrl(req);
   const client = typeof req.query.client === 'string' ? req.query.client : undefined;
-  const callbackURL = getGoogleCallbackUrl();
+  const callbackURL = getGoogleCallbackUrl(req);
 
   if (isUnsupportedGoogleCallback(callbackURL)) {
     return res.status(500).json({
@@ -175,7 +212,7 @@ router.get('/google', (req, res, next) => {
 router.get('/google/callback',
   (req, res, next) => {
     passport.authenticate('google', {
-      callbackURL: getGoogleCallbackUrl(),
+      callbackURL: getGoogleCallbackUrl(req),
       session: false,
     }, (err, user, info) => {
       if (err) return next(err);

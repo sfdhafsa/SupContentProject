@@ -11,9 +11,10 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || `${getDefaultHost
 
 async function request(path, options = {}) {
   const token = await getAuthToken();
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = {
     Accept: 'application/json',
-    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
@@ -23,7 +24,10 @@ async function request(path, options = {}) {
     headers,
   });
 
-  const data = await response.json().catch(() => ({}));
+  const contentType = response.headers.get('content-type') || '';
+  const data = contentType.includes('application/json')
+    ? await response.json().catch(() => ({}))
+    : await response.text().catch(() => '');
 
   if (!response.ok) {
     const message =
@@ -46,21 +50,21 @@ const api = {
     return request(path, {
       ...options,
       method: 'POST',
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined || body instanceof FormData ? body : JSON.stringify(body),
     });
   },
   put(path, body, options) {
     return request(path, {
       ...options,
       method: 'PUT',
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined || body instanceof FormData ? body : JSON.stringify(body),
     });
   },
   patch(path, body, options) {
     return request(path, {
       ...options,
       method: 'PATCH',
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined || body instanceof FormData ? body : JSON.stringify(body),
     });
   },
   delete(path, options) {
