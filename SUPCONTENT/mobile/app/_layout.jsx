@@ -14,6 +14,7 @@ export default function RootLayout() {
       <Stack.Screen name="profile" />
       <Stack.Screen name="auth/callback" />
       <Stack.Screen name="publicProfile" />
+      <Stack.Screen name="movie/[id]" />
     </Stack>
   );
 }
