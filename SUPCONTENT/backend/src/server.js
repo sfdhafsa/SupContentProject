@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import passport from "passport";
@@ -60,8 +59,12 @@ app.get("/.well-known/appspecific/com.chrome.devtools.json", (_, res) => {
   res.status(204).end();
 });
 
-app.get("/auth/google", (_, res) => {
-  res.redirect(302, "/api/auth/google");
+app.get("/auth/google", (req, res) => {
+  const query = req.originalUrl.includes("?")
+    ? req.originalUrl.slice(req.originalUrl.indexOf("?"))
+    : "";
+
+  res.redirect(302, `/api/auth/google${query}`);
 });
 
 app.use("/uploads", express.static(uploadRoot));

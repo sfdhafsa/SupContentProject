@@ -9,8 +9,11 @@ export default function RootLayout() {
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="home" />
       <Stack.Screen name="discover" />
-      <Stack.Screen name="movie/[id]" />
+      <Stack.Screen name="library" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="profile" />
       <Stack.Screen name="auth/callback" />
+      <Stack.Screen name="publicProfile" />
     </Stack>
   );
 }

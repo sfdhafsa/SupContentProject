@@ -4,33 +4,48 @@ import { StyleSheet, Text, View } from 'react-native';
 import { getCurrentUser } from '../../src/services/authApi';
 import { saveAuthSession } from '../../src/services/authStorage';
 
+const firstParam = (value) => Array.isArray(value) ? value[0] : value;
+
 export default function OAuthCallback() {
   const router = useRouter();
-  const { token, error: oauthError } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const token = firstParam(params.token);
+  const oauthError = firstParam(params.error);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let mounted = true;
+
     const finishOAuth = async () => {
       if (oauthError) {
-        setError('La connexion Google a echoue.');
+        if (mounted) setError('La connexion Google a echoue.');
         return;
       }
 
       if (!token) {
-        setError('Jeton OAuth manquant.');
+        if (mounted) setError('Jeton OAuth manquant.');
         return;
       }
 
       try {
         const user = await getCurrentUser(token);
         await saveAuthSession(token, user);
-        router.replace('/home');
-      } catch {
-        setError('Impossible de charger votre profil Google.');
+        if (mounted) router.replace('/profile');
+      } catch (callbackError) {
+        if (!mounted) return;
+        setError(
+          callbackError?.code === 'NETWORK_ERROR'
+            ? 'Le compte Google est connecte, mais le serveur est inaccessible.'
+            : 'Impossible de charger votre profil Google.'
+        );
       }
     };
 
     finishOAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, [oauthError, router, token]);
 
   return (
