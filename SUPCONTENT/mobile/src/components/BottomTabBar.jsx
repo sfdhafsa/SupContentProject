@@ -2,16 +2,15 @@ import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 const tabs = [
-  { label: 'Accueil', route: '/home', icon: 'home' },
-  { label: 'Decouvrir', route: '/discover', icon: 'search' },
-  { label: 'Bibliotheque', route: '/library', icon: 'library' },
-  { label: 'Alertes', route: '/notifications', icon: 'bell', badge: 3 },
-  { label: 'Profil', route: '/profile', icon: 'profile' },
+  { label: 'Accueil',    route: '/home',          icon: 'home' },
+  { label: 'Découvrir',  route: '/discover',      icon: 'search' },
+  { label: 'Bibliothèque', route: '/library',     icon: 'library' },
+  { label: 'Alertes',   route: '/notifications',  icon: 'bell', badge: 3 },
+  { label: 'Profil',    route: '/profile',         icon: 'profile' },
 ];
 
 function TabIcon({ type, active }) {
   const color = active ? '#ef0d1a' : '#9ca3af';
-
   return (
     <View>
       {type === 'home' && <View style={[styles.homeIcon, { borderColor: color }]} />}
@@ -40,14 +39,13 @@ function TabIcon({ type, active }) {
 }
 
 export default function BottomTabBar() {
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
 
   return (
     <View style={styles.container}>
       {tabs.map((tab) => {
         const active = pathname === tab.route;
-
         return (
           <Pressable key={tab.route} onPress={() => router.push(tab.route)} style={styles.tab}>
             <View style={styles.iconSlot}>
@@ -125,7 +123,6 @@ const styles = StyleSheet.create({
     width: 11,
   },
   searchHandle: {
-    backgroundColor: '#9ca3af',
     borderRadius: 1,
     height: 7,
     left: 13,
@@ -141,7 +138,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   libraryLine: {
-    backgroundColor: '#9ca3af',
     borderRadius: 1,
     height: 14,
     width: 2,
@@ -187,4 +183,4 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '800',
   },
-});
+}); 

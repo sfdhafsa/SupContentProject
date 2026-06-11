@@ -3,10 +3,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
-  FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -23,97 +26,235 @@ import {
   searchMovies,
 } from '../src/services/moviesApi';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH  = (SCREEN_WIDTH - 48) / 3;
-const HERO_HEIGHT = 220;
+const { width: SW, height: SH } = Dimensions.get('window');
 
-// ── Colors ──
 const C = {
-  red:        '#ef0d1a',
-  white:      '#ffffff',
-  black:      '#111827',
-  gray50:     '#f9fafb',
-  gray100:    '#f3f4f6',
-  gray200:    '#e5e7eb',
-  gray400:    '#9ca3af',
-  gray500:    '#6b7280',
-  gray700:    '#374151',
-  gray800:    '#1f2937',
-  gray900:    '#111827',
-  yellow:     '#f59e0b',
-  bg:         '#f3f4f6',
+  red:    '#ef0d1a',
+  white:  '#ffffff',
+  black:  '#111827',
+  gray50: '#f9fafb',
+  gray100:'#f3f4f6',
+  gray200:'#e5e7eb',
+  gray400:'#9ca3af',
+  gray500:'#6b7280',
+  gray700:'#374151',
+  gray800:'#1f2937',
+  yellow: '#f59e0b',
+  bg:     '#f3f4f6',
 };
 
-// ── Star Rating ──
+const HERO_H     = Math.round(SH * 0.30);
+const CARD_W     = Math.floor((SW - 52) / 3);
+const ROW_CARD_W = Math.round(SW * 0.26);
+
+// ─────────────────────────────────────────
+// Stars
+// ─────────────────────────────────────────
 function Stars({ rating, size = 10 }) {
-  const stars = Math.round((rating / 10) * 5);
+  const filled = Math.round((rating / 10) * 5);
   return (
     <View style={{ flexDirection: 'row', gap: 1 }}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <Text key={i} style={{ fontSize: size, color: i < stars ? C.yellow : C.gray200 }}>★</Text>
+        <Text key={i} style={{ fontSize: size, color: i < filled ? C.yellow : 'rgba(255,255,255,0.25)' }}>★</Text>
       ))}
     </View>
   );
-
 }
 
-// ── Movie Card (grille) ──
+// ─────────────────────────────────────────
+// HeroCarousel
+// ─────────────────────────────────────────
+function HeroCarousel({ movies, onPress }) {
+  const [idx, setIdx] = useState(0);
+  const ref           = useRef(null);
+  const list          = movies.slice(0, 5);
+
+  const goTo = useCallback((i) => {
+    const next = Math.max(0, Math.min(i, list.length - 1));
+    setIdx(next);
+    ref.current?.scrollTo({ x: next * SW, animated: true });
+  }, [list.length]);
+
+  useEffect(() => {
+    if (list.length < 2) return;
+    const t = setInterval(() => goTo((idx + 1) % list.length), 5000);
+    return () => clearInterval(t);
+  }, [idx, list.length, goTo]);
+
+  if (list.length === 0) return null;
+
+  return (
+    <View style={{ width: SW, height: HERO_H }}>
+      <ScrollView
+        ref={ref}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={(e) => {
+          const i = Math.round(e.nativeEvent.contentOffset.x / SW);
+          setIdx(i);
+        }}
+      >
+        {list.map((movie) => (
+          <Pressable
+            key={movie.tmdb_id}
+            onPress={() => onPress(movie.tmdb_id)}
+            style={{ width: SW, height: HERO_H }}
+          >
+            {(movie.backdrop_url || movie.poster_url)
+              ? <Image
+                  source={{ uri: movie.backdrop_url || movie.poster_url }}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="cover"
+                />
+              : <View style={[StyleSheet.absoluteFill, { backgroundColor: C.gray800 }]} />
+            }
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.48)' }]} />
+            <View style={{ position: 'absolute', bottom: 14, left: 14, right: 70 }}>
+              <Stars rating={movie.vote_average} size={11} />
+              <Text
+                style={{ color: C.white, fontSize: 16, fontWeight: '800', marginTop: 3 }}
+                numberOfLines={1}
+              >
+                {movie.title}
+              </Text>
+              {movie.release_date && (
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 1 }}>
+                  {movie.release_date.slice(0, 4)}
+                </Text>
+              )}
+              <Pressable
+                onPress={() => onPress(movie.tmdb_id)}
+                hitSlop={8}
+                style={{
+                  marginTop: 8,
+                  backgroundColor: C.white,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                <Text style={{ color: C.black, fontSize: 11, fontWeight: '800' }}>▶ Voir</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {/* Flèche gauche */}
+      {idx > 0 && (
+        <Pressable
+          onPress={() => goTo(idx - 1)}
+          hitSlop={10}
+          style={s.arrowLeft}
+        >
+          <Text style={s.arrowTxt}>‹</Text>
+        </Pressable>
+      )}
+
+      {/* Flèche droite */}
+      {idx < list.length - 1 && (
+        <Pressable
+          onPress={() => goTo(idx + 1)}
+          hitSlop={10}
+          style={s.arrowRight}
+        >
+          <Text style={s.arrowTxt}>›</Text>
+        </Pressable>
+      )}
+
+      {/* Dots */}
+      <View style={{ position: 'absolute', bottom: 10, right: 12, flexDirection: 'row', gap: 4 }}>
+        {list.map((_, i) => (
+          <Pressable key={i} onPress={() => goTo(i)} hitSlop={6}>
+            <View style={{
+              width: i === idx ? 14 : 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: i === idx ? C.white : 'rgba(255,255,255,0.4)',
+            }} />
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────
+// MovieCard (grille)
+// ─────────────────────────────────────────
 function MovieCard({ movie, onPress }) {
   return (
-    <Pressable onPress={() => onPress(movie.tmdb_id)} style={styles.card}>
-      <View style={styles.cardPoster}>
-        {movie.poster_url ? (
-          <Image source={{ uri: movie.poster_url }} style={styles.cardImage} resizeMode="cover" />
-        ) : (
-          <View style={styles.cardNoImage}>
-            <Text style={{ color: C.gray400, fontSize: 24 }}>🎬</Text>
-          </View>
-        )}
+    <Pressable onPress={() => onPress(movie.tmdb_id)} style={{ width: CARD_W }}>
+      <View style={{ width: CARD_W, height: Math.round(CARD_W * 1.5), borderRadius: 10, overflow: 'hidden', backgroundColor: C.gray200 }}>
+        {movie.poster_url
+          ? <Image source={{ uri: movie.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 20 }}>🎬</Text>
+            </View>
+        }
       </View>
-      <Text style={styles.cardTitle} numberOfLines={2}>{movie.title}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-        <Text style={styles.cardYear}>{movie.release_date?.slice(0, 4) || '—'}</Text>
+      <Text style={{ fontSize: 11, fontWeight: '600', color: C.black, marginTop: 5 }} numberOfLines={1}>
+        {movie.title}
+      </Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+        <Text style={{ fontSize: 10, color: C.gray400 }}>{movie.release_date?.slice(0, 4) || '—'}</Text>
         {movie.vote_average > 0 && (
-          <Text style={styles.cardRating}>★ {movie.vote_average.toFixed(1)}</Text>
+          <Text style={{ fontSize: 10, color: C.yellow, fontWeight: '700' }}>
+            ★{movie.vote_average.toFixed(1)}
+          </Text>
         )}
       </View>
     </Pressable>
   );
 }
 
-// ── Movie Card Skeleton ──
 function SkeletonCard() {
   return (
-    <View style={[styles.card, { opacity: 0.5 }]}>
-      <View style={[styles.cardPoster, { backgroundColor: C.gray200 }]} />
-      <View style={{ height: 10, backgroundColor: C.gray200, borderRadius: 4, marginTop: 6, width: '80%' }} />
-      <View style={{ height: 8, backgroundColor: C.gray200, borderRadius: 4, marginTop: 4, width: '50%' }} />
+    <View style={{ width: CARD_W, opacity: 0.4 }}>
+      <View style={{ width: CARD_W, height: Math.round(CARD_W * 1.5), borderRadius: 10, backgroundColor: C.gray200 }} />
+      <View style={{ height: 9, backgroundColor: C.gray200, borderRadius: 4, marginTop: 5, width: '80%' }} />
+      <View style={{ height: 8, backgroundColor: C.gray200, borderRadius: 4, marginTop: 3, width: '50%' }} />
     </View>
   );
 }
 
-// ── Horizontal Movie Row ──
+// ─────────────────────────────────────────
+// MovieRow horizontal
+// ─────────────────────────────────────────
 function MovieRow({ title, movies, onPress, loading }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}>
+    <View style={{ marginTop: 18 }}>
+      <Text style={s.sectionTitle}>{title}</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}
+      >
         {loading
-          ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
-          : movies.map((movie) => (
-              <Pressable key={movie.tmdb_id} onPress={() => onPress(movie.tmdb_id)} style={styles.rowCard}>
-                <View style={styles.rowCardPoster}>
-                  {movie.poster_url ? (
-                    <Image source={{ uri: movie.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                  ) : (
-                    <View style={[styles.rowCardPoster, { backgroundColor: C.gray200, alignItems: 'center', justifyContent: 'center' }]}>
-                      <Text style={{ fontSize: 20 }}>🎬</Text>
-                    </View>
-                  )}
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <View key={i} style={{ width: ROW_CARD_W, opacity: 0.4 }}>
+                <View style={{ width: ROW_CARD_W, height: Math.round(ROW_CARD_W * 1.45), borderRadius: 10, backgroundColor: C.gray200 }} />
+                <View style={{ height: 9, backgroundColor: C.gray200, borderRadius: 4, marginTop: 6, width: '80%' }} />
+              </View>
+            ))
+          : movies.map((m) => (
+              <Pressable key={m.tmdb_id} onPress={() => onPress(m.tmdb_id)} style={{ width: ROW_CARD_W }}>
+                <View style={{ width: ROW_CARD_W, height: Math.round(ROW_CARD_W * 1.45), borderRadius: 10, overflow: 'hidden', backgroundColor: C.gray200 }}>
+                  {m.poster_url
+                    ? <Image source={{ uri: m.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 18 }}>🎬</Text>
+                      </View>
+                  }
                 </View>
-                <Text style={styles.rowCardTitle} numberOfLines={2}>{movie.title}</Text>
-                {movie.vote_average > 0 && (
-                  <Text style={styles.rowCardRating}>★ {movie.vote_average.toFixed(1)}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: C.black, marginTop: 5 }} numberOfLines={1}>
+                  {m.title}
+                </Text>
+                {m.vote_average > 0 && (
+                  <Text style={{ fontSize: 10, color: C.yellow }}>★{m.vote_average.toFixed(1)}</Text>
                 )}
               </Pressable>
             ))
@@ -123,87 +264,26 @@ function MovieRow({ title, movies, onPress, loading }) {
   );
 }
 
-// ── Hero Carousel ──
-function HeroCarousel({ movies, onPress }) {
-  const [current, setCurrent] = useState(0);
-  const scrollRef = useRef(null);
-
-  useEffect(() => {
-    if (movies.length === 0) return;
-    const timer = setInterval(() => {
-      const next = (current + 1) % Math.min(movies.length, 5);
-      setCurrent(next);
-      scrollRef.current?.scrollTo({ x: next * SCREEN_WIDTH, animated: true });
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [current, movies.length]);
-
-  if (movies.length === 0) return null;
-
-  return (
-    <View style={styles.hero}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-          setCurrent(idx);
-        }}
-      >
-        {movies.slice(0, 5).map((movie, i) => (
-          <Pressable key={movie.tmdb_id} onPress={() => onPress(movie.tmdb_id)} style={styles.heroSlide}>
-            {movie.backdrop_url ? (
-              <Image source={{ uri: movie.backdrop_url }} style={styles.heroImage} resizeMode="cover" />
-            ) : movie.poster_url ? (
-              <Image source={{ uri: movie.poster_url }} style={styles.heroImage} resizeMode="cover" />
-            ) : (
-              <View style={[styles.heroImage, { backgroundColor: C.gray800 }]} />
-            )}
-            {/* Gradient overlay */}
-            <View style={styles.heroOverlay} />
-            {/* Content */}
-            <View style={styles.heroContent}>
-              {movie.vote_average > 0 && <Stars rating={movie.vote_average} size={12} />}
-              <Text style={styles.heroTitle} numberOfLines={2}>{movie.title}</Text>
-              {movie.release_date && (
-                <Text style={styles.heroYear}>{movie.release_date.slice(0, 4)}</Text>
-              )}
-              <Pressable onPress={() => onPress(movie.tmdb_id)} style={styles.heroButton}>
-                <Text style={styles.heroButtonText}>▶  Voir le film</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {/* Dots */}
-      <View style={styles.heroDots}>
-        {movies.slice(0, 5).map((_, i) => (
-          <View key={i} style={[styles.heroDot, i === current && styles.heroDotActive]} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-// ── Genre Pills ──
+// ─────────────────────────────────────────
+// GenrePills
+// ─────────────────────────────────────────
 function GenrePills({ genres, selectedIds, onToggle }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.genrePills}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 2 }}
+    >
       {genres.map((g) => {
-        const isSelected = selectedIds.includes(String(g.id));
+        const sel = selectedIds.includes(String(g.id));
         return (
           <Pressable
             key={g.id}
             onPress={() => onToggle(String(g.id))}
-            style={[styles.genrePill, isSelected && styles.genrePillActive]}
+            hitSlop={4}
+            style={[s.pill, sel && s.pillActive]}
           >
-            <Text style={[styles.genrePillText, isSelected && styles.genrePillTextActive]}>
-              {g.name}
-            </Text>
+            <Text style={[s.pillTxt, sel && s.pillTxtActive]}>{g.name}</Text>
           </Pressable>
         );
       })}
@@ -211,216 +291,184 @@ function GenrePills({ genres, selectedIds, onToggle }) {
   );
 }
 
-// ── Search Result Item ──
-function SearchResultItem({ item, onPress }) {
-  // Film
+// ─────────────────────────────────────────
+// SearchItem
+// ─────────────────────────────────────────
+function SearchItem({ item, onPress }) {
   if (item.type === 'movie') {
     return (
-      <Pressable onPress={() => onPress(item.tmdb_id)} style={styles.searchItem}>
-        <View style={styles.searchItemPoster}>
-          {item.poster_url ? (
-            <Image source={{ uri: item.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-          ) : (
-            <View style={[styles.searchItemPoster, { backgroundColor: C.gray200, alignItems: 'center', justifyContent: 'center' }]}>
-              <Text>🎬</Text>
-            </View>
-          )}
+      <Pressable onPress={() => onPress(item.tmdb_id)} style={s.searchItem}>
+        <View style={s.searchPoster}>
+          {item.poster_url
+            ? <Image source={{ uri: item.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            : <Text style={{ fontSize: 14 }}>🎬</Text>
+          }
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.searchItemTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.searchItemSub}>{item.release_date?.slice(0, 4) || '—'}</Text>
+          <Text style={s.searchTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={s.searchSub}>{item.release_date?.slice(0, 4) || '—'}</Text>
           {item.vote_average > 0 && (
-            <Text style={styles.searchItemRating}>★ {item.vote_average.toFixed(1)}</Text>
-          )}
-        </View>
-        <Text style={{ color: C.gray400, fontSize: 16 }}>›</Text>
-      </Pressable>
-    );
-  }
-
-  // User
-  if (item.type === 'user') {
-    return (
-      <Pressable style={styles.searchItem}>
-        <View style={styles.searchItemAvatar}>
-          {item.avatar_url ? (
-            <Image source={{ uri: item.avatar_url }} style={{ width: '100%', height: '100%', borderRadius: 20 }} />
-          ) : (
-            <Text style={{ color: C.white, fontWeight: '800', fontSize: 14 }}>
-              {item.username?.slice(0, 1).toUpperCase()}
+            <Text style={{ fontSize: 11, color: C.yellow, fontWeight: '700', marginTop: 2 }}>
+              ★{item.vote_average.toFixed(1)}
             </Text>
           )}
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.searchItemTitle}>@{item.username}</Text>
-          {item.bio && <Text style={styles.searchItemSub} numberOfLines={1}>{item.bio}</Text>}
-        </View>
-        <Text style={{ color: C.gray400, fontSize: 16 }}>›</Text>
+        <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
       </Pressable>
     );
   }
-
-  // List
+  if (item.type === 'user') {
+    return (
+      <Pressable style={s.searchItem}>
+        <View style={[s.searchAvatar, { backgroundColor: C.red }]}>
+          <Text style={{ color: C.white, fontWeight: '800', fontSize: 15 }}>
+            {item.username?.slice(0, 1).toUpperCase()}
+          </Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.searchTitle}>@{item.username}</Text>
+          {item.bio && <Text style={s.searchSub} numberOfLines={1}>{item.bio}</Text>}
+        </View>
+        <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
+      </Pressable>
+    );
+  }
   if (item.type === 'list') {
     return (
-      <Pressable style={styles.searchItem}>
-        <View style={[styles.searchItemAvatar, { backgroundColor: '#7c3aed' }]}>
-          <Text style={{ color: C.white, fontSize: 16 }}>📋</Text>
+      <Pressable style={s.searchItem}>
+        <View style={[s.searchAvatar, { backgroundColor: '#7c3aed' }]}>
+          <Text style={{ fontSize: 16 }}>📋</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.searchItemTitle}>{item.name}</Text>
-          <Text style={styles.searchItemSub}>{item.movie_count || 0} films</Text>
+          <Text style={s.searchTitle}>{item.name}</Text>
+          <Text style={s.searchSub}>{item.movie_count || 0} films</Text>
         </View>
-        <Text style={{ color: C.gray400, fontSize: 16 }}>›</Text>
+        <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
       </Pressable>
     );
   }
-
   return null;
 }
 
-// ── Filter Modal ──
-function FilterModal({ visible, genres, genreIds, yearRange, minRating, sortBy, onToggleGenre, onYearRange, onRating, onSort, onApply, onReset }) {
-  const YEAR_RANGES = [
-    { label: '2020 — Aujourd\'hui', min: 2020, max: 2025 },
-    { label: '2010 — 2019',         min: 2010, max: 2019 },
-    { label: '2000 — 2009',         min: 2000, max: 2009 },
-    { label: '1990 — 1999',         min: 1990, max: 1999 },
-    { label: 'Avant 1990',          min: 1900, max: 1989 },
+// ─────────────────────────────────────────
+// FilterPanel
+// ─────────────────────────────────────────
+function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
+  onToggleGenre, onYearRange, onRating, onSort, onApply, onReset }) {
+
+  const YEARS = [
+    { label: '2020+',   min: 2020, max: 2025 },
+    { label: '2010-19', min: 2010, max: 2019 },
+    { label: '2000-09', min: 2000, max: 2009 },
+    { label: '90s',     min: 1990, max: 1999 },
+    { label: '<1990',   min: 1900, max: 1989 },
   ];
-  const SORT_OPTIONS = [
-    { value: 'popularity.desc',           label: 'Popularité' },
+  const SORTS = [
+    { value: 'popularity.desc',           label: 'Populaires' },
     { value: 'vote_average.desc',         label: 'Mieux notés' },
-    { value: 'primary_release_date.desc', label: 'Plus récents' },
-    { value: 'primary_release_date.asc',  label: 'Plus anciens' },
+    { value: 'primary_release_date.desc', label: 'Récents' },
+    { value: 'primary_release_date.asc',  label: 'Anciens' },
   ];
-  const RATING_OPTIONS = [
-    { label: '★ 9+', value: 9 },
-    { label: '★ 8+', value: 8 },
-    { label: '★ 7+', value: 7 },
-    { label: '★ 6+', value: 6 },
+  const RATES = [
+    { label: '9+', value: 9 },
+    { label: '8+', value: 8 },
+    { label: '7+', value: 7 },
+    { label: '6+', value: 6 },
   ];
 
   if (!visible) return null;
 
   return (
-    <View style={styles.filterModal}>
-      <View style={styles.filterModalHeader}>
-        <Text style={styles.filterModalTitle}>Filtres & Tri</Text>
-        <Pressable onPress={onReset}>
-          <Text style={{ color: C.red, fontSize: 12, fontWeight: '700' }}>Effacer</Text>
+    <View style={s.filterPanel}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+        <Text style={{ fontSize: 14, fontWeight: '800', color: C.black }}>Filtres & Tri</Text>
+        <Pressable onPress={onReset} hitSlop={8}>
+          <Text style={{ fontSize: 13, color: C.red, fontWeight: '700' }}>Effacer tout</Text>
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-
-        {/* Tri */}
-        <Text style={styles.filterSection}>TRIER PAR</Text>
-        <View style={{ gap: 4 }}>
-          {SORT_OPTIONS.map((opt) => (
-            <Pressable
-              key={opt.value}
-              onPress={() => onSort(opt.value)}
-              style={[styles.filterOption, sortBy === opt.value && styles.filterOptionActive]}
-            >
-              <Text style={[styles.filterOptionText, sortBy === opt.value && styles.filterOptionTextActive]}>
-                {opt.label}
-              </Text>
-              {sortBy === opt.value && <Text style={{ color: C.red }}>✓</Text>}
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Genres */}
-        <Text style={[styles.filterSection, { marginTop: 16 }]}>GENRES (multi)</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {genres.map((g) => {
-            const isSelected = genreIds.includes(String(g.id));
-            return (
-              <Pressable
-                key={g.id}
-                onPress={() => onToggleGenre(String(g.id))}
-                style={[styles.genrePill, isSelected && styles.genrePillActive]}
-              >
-                <Text style={[styles.genrePillText, isSelected && styles.genrePillTextActive]}>
-                  {isSelected ? '✓ ' : ''}{g.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* Période */}
-        <Text style={[styles.filterSection, { marginTop: 16 }]}>PÉRIODE</Text>
-        <View style={{ gap: 4 }}>
-          {YEAR_RANGES.map((range) => (
-            <Pressable
-              key={range.label}
-              onPress={() => onYearRange(yearRange?.label === range.label ? null : range)}
-              style={[styles.filterOption, yearRange?.label === range.label && styles.filterOptionActive]}
-            >
-              <Text style={[styles.filterOptionText, yearRange?.label === range.label && styles.filterOptionTextActive]}>
-                {range.label}
-              </Text>
-              {yearRange?.label === range.label && <Text style={{ color: C.red }}>✓</Text>}
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Note */}
-        <Text style={[styles.filterSection, { marginTop: 16 }]}>NOTE MINIMUM</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {RATING_OPTIONS.map((opt) => (
-            <Pressable
-              key={opt.value}
-              onPress={() => onRating(minRating === opt.value ? '' : opt.value)}
-              style={[styles.ratingButton, minRating === opt.value && styles.ratingButtonActive]}
-            >
-              <Text style={[styles.ratingButtonText, minRating === opt.value && styles.ratingButtonTextActive]}>
-                {opt.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+      <Text style={s.filterLbl}>TRIER PAR</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
+        {SORTS.map((o) => (
+          <Pressable key={o.value} onPress={() => onSort(o.value)} style={[s.pill, sortBy === o.value && s.pillActive]}>
+            <Text style={[s.pillTxt, sortBy === o.value && s.pillTxtActive]}>{o.label}</Text>
+          </Pressable>
+        ))}
       </ScrollView>
 
-      <Pressable onPress={onApply} style={styles.filterApply}>
-        <Text style={styles.filterApplyText}>Appliquer</Text>
+      <Text style={s.filterLbl}>GENRES (multi-sélection)</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+        {genres.map((g) => {
+          const sel = genreIds.includes(String(g.id));
+          return (
+            <Pressable key={g.id} onPress={() => onToggleGenre(String(g.id))}
+              style={[s.pill, sel && s.pillActive]}>
+              <Text style={[s.pillTxt, sel && s.pillTxtActive]}>{sel ? '✓ ' : ''}{g.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={s.filterLbl}>PÉRIODE</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
+        {YEARS.map((r) => (
+          <Pressable key={r.label}
+            onPress={() => onYearRange(yearRange?.label === r.label ? null : r)}
+            style={[s.pill, yearRange?.label === r.label && s.pillActive]}>
+            <Text style={[s.pillTxt, yearRange?.label === r.label && s.pillTxtActive]}>{r.label}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      <Text style={s.filterLbl}>NOTE MINIMUM</Text>
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+        {RATES.map((o) => (
+          <Pressable key={o.value}
+            onPress={() => onRating(minRating === o.value ? '' : o.value)}
+            style={[s.pill, minRating === o.value && { backgroundColor: C.yellow, borderColor: C.yellow }]}>
+            <Text style={[s.pillTxt, minRating === o.value && { color: C.white }]}>★{o.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Pressable onPress={onApply}
+        style={{ backgroundColor: C.red, paddingVertical: 13, borderRadius: 10, alignItems: 'center' }}>
+        <Text style={{ color: C.white, fontSize: 14, fontWeight: '800' }}>Appliquer</Text>
       </Pressable>
     </View>
   );
 }
 
-// ── Main Page ──
+// ─────────────────────────────────────────
+// Discover (main)
+// ─────────────────────────────────────────
 export default function Discover() {
   const router = useRouter();
 
-  // Search
-  const [query, setQuery]           = useState('');
-  const [searchResults, setResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [isSearching, setIsSearching]     = useState(false);
+  const [query, setQuery]                   = useState('');
+  const [searchResults, setResults]         = useState([]);
+  const [searchLoading, setSearchLoading]   = useState(false);
+  const [isSearching, setIsSearching]       = useState(false);
 
-  // Filters
-  const [genreIds, setGenreIds]     = useState([]);
-  const [yearRange, setYearRange]   = useState(null);
-  const [minRating, setMinRating]   = useState('');
-  const [sortBy, setSortBy]         = useState('popularity.desc');
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [isFiltering, setIsFiltering] = useState(false);
+  const [genreIds, setGenreIds]             = useState([]);
+  const [yearRange, setYearRange]           = useState(null);
+  const [minRating, setMinRating]           = useState('');
+  const [sortBy, setSortBy]                 = useState('popularity.desc');
+  const [filterOpen, setFilterOpen]         = useState(false);
+  const [isFiltering, setIsFiltering]       = useState(false);
 
-  // Data
-  const [genres, setGenres]         = useState([]);
-  const [trending, setTrending]     = useState([]);
-  const [topRated, setTopRated]     = useState([]);
-  const [nowPlaying, setNowPlaying] = useState([]);
-  const [filtered, setFiltered]     = useState([]);
+  const [genres, setGenres]                 = useState([]);
+  const [trending, setTrending]             = useState([]);
+  const [topRated, setTopRated]             = useState([]);
+  const [nowPlaying, setNowPlaying]         = useState([]);
+  const [filtered, setFiltered]             = useState([]);
   const [sectionsLoading, setSectionsLoading] = useState(true);
-  const [filterLoading, setFilterLoading]     = useState(false);
+  const [filterLoading, setFilterLoading]   = useState(false);
 
   const debounceRef = useRef(null);
 
-  // Load initial data
   useEffect(() => {
     getGenres().then(setGenres).catch(() => {});
     setSectionsLoading(true);
@@ -434,40 +482,20 @@ export default function Discover() {
       .finally(() => setSectionsLoading(false));
   }, []);
 
-  // Debounced search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    if (!query.trim()) {
-      setIsSearching(false);
-      setResults([]);
-      return;
-    }
-
+    if (!query.trim()) { setIsSearching(false); setResults([]); return; }
     setIsSearching(true);
     setSearchLoading(true);
-
     debounceRef.current = setTimeout(async () => {
       try {
-        const [moviesRes] = await Promise.all([
-          searchMovies({ query }),
-        ]);
-
-        const movieItems = (moviesRes.results || []).slice(0, 8).map((m) => ({
-          ...m,
-          type: 'movie',
-        }));
-
-        setResults(movieItems);
-      } catch {
-        setResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
+        const res = await searchMovies({ query });
+        setResults((res.results || []).slice(0, 10).map((m) => ({ ...m, type: 'movie' })));
+      } catch { setResults([]); }
+      finally { setSearchLoading(false); }
     }, 400);
   }, [query]);
 
-  // Load filtered movies
   const loadFiltered = useCallback(async () => {
     setFilterLoading(true);
     try {
@@ -479,294 +507,227 @@ export default function Discover() {
         sort_by:    sortBy,
       });
       setFiltered(res.results || []);
-    } catch {
-      setFiltered([]);
-    } finally {
-      setFilterLoading(false);
-    }
+    } catch { setFiltered([]); }
+    finally { setFilterLoading(false); }
   }, [genreIds, yearRange, minRating, sortBy]);
 
-  // Trigger filter when active
   useEffect(() => {
     const active = genreIds.length > 0 || yearRange || minRating;
     setIsFiltering(!!active);
     if (active) loadFiltered();
   }, [genreIds, yearRange, minRating, sortBy]);
 
-  const handleMoviePress = (tmdbId) => router.push(`/movie/${tmdbId}`);
-
-  const toggleGenre = (id) => {
-    setGenreIds((prev) => prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]);
-  };
-
-  const resetFilters = () => {
-    setGenreIds([]);
-    setYearRange(null);
-    setMinRating('');
-    setSortBy('popularity.desc');
-  };
-
-  const activeFiltersCount = [genreIds.length > 0 ? 1 : null, yearRange, minRating].filter(Boolean).length;
+  const handlePress  = (id) => router.push(`/movie/${id}`);
+  const toggleGenre  = (id) => setGenreIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+  const resetFilters = () => { setGenreIds([]); setYearRange(null); setMinRating(''); setSortBy('popularity.desc'); };
+  const activeCount  = [genreIds.length > 0 ? 1 : null, yearRange, minRating].filter(Boolean).length;
 
   return (
-    <View style={styles.page}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.white} />
+
+      {/* Top Navbar */}
       <TopNavbar username="User" />
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 72 }}
+        >
+          {/* Hero */}
+          {!isSearching && !isFiltering && trending.length > 0 && (
+            <HeroCarousel movies={trending} onPress={handlePress} />
+          )}
 
-        {/* ── HERO ── */}
-        {!isSearching && !isFiltering && trending.length > 0 && (
-          <HeroCarousel movies={trending} onPress={handleMoviePress} />
-        )}
-
-        {/* ── SEARCH BAR ── */}
-        <View style={styles.searchBar}>
-          <View style={styles.searchInput}>
-            <Text style={styles.searchIconText}>🔍</Text>
+          {/* Search bar */}
+          <View style={s.searchBar}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
             <TextInput
-              style={styles.searchField}
-              placeholder="Rechercher films, utilisateurs, listes..."
+              style={{ flex: 1, fontSize: 15, color: C.black, paddingVertical: 0 }}
+              placeholder="Films, utilisateurs, listes..."
               placeholderTextColor={C.gray400}
               value={query}
               onChangeText={setQuery}
               returnKeyType="search"
+              autoCorrect={false}
             />
             {query.length > 0 && (
-              <Pressable onPress={() => setQuery('')}>
-                <Text style={{ color: C.gray400, fontSize: 16, paddingHorizontal: 8 }}>✕</Text>
+              <Pressable onPress={() => setQuery('')} hitSlop={10} style={{ paddingLeft: 8 }}>
+                <Text style={{ color: C.gray400, fontSize: 18 }}>✕</Text>
               </Pressable>
             )}
+            <Pressable
+              onPress={() => setFilterOpen((o) => !o)}
+              hitSlop={6}
+              style={[s.filterBtn, (filterOpen || activeCount > 0) && s.filterBtnActive]}
+            >
+              <Text style={{ fontSize: 16 }}>⚙</Text>
+              {activeCount > 0 && (
+                <View style={s.filterBadge}>
+                  <Text style={s.filterBadgeTxt}>{activeCount}</Text>
+                </View>
+              )}
+            </Pressable>
           </View>
 
-          {/* Filter button */}
-          <Pressable
-            onPress={() => setFilterOpen((o) => !o)}
-            style={[styles.filterButton, (filterOpen || activeFiltersCount > 0) && styles.filterButtonActive]}
-          >
-            <Text style={{ fontSize: 14 }}>⚙</Text>
-            {activeFiltersCount > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
-              </View>
-            )}
-          </Pressable>
-        </View>
-
-        {/* ── FILTER MODAL ── */}
-        <FilterModal
-          visible={filterOpen}
-          genres={genres}
-          genreIds={genreIds}
-          yearRange={yearRange}
-          minRating={minRating}
-          sortBy={sortBy}
-          onToggleGenre={toggleGenre}
-          onYearRange={setYearRange}
-          onRating={setMinRating}
-          onSort={setSortBy}
-          onApply={() => setFilterOpen(false)}
-          onReset={resetFilters}
-        />
-
-        {/* ── SEARCH RESULTS ── */}
-        {isSearching && (
-          <View style={styles.searchResults}>
-            <Text style={styles.searchResultsTitle}>
-              {searchLoading ? 'Recherche...' : `${searchResults.length} résultat(s)`}
-            </Text>
-            {searchLoading ? (
-              <ActivityIndicator color={C.red} style={{ marginTop: 20 }} />
-            ) : searchResults.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>Aucun résultat pour "{query}"</Text>
-              </View>
-            ) : (
-              searchResults.map((item, i) => (
-                <SearchResultItem key={i} item={item} onPress={handleMoviePress} />
-              ))
-            )}
+          {/* Filter panel */}
+          <View style={{ paddingHorizontal: 16 }}>
+            <FilterPanel
+              visible={filterOpen}
+              genres={genres}
+              genreIds={genreIds}
+              yearRange={yearRange}
+              minRating={minRating}
+              sortBy={sortBy}
+              onToggleGenre={toggleGenre}
+              onYearRange={setYearRange}
+              onRating={setMinRating}
+              onSort={setSortBy}
+              onApply={() => setFilterOpen(false)}
+              onReset={resetFilters}
+            />
           </View>
-        )}
 
-        {/* ── FILTERED RESULTS ── */}
-        {!isSearching && isFiltering && (
-          <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={styles.sectionTitle}>
-                {filterLoading ? 'Chargement...' : `${filtered.length} film(s)`}
+          {/* Search results */}
+          {isSearching && (
+            <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+              <Text style={s.sectionTitle}>
+                {searchLoading ? 'Recherche...' : `${searchResults.length} résultat(s)`}
               </Text>
-              <Pressable onPress={resetFilters}>
-                <Text style={{ color: C.red, fontSize: 12, fontWeight: '700' }}>Effacer filtres</Text>
-              </Pressable>
+              {searchLoading
+                ? <ActivityIndicator color={C.red} style={{ marginTop: 24 }} />
+                : searchResults.length === 0
+                  ? <Text style={{ color: C.gray400, fontSize: 14, textAlign: 'center', marginTop: 24 }}>
+                      Aucun résultat pour "{query}"
+                    </Text>
+                  : searchResults.map((item, i) => (
+                      <SearchItem key={i} item={item} onPress={handlePress} />
+                    ))
+              }
             </View>
-            {filterLoading ? (
-              <View style={styles.gridRow}>
-                {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-              </View>
-            ) : (
-              <View style={styles.gridRow}>
-                {filtered.map((movie) => (
-                  <MovieCard key={movie.tmdb_id} movie={movie} onPress={handleMoviePress} />
-                ))}
-              </View>
-            )}
-          </View>
-        )}
+          )}
 
-        {/* ── DISCOVER MODE ── */}
-        {!isSearching && !isFiltering && (
-          <>
-            {/* Genre pills */}
-            <View style={{ marginTop: 16 }}>
-              <Text style={[styles.sectionTitle, { paddingHorizontal: 16, marginBottom: 10 }]}>
-                Parcourir par genre
-              </Text>
+          {/* Filtered */}
+          {!isSearching && isFiltering && (
+            <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={s.sectionTitle}>
+                  {filterLoading ? 'Chargement...' : `${filtered.length} film(s)`}
+                </Text>
+                <Pressable onPress={resetFilters} hitSlop={8}>
+                  <Text style={{ color: C.red, fontSize: 13, fontWeight: '700' }}>Effacer</Text>
+                </Pressable>
+              </View>
+              {filterLoading
+                ? <View style={s.grid}>{Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}</View>
+                : <View style={s.grid}>
+                    {filtered.map((m) => <MovieCard key={m.tmdb_id} movie={m} onPress={handlePress} />)}
+                  </View>
+              }
+            </View>
+          )}
+
+          {/* Discover */}
+          {!isSearching && !isFiltering && (
+            <>
+              <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
+                <Text style={[s.sectionTitle, { marginBottom: 10 }]}>Genres</Text>
+              </View>
               <GenrePills genres={genres} selectedIds={genreIds} onToggle={toggleGenre} />
-            </View>
+              <View style={{ paddingHorizontal: 16 }}>
+                <MovieRow title="🔥 Tendances"   movies={trending}   onPress={handlePress} loading={sectionsLoading} />
+                <MovieRow title="⭐ Mieux notés" movies={topRated}   onPress={handlePress} loading={sectionsLoading} />
+                <MovieRow title="🎬 Au cinéma"   movies={nowPlaying} onPress={handlePress} loading={sectionsLoading} />
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-            {/* Sections */}
-            <MovieRow title="🔥 Tendances" movies={trending}   onPress={handleMoviePress} loading={sectionsLoading} />
-            <MovieRow title="⭐ Mieux notés" movies={topRated}   onPress={handleMoviePress} loading={sectionsLoading} />
-            <MovieRow title="🎬 Au cinéma"   movies={nowPlaying} onPress={handleMoviePress} loading={sectionsLoading} />
-          </>
-        )}
-
-      </ScrollView>
-
+      {/* Bottom Tab Bar */}
       <BottomTabBar />
-    </View>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  scroll: {
-    flex: 1,
-  },
-
-  // Hero
-  hero: {
-    position: 'relative',
-    height: HERO_HEIGHT,
-  },
-  heroSlide: {
-    width: SCREEN_WIDTH,
-    height: HERO_HEIGHT,
-    position: 'relative',
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
+// ─────────────────────────────────────────
+// Styles
+// ─────────────────────────────────────────
+const s = StyleSheet.create({
+  arrowLeft: {
     position: 'absolute',
+    left: 10,
+    top: '50%',
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.52)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
-  heroOverlay: {
+  arrowRight: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: HERO_HEIGHT * 0.75,
-    backgroundColor: 'transparent',
-    // Simulate gradient with a semi-transparent black
-    background: 'linear-gradient(transparent, rgba(0,0,0,0.9))',
-    // For RN we use opacity trick:
+    right: 10,
+    top: '50%',
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.52)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
-  heroContent: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-  },
-  heroTitle: {
+  arrowTxt: {
     color: C.white,
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 4,
-    marginBottom: 2,
+    fontSize: 26,
+    fontWeight: '700',
+    lineHeight: 30,
+    marginTop: -2,
   },
-  heroYear: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    marginBottom: 10,
-  },
-  heroButton: {
-    backgroundColor: C.white,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
-  },
-  heroButtonText: {
-    color: C.black,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  heroDots: {
-    position: 'absolute',
-    bottom: 10,
-    right: 16,
-    flexDirection: 'row',
-    gap: 4,
-  },
-  heroDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-  },
-  heroDotActive: {
-    width: 16,
-    backgroundColor: C.white,
-  },
-
-  // Search
   searchBar: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  searchInput: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    paddingHorizontal: 14,
+    height: 48,
     backgroundColor: C.white,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: C.gray200,
-    paddingHorizontal: 12,
-    height: 44,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  searchIconText: {
-    fontSize: 14,
-    marginRight: 6,
-  },
-  searchField: {
-    flex: 1,
-    fontSize: 14,
-    color: C.black,
-    height: '100%',
-  },
-  filterButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: C.white,
+  filterBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: C.gray200,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 8,
   },
-  filterButtonActive: {
+  filterBtnActive: {
     borderColor: C.red,
     backgroundColor: '#fff0f0',
   },
   filterBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -5,
+    right: -5,
     width: 16,
     height: 16,
     borderRadius: 8,
@@ -774,260 +735,94 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterBadgeText: {
+  filterBadgeTxt: {
     color: C.white,
     fontSize: 9,
     fontWeight: '800',
   },
-
-  // Filter Modal
-  filterModal: {
+  filterPanel: {
     backgroundColor: C.white,
-    marginHorizontal: 16,
     borderRadius: 16,
     padding: 16,
-    maxHeight: 480,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: C.gray200,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  filterModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.gray100,
-  },
-  filterModalTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: C.black,
-  },
-  filterSection: {
+  filterLbl: {
     fontSize: 10,
     fontWeight: '800',
     color: C.gray400,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     marginBottom: 8,
   },
-  filterOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: C.gray50,
-  },
-  filterOptionActive: {
-    backgroundColor: '#fff0f0',
-  },
-  filterOptionText: {
-    fontSize: 13,
-    color: C.gray700,
-  },
-  filterOptionTextActive: {
-    color: C.red,
-    fontWeight: '700',
-  },
-  filterApply: {
-    marginTop: 12,
-    backgroundColor: C.red,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  filterApplyText: {
-    color: C.white,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  ratingButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: C.gray100,
-    alignItems: 'center',
-  },
-  ratingButtonActive: {
-    backgroundColor: '#f59e0b',
-  },
-  ratingButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: C.gray700,
-  },
-  ratingButtonTextActive: {
-    color: C.white,
-  },
-
-  // Genre pills
-  genrePills: {
-    paddingHorizontal: 16,
-    gap: 8,
-    paddingBottom: 4,
-  },
-  genrePill: {
+  pill: {
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: C.gray100,
+    borderWidth: 1,
+    borderColor: C.gray200,
   },
-  genrePillActive: {
+  pillActive: {
     backgroundColor: C.red,
+    borderColor: C.red,
   },
-  genrePillText: {
+  pillTxt: {
     fontSize: 12,
     fontWeight: '600',
     color: C.gray700,
   },
-  genrePillTextActive: {
+  pillTxtActive: {
     color: C.white,
-  },
-
-  // Sections
-  section: {
-    marginTop: 20,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '800',
     color: C.black,
-    paddingHorizontal: 16,
     marginBottom: 10,
   },
-
-  // Row cards
-  rowCard: {
-    width: 100,
-  },
-  rowCardPoster: {
-    width: 100,
-    height: 148,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: C.gray200,
-    marginBottom: 6,
-  },
-  rowCardTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: C.black,
-    lineHeight: 14,
-  },
-  rowCardRating: {
-    fontSize: 10,
-    color: C.yellow,
-    marginTop: 2,
-  },
-
-  // Grid cards
-  gridRow: {
+  grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-  },
-  card: {
-    width: CARD_WIDTH,
-  },
-  cardPoster: {
-    width: '100%',
-    aspectRatio: 2 / 3,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: C.gray200,
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  cardNoImage: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.gray100,
-  },
-  cardTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: C.black,
-    marginTop: 6,
-    lineHeight: 14,
-  },
-  cardYear: {
-    fontSize: 10,
-    color: C.gray400,
-  },
-  cardRating: {
-    fontSize: 10,
-    color: C.yellow,
-    fontWeight: '700',
-  },
-
-  // Search results
-  searchResults: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-  },
-  searchResultsTitle: {
-    fontSize: 13,
-    color: C.gray400,
-    marginBottom: 8,
+    gap: 10,
   },
   searchItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: C.gray100,
   },
-  searchItemPoster: {
-    width: 40,
-    height: 56,
+  searchPoster: {
+    width: 38,
+    height: 54,
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: C.gray200,
-  },
-  searchItemAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: C.red,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
-  searchItemTitle: {
-    fontSize: 13,
+  searchAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchTitle: {
+    fontSize: 14,
     fontWeight: '700',
     color: C.black,
   },
-  searchItemSub: {
-    fontSize: 11,
+  searchSub: {
+    fontSize: 12,
     color: C.gray400,
     marginTop: 2,
-  },
-  searchItemRating: {
-    fontSize: 11,
-    color: C.yellow,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-
-  // Empty state
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: C.gray400,
   },
 });

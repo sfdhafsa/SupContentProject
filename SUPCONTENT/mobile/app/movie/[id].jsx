@@ -5,55 +5,40 @@ import {
   Dimensions,
   Image,
   Pressable,
+  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { getMovieById } from '../../src/services/moviesApi';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SW, height: SH } = Dimensions.get('window');
+const BACKDROP_H = Math.round(SH * 0.32);
+const POSTER_W   = Math.round(SW * 0.30);
+const POSTER_H   = Math.round(POSTER_W * 1.5);
 
 const C = {
   red:    '#ef0d1a',
   white:  '#ffffff',
   black:  '#111827',
-  gray100: '#f3f4f6',
-  gray200: '#e5e7eb',
-  gray400: '#9ca3af',
-  gray500: '#6b7280',
-  gray700: '#374151',
-  gray800: '#1f2937',
-  gray900: '#111827',
+  gray200:'#e5e7eb',
+  gray400:'#9ca3af',
+  gray500:'#6b7280',
+  gray800:'#1f2937',
   yellow: '#f59e0b',
-  bg950:  '#030712',
+  bg:     '#030712',
+  green:  '#10b981',
 };
 
 function Stars({ rating, size = 14 }) {
-  const stars = Math.round((rating / 10) * 5);
+  const filled = Math.round((rating / 10) * 5);
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <Text key={i} style={{ fontSize: size, color: i < stars ? C.yellow : 'rgba(255,255,255,0.3)' }}>★</Text>
+        <Text key={i} style={{ fontSize: size, color: i < filled ? C.yellow : 'rgba(255,255,255,0.22)' }}>★</Text>
       ))}
-    </View>
-  );
-}
-
-function CastCard({ person }) {
-  return (
-    <View style={styles.castCard}>
-      <View style={styles.castPhoto}>
-        {person.photo_url ? (
-          <Image source={{ uri: person.photo_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-        ) : (
-          <View style={[styles.castPhoto, { backgroundColor: C.gray800, alignItems: 'center', justifyContent: 'center' }]}>
-            <Text style={{ fontSize: 20 }}>👤</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.castName} numberOfLines={2}>{person.name}</Text>
-      <Text style={styles.castCharacter} numberOfLines={1}>{person.character}</Text>
     </View>
   );
 }
@@ -61,35 +46,15 @@ function CastCard({ person }) {
 function CrewCard({ name, role }) {
   const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <View style={styles.crewCard}>
-      <View style={styles.crewAvatar}>
-        <Text style={styles.crewInitials}>{initials}</Text>
+    <View style={s.crewCard}>
+      <View style={s.crewAvatar}>
+        <Text style={{ color: C.white, fontSize: 13, fontWeight: '800' }}>{initials}</Text>
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.crewName} numberOfLines={1}>{name}</Text>
-        {role && <Text style={styles.crewRole} numberOfLines={1}>{role}</Text>}
+        <Text style={{ color: C.white, fontSize: 13, fontWeight: '700' }} numberOfLines={1}>{name}</Text>
+        {role && <Text style={{ color: C.gray400, fontSize: 11, marginTop: 1 }} numberOfLines={1}>{role}</Text>}
       </View>
     </View>
-  );
-}
-
-function SimilarCard({ movie, onPress }) {
-  return (
-    <Pressable onPress={() => onPress(movie.tmdb_id)} style={styles.similarCard}>
-      <View style={styles.similarPoster}>
-        {movie.poster_url ? (
-          <Image source={{ uri: movie.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-        ) : (
-          <View style={[styles.similarPoster, { backgroundColor: C.gray800, alignItems: 'center', justifyContent: 'center' }]}>
-            <Text style={{ fontSize: 16 }}>🎬</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.similarTitle} numberOfLines={2}>{movie.title}</Text>
-      {movie.vote_average > 0 && (
-        <Text style={styles.similarRating}>★ {movie.vote_average.toFixed(1)}</Text>
-      )}
-    </Pressable>
   );
 }
 
@@ -101,11 +66,11 @@ function formatMoney(n) {
 }
 
 export default function MovieDetail() {
-  const { id }   = useLocalSearchParams();
-  const router   = useRouter();
-  const [movie, setMovie]   = useState(null);
+  const { id }    = useLocalSearchParams();
+  const router    = useRouter();
+  const [movie, setMovie]     = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState(null);
+  const [error, setError]     = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -118,7 +83,8 @@ export default function MovieDetail() {
 
   if (loading) {
     return (
-      <View style={styles.loadingPage}>
+      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <StatusBar barStyle="light-content" />
         <ActivityIndicator color={C.red} size="large" />
       </View>
     );
@@ -126,12 +92,19 @@ export default function MovieDetail() {
 
   if (error || !movie) {
     return (
-      <View style={styles.loadingPage}>
-        <Text style={{ color: C.white, fontSize: 16, marginBottom: 16 }}>{error || 'Film introuvable'}</Text>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Retour</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <StatusBar barStyle="light-content" />
+        <Text style={{ color: C.white, fontSize: 16, marginBottom: 20, textAlign: 'center', paddingHorizontal: 24 }}>
+          {error || 'Film introuvable'}
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={8}
+          style={{ backgroundColor: C.red, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+        >
+          <Text style={{ color: C.white, fontWeight: '800', fontSize: 15 }}>← Retour</Text>
         </Pressable>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -141,174 +114,338 @@ export default function MovieDetail() {
   const revenue = formatMoney(movie.revenue);
 
   return (
-    <View style={styles.page}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 48 }}
+        bounces
+      >
         {/* ── BACKDROP ── */}
-        <View style={styles.backdrop}>
-          {movie.backdrop_url ? (
-            <Image source={{ uri: movie.backdrop_url }} style={styles.backdropImage} resizeMode="cover" />
-          ) : movie.poster_url ? (
-            <Image source={{ uri: movie.poster_url }} style={styles.backdropImage} resizeMode="cover" />
-          ) : (
-            <View style={[styles.backdropImage, { backgroundColor: C.gray800 }]} />
-          )}
+        <View style={{ width: SW, height: BACKDROP_H }}>
+          {(movie.backdrop_url || movie.poster_url)
+            ? <Image
+                source={{ uri: movie.backdrop_url || movie.poster_url }}
+                style={StyleSheet.absoluteFill}
+                resizeMode="cover"
+              />
+            : <View style={[StyleSheet.absoluteFill, { backgroundColor: C.gray800 }]} />
+          }
           {/* Overlay */}
-          <View style={styles.backdropOverlay} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(3,7,18,0.58)' }]} />
 
-          {/* Back button */}
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={{ color: C.white, fontSize: 16 }}>←</Text>
-          </Pressable>
+          {/* Bouton retour en SafeAreaView */}
+          <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }}>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={10}
+              style={{
+                margin: 14,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'rgba(0,0,0,0.55)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ color: C.white, fontSize: 20, lineHeight: 24 }}>←</Text>
+            </Pressable>
+          </SafeAreaView>
 
-          {/* Glow effect autour du poster */}
-          <View style={styles.posterContainer}>
-            <View style={styles.posterGlow} />
-            <View style={styles.posterWrapper}>
-              {movie.poster_url ? (
-                <Image source={{ uri: movie.poster_url }} style={styles.poster} resizeMode="cover" />
-              ) : (
-                <View style={[styles.poster, { backgroundColor: C.gray800, alignItems: 'center', justifyContent: 'center' }]}>
-                  <Text style={{ fontSize: 40 }}>🎬</Text>
-                </View>
-              )}
+          {/* Poster avec glow */}
+          <View style={{
+            position: 'absolute',
+            bottom: -(POSTER_H * 0.42),
+            left: 16,
+          }}>
+            {/* Glow */}
+            <View style={{
+              position: 'absolute',
+              width: POSTER_W + 18,
+              height: POSTER_H + 18,
+              top: -9,
+              left: -9,
+              borderRadius: 14,
+              backgroundColor: C.red,
+              opacity: 0.18,
+            }} />
+            <View style={{
+              width: POSTER_W,
+              height: POSTER_H,
+              borderRadius: 12,
+              overflow: 'hidden',
+              elevation: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.5,
+              shadowRadius: 16,
+            }}>
+              {movie.poster_url
+                ? <Image source={{ uri: movie.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                : <View style={{ flex: 1, backgroundColor: C.gray800, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 36 }}>🎬</Text>
+                  </View>
+              }
             </View>
           </View>
         </View>
 
-        {/* ── INFOS ── */}
-        <View style={styles.content}>
+        {/* ── CONTENU ── */}
+        <View style={{ paddingTop: POSTER_H * 0.48, paddingHorizontal: 16 }}>
 
           {/* Genres */}
           {movie.genres?.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginBottom: 10 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 6, marginBottom: 14 }}
+            >
               {movie.genres.map((g) => (
-                <View key={g.id} style={styles.genreBadge}>
-                  <Text style={styles.genreBadgeText}>{g.name}</Text>
+                <View key={g.id} style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 20,
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.14)',
+                }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600' }}>{g.name}</Text>
                 </View>
               ))}
             </ScrollView>
           )}
 
-          {/* Title */}
-          <Text style={styles.title}>{movie.title}</Text>
-          {movie.tagline && <Text style={styles.tagline}>"{movie.tagline}"</Text>}
+          {/* Titre */}
+          <Text style={{ color: C.white, fontSize: 22, fontWeight: '800', lineHeight: 28, marginBottom: 4 }}>
+            {movie.title}
+          </Text>
+          {movie.tagline && (
+            <Text style={{ color: C.gray400, fontSize: 13, fontStyle: 'italic', marginBottom: 10 }}>
+              "{movie.tagline}"
+            </Text>
+          )}
 
-          {/* Meta row */}
-          <View style={styles.metaRow}>
-            {year && <Text style={styles.metaText}>{year}</Text>}
-            {year && movie.runtime_minutes && <Text style={styles.metaDot}>•</Text>}
+          {/* Meta */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+            {year && <Text style={{ color: C.gray400, fontSize: 13 }}>{year}</Text>}
+            {year && movie.runtime_minutes && <Text style={{ color: C.gray500 }}>•</Text>}
             {movie.runtime_minutes && (
-              <Text style={styles.metaText}>{Math.floor(movie.runtime_minutes / 60)}h {movie.runtime_minutes % 60}min</Text>
+              <Text style={{ color: C.gray400, fontSize: 13 }}>
+                {Math.floor(movie.runtime_minutes / 60)}h{movie.runtime_minutes % 60}min
+              </Text>
             )}
             {movie.original_language && (
               <>
-                <Text style={styles.metaDot}>•</Text>
-                <Text style={[styles.metaText, { textTransform: 'uppercase' }]}>{movie.original_language}</Text>
+                <Text style={{ color: C.gray500 }}>•</Text>
+                <Text style={{ color: C.gray400, fontSize: 13, textTransform: 'uppercase' }}>
+                  {movie.original_language}
+                </Text>
+              </>
+            )}
+            {movie.status && (
+              <>
+                <Text style={{ color: C.gray500 }}>•</Text>
+                <View style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(16,185,129,0.18)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(16,185,129,0.3)',
+                }}>
+                  <Text style={{ color: C.green, fontSize: 11, fontWeight: '700' }}>{movie.status}</Text>
+                </View>
               </>
             )}
           </View>
 
           {/* Rating */}
           {rating && (
-            <View style={styles.ratingBox}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              marginBottom: 16,
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.08)',
+              flexWrap: 'wrap',
+            }}>
               <Stars rating={rating} size={16} />
-              <Text style={styles.ratingScore}>{rating.toFixed(1)}</Text>
-              <Text style={styles.ratingMax}>/ 10</Text>
+              <Text style={{ color: C.white, fontSize: 20, fontWeight: '800' }}>{rating.toFixed(1)}</Text>
+              <Text style={{ color: C.gray400, fontSize: 13 }}>/ 10</Text>
               {movie.vote_count && (
-                <Text style={styles.ratingVotes}>({movie.vote_count.toLocaleString()} votes)</Text>
+                <Text style={{ color: C.gray500, fontSize: 12 }}>
+                  ({movie.vote_count.toLocaleString()} votes)
+                </Text>
               )}
             </View>
           )}
 
-          {/* Overview */}
+          {/* Synopsis */}
           {movie.overview && (
-            <View style={styles.overviewSection}>
-              <Text style={styles.sectionLabel}>Synopsis</Text>
-              <Text style={styles.overviewText}>{movie.overview}</Text>
+            <View style={{ marginBottom: 16 }}>
+              <Text style={s.sectionLbl}>SYNOPSIS</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 14, lineHeight: 22 }}>
+                {movie.overview}
+              </Text>
             </View>
           )}
 
           {/* Budget / Revenue */}
           {(budget || revenue) && (
-            <View style={styles.statsRow}>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
               {budget && (
-                <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>Budget</Text>
-                  <Text style={styles.statValue}>{budget}</Text>
+                <View style={s.statCard}>
+                  <Text style={s.statLbl}>Budget</Text>
+                  <Text style={s.statVal}>{budget}</Text>
                 </View>
               )}
               {revenue && (
-                <View style={[styles.statCard, { borderColor: '#10b981' }]}>
-                  <Text style={styles.statLabel}>Revenus</Text>
-                  <Text style={[styles.statValue, { color: '#10b981' }]}>{revenue}</Text>
+                <View style={[s.statCard, { borderColor: 'rgba(16,185,129,0.3)' }]}>
+                  <Text style={s.statLbl}>Revenus</Text>
+                  <Text style={[s.statVal, { color: C.green }]}>{revenue}</Text>
                 </View>
               )}
             </View>
           )}
 
-          {/* Buttons */}
-          <View style={styles.actions}>
+          {/* Boutons */}
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
             <Pressable
-              style={styles.addButton}
+              style={{ flex: 1, backgroundColor: C.red, paddingVertical: 14, borderRadius: 14, alignItems: 'center' }}
               onPress={() => {/* personne 3 */}}
             >
-              <Text style={styles.addButtonText}>+ Ma bibliothèque</Text>
+              <Text style={{ color: C.white, fontSize: 15, fontWeight: '800' }}>+ Ma bibliothèque</Text>
             </Pressable>
-            <Pressable onPress={() => router.back()} style={styles.backActionButton}>
-              <Text style={styles.backActionText}>← Retour</Text>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={6}
+              style={{
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.18)',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: '700' }}>← Retour</Text>
             </Pressable>
           </View>
 
-          {/* Directors */}
+          {/* Réalisateur */}
           {movie.directors?.length > 0 && (
-            <View style={styles.crewSection}>
-              <Text style={styles.sectionLabel}>
-                {movie.directors.length > 1 ? 'Réalisateurs' : 'Réalisateur'}
+            <View style={{ marginBottom: 20 }}>
+              <Text style={s.sectionLbl}>
+                {movie.directors.length > 1 ? 'RÉALISATEURS' : 'RÉALISATEUR'}
               </Text>
-              {movie.directors.map((d) => (
-                <CrewCard key={d.id} name={d.name} />
-              ))}
+              {movie.directors.map((d) => <CrewCard key={d.id} name={d.name} />)}
             </View>
           )}
 
-          {/* Cast */}
+          {/* Casting */}
           {movie.cast?.length > 0 && (
-            <View style={styles.castSection}>
-              <Text style={styles.sectionLabel}>Casting</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
+            <View style={{ marginBottom: 20 }}>
+              <Text style={s.sectionLbl}>CASTING</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 14 }}
+              >
                 {movie.cast.map((person) => (
-                  <CastCard key={person.id} person={person} />
+                  <View key={person.id} style={{ width: 70, alignItems: 'center' }}>
+                    <View style={{
+                      width: 54,
+                      height: 54,
+                      borderRadius: 27,
+                      overflow: 'hidden',
+                      backgroundColor: C.gray800,
+                      marginBottom: 6,
+                      borderWidth: 2,
+                      borderColor: 'rgba(255,255,255,0.1)',
+                    }}>
+                      {person.photo_url
+                        ? <Image source={{ uri: person.photo_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                        : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ fontSize: 20 }}>👤</Text>
+                          </View>
+                      }
+                    </View>
+                    <Text style={{ color: C.white, fontSize: 10, fontWeight: '700', textAlign: 'center', lineHeight: 13 }} numberOfLines={2}>
+                      {person.name}
+                    </Text>
+                    <Text style={{ color: C.gray400, fontSize: 9, textAlign: 'center', marginTop: 2 }} numberOfLines={1}>
+                      {person.character}
+                    </Text>
+                  </View>
                 ))}
               </ScrollView>
             </View>
           )}
 
-          {/* Writers + Producers */}
+          {/* Scénaristes + Producteurs */}
           {(movie.writers?.length > 0 || movie.producers?.length > 0) && (
-            <View style={styles.crewSection}>
+            <View style={{ marginBottom: 20 }}>
               {movie.writers?.length > 0 && (
                 <>
-                  <Text style={styles.sectionLabel}>Scénariste(s)</Text>
+                  <Text style={s.sectionLbl}>SCÉNARISTE(S)</Text>
                   {movie.writers.map((w) => <CrewCard key={w.id} name={w.name} role={w.job} />)}
                 </>
               )}
               {movie.producers?.length > 0 && (
                 <>
-                  <Text style={[styles.sectionLabel, { marginTop: 12 }]}>Producteur(s)</Text>
+                  <Text style={[s.sectionLbl, { marginTop: 14 }]}>PRODUCTEUR(S)</Text>
                   {movie.producers.map((p) => <CrewCard key={p.id} name={p.name} role="Producteur" />)}
                 </>
               )}
             </View>
           )}
 
-          {/* Similar */}
+          {/* Films similaires */}
           {movie.similar?.length > 0 && (
-            <View style={styles.similarSection}>
-              <Text style={styles.sectionLabel}>Films similaires</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 16 }}>
+            <View style={{ marginBottom: 20 }}>
+              <Text style={s.sectionLbl}>FILMS SIMILAIRES</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 10 }}
+              >
                 {movie.similar.map((m) => (
-                  <SimilarCard key={m.tmdb_id} movie={m} onPress={(tmdbId) => router.push(`/movie/${tmdbId}`)} />
+                  <Pressable
+                    key={m.tmdb_id}
+                    onPress={() => router.push(`/movie/${m.tmdb_id}`)}
+                    style={{ width: Math.round(SW * 0.24) }}
+                  >
+                    <View style={{
+                      width: Math.round(SW * 0.24),
+                      height: Math.round(SW * 0.24 * 1.5),
+                      borderRadius: 10,
+                      overflow: 'hidden',
+                      backgroundColor: C.gray800,
+                      marginBottom: 6,
+                    }}>
+                      {m.poster_url
+                        ? <Image source={{ uri: m.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                        : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ fontSize: 16 }}>🎬</Text>
+                          </View>
+                      }
+                    </View>
+                    <Text style={{ color: C.white, fontSize: 10, fontWeight: '600', lineHeight: 13 }} numberOfLines={2}>
+                      {m.title}
+                    </Text>
+                    {m.vote_average > 0 && (
+                      <Text style={{ color: C.yellow, fontSize: 9, marginTop: 2 }}>
+                        ★{m.vote_average.toFixed(1)}
+                      </Text>
+                    )}
+                  </Pressable>
                 ))}
               </ScrollView>
             </View>
@@ -319,242 +456,23 @@ export default function MovieDetail() {
   );
 }
 
-const BACKDROP_HEIGHT = 280;
-const POSTER_WIDTH    = 110;
-
-const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    backgroundColor: C.bg950,
-  },
-  loadingPage: {
-    flex: 1,
-    backgroundColor: C.bg950,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Backdrop
-  backdrop: {
-    height: BACKDROP_HEIGHT,
-    position: 'relative',
-  },
-  backdropImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
-  backdropOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: BACKDROP_HEIGHT,
-    backgroundColor: 'rgba(3,7,18,0.6)',
-  },
-  backBtn: {
-    position: 'absolute',
-    top: 50,
-    left: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  posterContainer: {
-    position: 'absolute',
-    bottom: -50,
-    left: 20,
-  },
-  posterGlow: {
-    position: 'absolute',
-    width: POSTER_WIDTH + 20,
-    height: POSTER_WIDTH * 1.5 + 20,
-    top: -10,
-    left: -10,
-    borderRadius: 16,
-    backgroundColor: C.red,
-    opacity: 0.2,
-  },
-  posterWrapper: {
-    width: POSTER_WIDTH,
-    height: POSTER_WIDTH * 1.5,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  poster: {
-    width: '100%',
-    height: '100%',
-  },
-
-  // Content
-  content: {
-    paddingTop: 60,
-    paddingHorizontal: 16,
-  },
-  genreBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  genreBadgeText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  title: {
-    color: C.white,
-    fontSize: 24,
-    fontWeight: '800',
-    lineHeight: 30,
-    marginBottom: 4,
-  },
-  tagline: {
-    color: C.gray400,
-    fontSize: 13,
-    fontStyle: 'italic',
-    marginBottom: 10,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-  },
-  metaText: {
-    color: C.gray400,
-    fontSize: 12,
-  },
-  metaDot: {
-    color: C.gray500,
-    fontSize: 12,
-  },
-  ratingBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  ratingScore: {
-    color: C.white,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  ratingMax: {
-    color: C.gray400,
-    fontSize: 13,
-  },
-  ratingVotes: {
-    color: C.gray500,
-    fontSize: 11,
-    marginLeft: 4,
-  },
-
-  // Overview
-  overviewSection: {
-    marginBottom: 16,
-  },
-  sectionLabel: {
+const s = StyleSheet.create({
+  sectionLbl: {
     color: C.gray400,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  overviewText: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 14,
-    lineHeight: 22,
-  },
-
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  statLabel: {
-    color: C.gray400,
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  statValue: {
-    color: C.white,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-
-  // Actions
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 24,
-  },
-  addButton: {
-    flex: 1,
-    backgroundColor: C.red,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: C.white,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  backActionButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-  },
-  backActionText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // Crew
-  crewSection: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   crewCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 6,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
@@ -566,90 +484,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  crewInitials: {
+  statCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  statLbl: {
+    color: C.gray400,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  statVal: {
     color: C.white,
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '800',
-  },
-  crewName: {
-    color: C.white,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  crewRole: {
-    color: C.gray400,
-    fontSize: 11,
-    marginTop: 2,
-  },
-
-  // Cast
-  castSection: {
-    marginBottom: 20,
-  },
-  castCard: {
-    width: 72,
-    alignItems: 'center',
-  },
-  castPhoto: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    overflow: 'hidden',
-    backgroundColor: C.gray800,
-    marginBottom: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  castName: {
-    color: C.white,
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 13,
-  },
-  castCharacter: {
-    color: C.gray400,
-    fontSize: 9,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-
-  // Similar
-  similarSection: {
-    marginBottom: 20,
-  },
-  similarCard: {
-    width: 100,
-  },
-  similarPoster: {
-    width: 100,
-    height: 148,
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: C.gray800,
-    marginBottom: 6,
-  },
-  similarTitle: {
-    color: C.white,
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 14,
-  },
-  similarRating: {
-    color: C.yellow,
-    fontSize: 10,
-    marginTop: 2,
-  },
-
-  // Back button
-  backButton: {
-    backgroundColor: C.red,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  backButtonText: {
-    color: C.white,
-    fontWeight: '700',
   },
 });
