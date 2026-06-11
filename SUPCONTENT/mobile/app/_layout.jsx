@@ -5,7 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import useAuthSession from '../src/hooks/useAuthSession';
 
 const authOnlyPrefixes = ['/login', '/register', '/forgot-password'];
-const protectedPrefixes = ['/home', '/profile', '/notifications', '/messages', '/conversation'];
+const protectedPrefixes = ['/home', '/profile', '/settings', '/notifications', '/messages', '/conversation'];
 
 function hasRoutePrefix(pathname, prefixes) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -58,6 +58,7 @@ export default function RootLayout() {
         <Stack.Screen name="conversation/[userId]" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="settings" />
         <Stack.Screen name="auth/callback" />
         <Stack.Screen name="publicProfile" />
         <Stack.Screen name="movie/[id]" />
