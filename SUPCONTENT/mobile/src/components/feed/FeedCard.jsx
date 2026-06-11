@@ -24,7 +24,7 @@ function FeedAvatar({ avatarUrl, username }) {
   );
 }
 
-export default function FeedCard({ item }) {
+export default function FeedCard({ item, currentUserId }) {
   const router = useRouter();
   const { activity, author, movie, review } = item;
   const username = author?.username || '';
@@ -34,6 +34,11 @@ export default function FeedCard({ item }) {
     : headline;
   const openAuthorProfile = () => {
     if (!author?.id) return;
+
+    if (String(author.id) === String(currentUserId)) {
+      router.push('/profile');
+      return;
+    }
 
     router.push({
       pathname: '/publicProfile',
