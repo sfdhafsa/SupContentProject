@@ -20,7 +20,6 @@ const privateTabs = [
 
 function TabIcon({ type, active }) {
   const color = active ? '#ef0d1a' : '#9ca3af';
-
   return (
     <View>
       {type === 'home' && <View style={[styles.homeIcon, { borderColor: color }]} />}
@@ -63,7 +62,7 @@ function TabIcon({ type, active }) {
 }
 
 export default function BottomTabBar() {
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
   const { isAuthenticated } = useAuthSession();
   const [sessionOverride, setSessionOverride] = useState(null);
