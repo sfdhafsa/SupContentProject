@@ -1,4 +1,5 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 function FeedAvatar({ avatarUrl, username }) {
   if (avatarUrl) {
@@ -24,21 +25,52 @@ function FeedAvatar({ avatarUrl, username }) {
 }
 
 export default function FeedCard({ item }) {
+  const router = useRouter();
   const { activity, author, movie, review } = item;
+  const username = author?.username || '';
+  const headline = activity?.headline || '';
+  const headlineWithoutUsername = username && headline.startsWith(username)
+    ? headline.slice(username.length).trimStart()
+    : headline;
+  const openAuthorProfile = () => {
+    if (!author?.id) return;
+
+    router.push({
+      pathname: '/publicProfile',
+      params: { id: String(author.id) },
+    });
+  };
 
   return (
     <View style={styles.feedItem}>
-      <FeedAvatar
-        avatarUrl={author?.avatar_url}
-        username={author?.username}
-      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Voir le profil de ${username}`}
+        disabled={!author?.id}
+        hitSlop={8}
+        onPress={openAuthorProfile}
+      >
+        <FeedAvatar
+          avatarUrl={author?.avatar_url}
+          username={username}
+        />
+      </Pressable>
 
       <View style={styles.feedItemContent}>
         <Text
           style={styles.feedItemHeadline}
           numberOfLines={2}
         >
-          {activity?.headline}
+          {username ? (
+            <Text
+              accessibilityRole="link"
+              onPress={openAuthorProfile}
+              style={styles.feedAuthorName}
+            >
+              {username}
+            </Text>
+          ) : null}
+          {headlineWithoutUsername ? `${username ? ' ' : ''}${headlineWithoutUsername}` : null}
         </Text>
 
         {activity?.body ? (
@@ -126,6 +158,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     lineHeight: 18,
+  },
+
+  feedAuthorName: {
+    color: '#111827',
+    fontWeight: '800',
   },
 
   feedItemBody: {

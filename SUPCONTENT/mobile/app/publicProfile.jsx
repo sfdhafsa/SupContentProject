@@ -15,7 +15,7 @@ import {
 import BottomTabBar from '../src/components/BottomTabBar';
 import ScreenContainer from '../src/components/ScreenContainer';
 import { getAuthToken } from '../src/services/authStorage';
-import { API_BASE_URL } from '../src/config/api';
+import api, { API_BASE_URL } from '../src/config/api';
 
 /* ── Utilitaires ── */
 
@@ -63,10 +63,19 @@ function authHeaders(token) {
 
 async function fetchJson(url, options) {
   const response = await fetch(url, options);
-  const data = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  let data = {};
+
+  if (responseText.trim()) {
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      data = { message: responseText };
+    }
+  }
 
   if (!response.ok) {
-    const error = new Error(data?.message || 'Request failed');
+    const error = new Error(data?.message || `Request failed with status ${response.status}`);
     error.status = response.status;
     error.data = data;
     throw error;
@@ -147,26 +156,6 @@ function EmptyTab({ label, sub }) {
       </View>
       <Text style={styles.emptyTabText}>{label}</Text>
       {sub && <Text style={styles.emptyTabSub}>{sub}</Text>}
-    </View>
-  );
-}
-
-function MoviePosterCard({ poster, title }) {
-  return (
-    <View style={styles.posterCard}>
-      {poster ? (
-        <Image source={{ uri: poster }} style={styles.posterImage} resizeMode="cover" />
-      ) : (
-        <View style={styles.posterPlaceholder}>
-          <View style={styles.filmIconRect} />
-        </View>
-      )}
-      <View style={styles.posterBookmark}>
-        <View style={styles.bookmarkInner} />
-      </View>
-      {title ? (
-        <Text style={styles.posterTitle} numberOfLines={1}>{title}</Text>
-      ) : null}
     </View>
   );
 }
@@ -305,7 +294,6 @@ export default function PublicProfileScreen() {
   const [profileUser, setProfileUser] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [lists, setLists] = useState([]);
-  const [favoriteMovies, setFavoriteMovies] = useState([]);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [stats, setStats] = useState({ followers: 0, following: 0, movies_watched: 0, reviews: 0 });
@@ -370,10 +358,6 @@ export default function PublicProfileScreen() {
             : [];
           setReviews(activeReviews.map(formatReview));
 
-          // Films favoris = les 3 mieux notés
-          const sorted = [...activeReviews].sort((a, b) => b.rating - a.rating);
-          setFavoriteMovies(sorted.slice(0, 3).map(formatReview));
-
           setStats({
             followers: followersRes.count || followers.length,
             following: followingRes.count || following.length,
@@ -405,26 +389,43 @@ export default function PublicProfileScreen() {
     })();
   }, [id]);
 
-  async function handleFollow() {
+  async function handleFollowToggle() {
+    if (followLoading) return;
+
+    const previousFollowing = isFollowing;
+    const nextFollowing = !previousFollowing;
+
     setFollowLoading(true);
     try {
       const token = await getAuthToken();
-      const headers = authHeaders(token);
       if (!token) {
         router.push('/login');
         return;
       }
 
-      const res = await fetchJson(`${API_BASE_URL}/social/follow/${id}`, { method: 'POST', headers });
-      const nextFollowing = res.status === 'followed';
       setIsFollowing(nextFollowing);
+      setStats((current) => ({
+        ...current,
+        followers: Math.max(0, current.followers + (nextFollowing ? 1 : -1)),
+      }));
+
+      const { data: res, status } = await api.post(`/social/follow/${id}`);
+      const confirmedFollowing = res?.status
+        ? res.status === 'followed'
+        : status === 201;
+      setIsFollowing(confirmedFollowing);
       setStats((s) => ({
         ...s,
-        followers: Number.isFinite(Number(res.count))
+        followers: Number.isFinite(Number(res?.count))
           ? Number(res.count)
-          : Math.max(0, s.followers + (nextFollowing ? 1 : -1)),
+          : s.followers,
       }));
     } catch (err) {
+      setIsFollowing(previousFollowing);
+      setStats((current) => ({
+        ...current,
+        followers: Math.max(0, current.followers + (previousFollowing ? 1 : -1)),
+      }));
       console.error('Follow error:', err);
     } finally {
       setFollowLoading(false);
@@ -446,31 +447,6 @@ export default function PublicProfileScreen() {
       case 'Overview':
         return (
           <View>
-            {/* Films favoris */}
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <View style={styles.sectionIcon}>
-                  <View style={[styles.filmIconRect, { backgroundColor: RED }]} />
-                </View>
-                <Text style={styles.sectionTitle}>Films favoris</Text>
-              </View>
-              {favoriteMovies.length > 0 && (
-                <Pressable onPress={() => setActiveTab('Reviews')}>
-                  <Text style={styles.viewAll}>Voir tout</Text>
-                </Pressable>
-              )}
-            </View>
-
-            {favoriteMovies.length === 0 ? (
-              <EmptyTab label="Aucun film favori." />
-            ) : (
-              <View style={styles.postersRow}>
-                {favoriteMovies.map((item) => (
-                  <MoviePosterCard key={item.id} poster={item.poster} title={item.movie} />
-                ))}
-              </View>
-            )}
-
             {/* Critiques récentes */}
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
@@ -571,8 +547,14 @@ export default function PublicProfileScreen() {
             {/* Boutons Follow / Message / Share */}
             <View style={styles.actionButtons}>
               <Pressable
-                style={[styles.followBtn, isFollowing && styles.followingBtn]}
-                onPress={handleFollow}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: isFollowing, busy: followLoading }}
+                style={[
+                  styles.followBtn,
+                  isFollowing && styles.followingBtn,
+                  followLoading && styles.followBtnLoading,
+                ]}
+                onPress={handleFollowToggle}
                 disabled={followLoading}
               >
                 {/* icône personne + plus */}
@@ -832,6 +814,7 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     borderWidth: 1,
   },
+  followBtnLoading: { opacity: 0.65 },
   followIcon: { height: 14, position: 'relative', width: 14 },
   followHead: {
     borderRadius: 4,
@@ -989,42 +972,7 @@ const styles = StyleSheet.create({
     width: 20,
   },
   sectionTitle: { color: TEXT, fontSize: 12, fontWeight: '700' },
-  viewAll: { color: RED, fontSize: 10, fontWeight: '600' },
   starSmall: { borderRadius: 3, borderWidth: 1, height: 10, width: 10 },
-
-  // Grille posters
-  postersRow: { flexDirection: 'row', gap: 6, marginBottom: 14 },
-  posterCard: {
-    backgroundColor: '#e5e7eb',
-    borderRadius: 8,
-    flex: 1,
-    height: 80,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  posterImage: { height: '100%', width: '100%' },
-  posterPlaceholder: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  posterBookmark: {
-    position: 'absolute',
-    right: 5,
-    top: 5,
-  },
-  bookmarkInner: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 3,
-    height: 14,
-    width: 10,
-  },
-  posterTitle: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    bottom: 0,
-    color: '#fff',
-    fontSize: 7,
-    left: 0,
-    padding: 2,
-    position: 'absolute',
-    right: 0,
-  },
 
   // État vide
   emptyTab: { alignItems: 'center', paddingVertical: 20 },
