@@ -146,7 +146,7 @@ function ReviewForm({ initialReview, submitting, error, onCancel, onSubmit }) {
 function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, onLiked, onReport, shouldFocus, targetCommentId }) {
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(Boolean(review.has_liked));
   const [commentsOpen, setCommentsOpen] = useState(shouldFocus);
   const [commentsCount, setCommentsCount] = useState(review.comments_count || 0);
   const cardRef = useRef(null);
@@ -163,6 +163,10 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
       cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 150);
   }, [shouldFocus]);
+
+  useEffect(() => {
+    setLiked(Boolean(review.has_liked));
+  }, [review.has_liked]);
 
   const toggleLike = async () => {
     if (!isAuthenticated || likeLoading) return;
@@ -382,7 +386,11 @@ export default function ReviewsSection({ tmdbId }) {
     setReviews((items) =>
       items.map((item) =>
         item.id === reviewId
-          ? { ...item, likes_count: count ?? Math.max(0, (item.likes_count || 0) + delta) }
+          ? {
+              ...item,
+              has_liked: delta > 0,
+              likes_count: count ?? Math.max(0, (item.likes_count || 0) + delta),
+            }
           : item
       )
     );

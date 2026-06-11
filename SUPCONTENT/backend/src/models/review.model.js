@@ -104,7 +104,7 @@ export const ReviewModel = {
     return rows[0] || null;
   },
 
-  async findByMovieId(movieId) {
+  async findByMovieId(movieId, viewerId = null) {
     await this.ensureFeaturedColumns();
 
     const { rows } = await pool.query(
@@ -113,16 +113,25 @@ export const ReviewModel = {
         r.*,
         u.username,
         u.avatar_url,
-        COUNT(rl.review_id)::INT AS likes_count
+        COUNT(DISTINCT rl.user_id)::INT AS likes_count,
+        COUNT(DISTINCT c.id)::INT AS comments_count,
+        CASE
+          WHEN $2::UUID IS NULL THEN FALSE
+          ELSE BOOL_OR(viewer_like.user_id IS NOT NULL)
+        END AS has_liked
       FROM reviews r
       JOIN users u ON u.id = r.user_id
       LEFT JOIN review_likes rl ON rl.review_id = r.id
+      LEFT JOIN review_likes viewer_like
+        ON viewer_like.review_id = r.id
+       AND viewer_like.user_id = $2::UUID
+      LEFT JOIN comments c ON c.review_id = r.id AND c.deleted_at IS NULL
       WHERE r.movie_id = $1
       AND r.deleted_at IS NULL
       GROUP BY r.id, u.id
       ORDER BY r.is_featured DESC, r.featured_at DESC NULLS LAST, r.created_at DESC
       `,
-      [movieId]
+      [movieId, viewerId]
     );
 
     return rows;

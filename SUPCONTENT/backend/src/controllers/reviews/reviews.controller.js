@@ -35,9 +35,10 @@ export const getReviewsByMovie = async (
   try {
 
     const reviews =
-      await ReviewsService.getReviewsByMovie(
-        req.params.tmdbId
-      );
+      await ReviewsService.getReviewsByMovie({
+        tmdbId: req.params.tmdbId,
+        viewerId: req.user?.userId,
+      });
 
     return res.json(reviews);
 

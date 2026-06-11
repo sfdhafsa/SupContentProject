@@ -10,9 +10,20 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { getMovieById } from '../../src/services/moviesApi';
+import {
+  createReview,
+  createReviewComment,
+  deleteReview,
+  getMovieReviews,
+  getReviewComments,
+  toggleReviewLike,
+  updateReview,
+} from '../../src/services/reviewsApi';
+import useAuthSession from '../../src/hooks/useAuthSession';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const BACKDROP_H = Math.round(SH * 0.32);
@@ -39,6 +50,520 @@ function Stars({ rating, size = 14 }) {
       {Array.from({ length: 5 }).map((_, i) => (
         <Text key={i} style={{ fontSize: size, color: i < filled ? C.yellow : 'rgba(255,255,255,0.22)' }}>★</Text>
       ))}
+    </View>
+  );
+}
+
+function RatingPicker({ value, onChange }) {
+  return (
+    <View style={s.ratingPicker}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Pressable
+          key={star}
+          onPress={() => onChange(star)}
+          hitSlop={8}
+          style={s.ratingStarButton}
+        >
+          <Text style={[s.ratingStar, star <= value && s.ratingStarActive]}>★</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function ReviewForm({ initialReview, submitting, error, onCancel, onSubmit }) {
+  const [rating, setRating] = useState(initialReview?.rating || 0);
+  const [text, setText] = useState(initialReview?.text || '');
+  const [containsSpoiler, setContainsSpoiler] = useState(!!initialReview?.contains_spoiler);
+
+  useEffect(() => {
+    setRating(initialReview?.rating || 0);
+    setText(initialReview?.text || '');
+    setContainsSpoiler(!!initialReview?.contains_spoiler);
+  }, [initialReview]);
+
+  const trimmedText = text.trim();
+  const canSubmit = rating > 0 && !submitting;
+
+  return (
+    <View style={s.reviewFormCard}>
+      <View style={s.reviewFormHeader}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.reviewFormTitle}>{initialReview ? 'Edit your review' : 'Write a review'}</Text>
+          <Text style={s.reviewFormHint}>Share a rating, with or without written thoughts.</Text>
+        </View>
+        <RatingPicker value={rating} onChange={setRating} />
+      </View>
+
+      <TextInput
+        value={text}
+        onChangeText={setText}
+        multiline
+        maxLength={1200}
+        placeholder="What did you think of this movie? Optional."
+        placeholderTextColor="rgba(148,163,184,0.72)"
+        style={s.reviewInput}
+        textAlignVertical="top"
+      />
+
+      {error ? <Text style={s.reviewError}>{error}</Text> : null}
+
+      <View style={s.reviewFormFooter}>
+        <Pressable
+          onPress={() => setContainsSpoiler((value) => !value)}
+          disabled={!trimmedText}
+          style={[s.spoilerToggle, !trimmedText && s.disabledControl]}
+        >
+          <View style={[s.checkbox, containsSpoiler && s.checkboxActive]}>
+            {containsSpoiler ? <Text style={s.checkboxTick}>✓</Text> : null}
+          </View>
+          <Text style={s.spoilerText}>Contains spoilers</Text>
+        </Pressable>
+
+        <View style={s.reviewActions}>
+          {onCancel ? (
+            <Pressable onPress={onCancel} style={s.secondaryButton}>
+              <Text style={s.secondaryButtonText}>Cancel</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            onPress={() => {
+              if (!canSubmit) return;
+              onSubmit({
+                rating,
+                text: trimmedText || null,
+                containsSpoiler: trimmedText ? containsSpoiler : false,
+              });
+            }}
+            disabled={!canSubmit}
+            style={[s.postButton, !canSubmit && s.disabledButton]}
+          >
+            <Text style={s.postButtonText}>
+              {submitting ? 'Saving...' : initialReview ? 'Save changes' : trimmedText ? 'Post review' : 'Post rating'}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function CommentRow({ comment }) {
+  const initials = comment.username ? comment.username.slice(0, 2).toUpperCase() : 'U';
+
+  return (
+    <View style={s.commentRow}>
+      <View style={s.commentAvatar}>
+        {comment.avatar_url ? (
+          <Image source={{ uri: comment.avatar_url }} style={s.commentAvatarImage} />
+        ) : (
+          <Text style={s.commentAvatarText}>{initials}</Text>
+        )}
+      </View>
+      <View style={s.commentBubble}>
+        <Text style={s.commentUsername} numberOfLines={1}>{comment.username || 'User'}</Text>
+        <Text style={s.commentText}>{comment.text}</Text>
+      </View>
+    </View>
+  );
+}
+
+function ReviewCard({
+  review,
+  currentUserId,
+  token,
+  isAuthenticated,
+  onEdit,
+  onDelete,
+  onLiked,
+  onCommentCountChange,
+  onRequireAuth,
+}) {
+  const [showSpoiler, setShowSpoiler] = useState(false);
+  const [liked, setLiked] = useState(Boolean(review.has_liked));
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [likeError, setLikeError] = useState('');
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [commentError, setCommentError] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const isMine = String(review.user_id) === String(currentUserId);
+  const initials = review.username ? review.username.slice(0, 2).toUpperCase() : 'U';
+  const hasText = typeof review.text === 'string' && review.text.trim().length > 0;
+  const commentsCount = Number(review.comments_count || comments.length || 0);
+
+  const isJsonParseError = (err) =>
+    err instanceof SyntaxError ||
+    String(err?.message || '').toLowerCase().includes('not valid json') ||
+    String(err?.message || '').toLowerCase().includes('unexpected token');
+
+  useEffect(() => {
+    setLiked(Boolean(review.has_liked));
+  }, [review.has_liked]);
+
+  const loadComments = async () => {
+    setCommentsLoading(true);
+    setCommentError('');
+    try {
+      const data = await getReviewComments(review.id);
+      const nextComments = Array.isArray(data) ? data : [];
+      setComments(nextComments);
+      onCommentCountChange(review.id, nextComments.length);
+    } catch (err) {
+      setCommentError(err.message || 'Unable to load comments.');
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const toggleComments = () => {
+    const nextOpen = !commentsOpen;
+    setCommentsOpen(nextOpen);
+    if (nextOpen && comments.length === 0) {
+      loadComments();
+    }
+  };
+
+  const handleLike = async () => {
+    if (!isAuthenticated) {
+      onRequireAuth();
+      return;
+    }
+    if (likeLoading) return;
+
+    const previousLiked = liked;
+    const optimisticLiked = !previousLiked;
+    const optimisticDelta = optimisticLiked ? 1 : -1;
+
+    setLikeLoading(true);
+    setLikeError('');
+    setLiked(optimisticLiked);
+    onLiked(review.id, {
+      count: null,
+      delta: optimisticDelta,
+      liked: optimisticLiked,
+    });
+
+    try {
+      const result = await toggleReviewLike({ token, reviewId: review.id });
+      if (!['liked', 'unliked'].includes(result.status)) {
+        return;
+      }
+
+      const nextLiked = result.status === 'liked';
+      setLiked(nextLiked);
+      onLiked(review.id, {
+        count: Number.isFinite(Number(result.count)) ? Number(result.count) : null,
+        delta: 0,
+        liked: nextLiked,
+      });
+    } catch (err) {
+      if (isJsonParseError(err)) {
+        return;
+      }
+
+      setLiked(previousLiked);
+      onLiked(review.id, {
+        count: null,
+        delta: -optimisticDelta,
+        liked: previousLiked,
+      });
+      setLikeError(err.message || 'Unable to update this like.');
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const submitComment = async () => {
+    const trimmed = commentText.trim();
+    if (!trimmed || !isAuthenticated || commentSubmitting) return;
+
+    setCommentSubmitting(true);
+    setCommentError('');
+    try {
+      await createReviewComment({ token, reviewId: review.id, text: trimmed });
+      setCommentText('');
+      const nextComments = await getReviewComments(review.id);
+      const normalized = Array.isArray(nextComments) ? nextComments : [];
+      setComments(normalized);
+      onCommentCountChange(review.id, normalized.length);
+    } catch (err) {
+      setCommentError(err.message || 'Unable to post this comment.');
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  return (
+    <View style={[s.reviewCard, review.is_featured && s.featuredReviewCard]}>
+      <View style={s.reviewCardHeader}>
+        <View style={s.reviewAvatar}>
+          {review.avatar_url ? (
+            <Image source={{ uri: review.avatar_url }} style={s.reviewAvatarImage} />
+          ) : (
+            <Text style={s.reviewAvatarText}>{initials}</Text>
+          )}
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <View style={s.reviewNameRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.reviewUsername} numberOfLines={1}>{review.username || 'User'}</Text>
+              <Stars rating={(Number(review.rating || 0) / 5) * 10} size={13} />
+            </View>
+            {isMine ? (
+              <View style={s.ownerActions}>
+                <Pressable onPress={() => onEdit(review)} hitSlop={8} style={s.iconButton}>
+                  <Text style={s.iconButtonText}>✎</Text>
+                </Pressable>
+                <Pressable onPress={() => onDelete(review.id)} hitSlop={8} style={s.iconButton}>
+                  <Text style={s.iconButtonText}>⌫</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+
+          {review.is_featured ? (
+            <View style={s.featuredBadge}>
+              <Text style={s.featuredBadgeText}>Featured review</Text>
+            </View>
+          ) : null}
+
+          <View style={s.reviewBody}>
+            {hasText && review.contains_spoiler && !showSpoiler ? (
+              <Pressable onPress={() => setShowSpoiler(true)} style={s.spoilerCard}>
+                <Text style={s.spoilerCardText}>This review contains spoilers. Tap to reveal.</Text>
+              </Pressable>
+            ) : hasText ? (
+              <Text style={s.reviewText}>{review.text}</Text>
+            ) : (
+              <Text style={s.reviewMutedText}>Rated this movie.</Text>
+            )}
+          </View>
+
+          <View style={s.reviewMetaBar}>
+            <Pressable
+              onPress={handleLike}
+              disabled={likeLoading}
+              hitSlop={8}
+              style={[s.reviewMetaButton, liked && s.reviewMetaButtonActive, likeLoading && s.disabledControl]}
+            >
+              <Text style={[s.reviewMetaIcon, liked && s.reviewMetaIconActive]}>{liked ? '♥' : '♡'}</Text>
+            </Pressable>
+            <Pressable onPress={toggleComments} hitSlop={8} style={s.reviewMetaButton}>
+              <Text style={[s.reviewMetaIcon, commentsOpen && s.reviewMetaIconActive]}>▢</Text>
+            </Pressable>
+          </View>
+          {(review.likes_count || 0) > 0 || commentsCount > 0 ? (
+            <View style={s.reviewCountRow}>
+            <Text style={s.likesText}>
+              {review.likes_count || 0} {(review.likes_count || 0) === 1 ? 'like' : 'likes'}
+            </Text>
+              <Text style={s.likesText}>
+                {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
+              </Text>
+            </View>
+          ) : null}
+          {likeError ? <Text style={s.commentError}>{likeError}</Text> : null}
+
+          {commentsOpen ? (
+            <View style={s.commentsPanel}>
+              {commentsLoading ? (
+                <ActivityIndicator color={C.red} size="small" />
+              ) : comments.length === 0 ? (
+                <Text style={s.noCommentsText}>No comments yet.</Text>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  {comments.map((comment) => (
+                    <CommentRow key={comment.id} comment={comment} />
+                  ))}
+                </View>
+              )}
+
+              {commentError ? <Text style={s.commentError}>{commentError}</Text> : null}
+
+              {isAuthenticated ? (
+                <View style={s.commentComposer}>
+                  <TextInput
+                    value={commentText}
+                    onChangeText={setCommentText}
+                    placeholder="Add a comment..."
+                    placeholderTextColor="rgba(148,163,184,0.72)"
+                    style={s.commentInput}
+                  />
+                  <Pressable
+                    onPress={submitComment}
+                    disabled={!commentText.trim() || commentSubmitting}
+                    style={[s.commentPostButton, (!commentText.trim() || commentSubmitting) && s.disabledButton]}
+                  >
+                    <Text style={s.commentPostText}>{commentSubmitting ? '...' : 'Post'}</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable onPress={onRequireAuth} style={s.commentSignInHint}>
+                  <Text style={s.commentSignInHintText}>Sign in to comment.</Text>
+                </Pressable>
+              )}
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function ReviewsSection({ tmdbId, router }) {
+  const { token, user, loading: authLoading, isAuthenticated } = useAuthSession();
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState(null);
+  const [editingReview, setEditingReview] = useState(null);
+  const [notice, setNotice] = useState('');
+
+  const myReview = reviews.find((review) => String(review.user_id) === String(user?.id));
+
+  const loadReviews = () => {
+    setLoading(true);
+    getMovieReviews(tmdbId, token)
+      .then((data) => setReviews(Array.isArray(data) ? data : []))
+      .catch(() => setReviews([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadReviews();
+  }, [tmdbId, token]);
+
+  const submitReview = async (payload) => {
+    setSubmitting(true);
+    setFormError(null);
+    setNotice('');
+
+    try {
+      if (editingReview) {
+        await updateReview({ token, reviewId: editingReview.id, ...payload });
+        setEditingReview(null);
+      } else {
+        await createReview({ token, tmdbId, ...payload });
+      }
+      const nextReviews = await getMovieReviews(tmdbId, token);
+      setReviews(Array.isArray(nextReviews) ? nextReviews : []);
+    } catch (err) {
+      setFormError(err.message || 'Unable to save this review.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const removeReview = async (reviewId) => {
+    if (!token) return;
+    try {
+      await deleteReview({ token, reviewId });
+      setReviews((items) => items.filter((item) => item.id !== reviewId));
+      if (editingReview?.id === reviewId) setEditingReview(null);
+    } catch (err) {
+      setNotice(err.message || 'Unable to delete this review.');
+    }
+  };
+
+  const updateLikes = (reviewId, { count, delta, liked }) => {
+    setReviews((items) =>
+      items.map((item) =>
+        item.id === reviewId
+          ? {
+              ...item,
+              has_liked: liked ?? delta > 0,
+              likes_count: count ?? Math.max(0, (item.likes_count || 0) + delta),
+            }
+          : item
+      )
+    );
+  };
+
+  const updateCommentCount = (reviewId, count) => {
+    setReviews((items) =>
+      items.map((item) =>
+        item.id === reviewId ? { ...item, comments_count: count } : item
+      )
+    );
+  };
+
+  return (
+    <View style={s.reviewsSection}>
+      <View style={s.reviewsHeader}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.reviewsTitle}>Reviews</Text>
+          <Text style={s.reviewsCount}>
+            {reviews.length} community {reviews.length === 1 ? 'review' : 'reviews'}
+          </Text>
+        </View>
+        {!authLoading && !isAuthenticated ? (
+          <Pressable onPress={() => router.push('/login')} style={s.signInReviewButton}>
+            <Text style={s.signInReviewText}>Sign in to review</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {isAuthenticated && (!myReview || editingReview) ? (
+        <ReviewForm
+          initialReview={editingReview}
+          submitting={submitting}
+          error={formError}
+          onCancel={editingReview ? () => {
+            setEditingReview(null);
+            setFormError(null);
+          } : null}
+          onSubmit={submitReview}
+        />
+      ) : null}
+
+      {isAuthenticated && myReview && !editingReview ? (
+        <View style={s.reviewNotice}>
+          <Text style={s.reviewNoticeText}>
+            You already reviewed this movie. Use the edit button on your review to update it.
+          </Text>
+        </View>
+      ) : null}
+
+      {notice ? (
+        <View style={s.reviewNotice}>
+          <Text style={s.reviewNoticeText}>{notice}</Text>
+        </View>
+      ) : null}
+
+      {loading ? (
+        <View style={s.emptyReviewsCard}>
+          <ActivityIndicator color={C.red} />
+        </View>
+      ) : reviews.length === 0 ? (
+        <View style={s.emptyReviewsCard}>
+          <Text style={s.emptyReviewsTitle}>No reviews yet</Text>
+          <Text style={s.emptyReviewsText}>Be the first to share your thoughts about this movie.</Text>
+        </View>
+      ) : (
+        <View style={{ gap: 12 }}>
+          {reviews.map((review) => (
+            <ReviewCard
+              key={review.id}
+              review={review}
+              currentUserId={user?.id}
+              token={token}
+              isAuthenticated={isAuthenticated}
+              onEdit={(item) => {
+                setFormError(null);
+                setEditingReview(item);
+              }}
+              onDelete={removeReview}
+              onLiked={updateLikes}
+              onCommentCountChange={updateCommentCount}
+              onRequireAuth={() => router.push('/login')}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -450,6 +975,8 @@ export default function MovieDetail() {
               </ScrollView>
             </View>
           )}
+
+          <ReviewsSection tmdbId={id} router={router} />
         </View>
       </ScrollView>
     </View>
@@ -503,5 +1030,437 @@ const s = StyleSheet.create({
     color: C.white,
     fontSize: 16,
     fontWeight: '800',
+  },
+  reviewsSection: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  reviewsHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 14,
+  },
+  reviewsTitle: {
+    color: C.white,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  reviewsCount: {
+    color: '#64748b',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  signInReviewButton: {
+    backgroundColor: C.red,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  signInReviewText: {
+    color: C.white,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  reviewFormCard: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.11)',
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 14,
+    padding: 14,
+  },
+  reviewFormHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  reviewFormTitle: {
+    color: C.white,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  reviewFormHint: {
+    color: '#64748b',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  ratingPicker: {
+    flexDirection: 'row',
+    gap: 1,
+  },
+  ratingStarButton: {
+    height: 28,
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ratingStar: {
+    color: 'rgba(148,163,184,0.65)',
+    fontSize: 18,
+  },
+  ratingStarActive: {
+    color: '#facc15',
+  },
+  reviewInput: {
+    backgroundColor: 'rgba(3,7,18,0.72)',
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: C.white,
+    fontSize: 13,
+    minHeight: 96,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  reviewError: {
+    color: '#f87171',
+    fontSize: 12,
+    marginTop: 10,
+  },
+  reviewFormFooter: {
+    gap: 12,
+    marginTop: 12,
+  },
+  spoilerToggle: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  disabledControl: {
+    opacity: 0.45,
+  },
+  checkbox: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 4,
+    borderWidth: 1,
+    height: 16,
+    justifyContent: 'center',
+    width: 16,
+  },
+  checkboxActive: {
+    backgroundColor: C.red,
+    borderColor: C.red,
+  },
+  checkboxTick: {
+    color: C.white,
+    fontSize: 11,
+    fontWeight: '900',
+    lineHeight: 13,
+  },
+  spoilerText: {
+    color: '#cbd5e1',
+    fontSize: 12,
+  },
+  reviewActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'flex-end',
+  },
+  postButton: {
+    backgroundColor: C.red,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  postButtonText: {
+    color: C.white,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  secondaryButton: {
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  secondaryButtonText: {
+    color: '#cbd5e1',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  reviewNotice: {
+    backgroundColor: 'rgba(16,185,129,0.12)',
+    borderColor: 'rgba(16,185,129,0.24)',
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  reviewNoticeText: {
+    color: '#a7f3d0',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 17,
+  },
+  emptyReviewsCard: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.11)',
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 116,
+    padding: 18,
+  },
+  emptyReviewsTitle: {
+    color: C.white,
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  emptyReviewsText: {
+    color: '#64748b',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  reviewCard: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.11)',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+  },
+  featuredReviewCard: {
+    backgroundColor: 'rgba(239,13,26,0.08)',
+    borderColor: 'rgba(239,13,26,0.35)',
+  },
+  reviewCardHeader: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reviewAvatar: {
+    alignItems: 'center',
+    backgroundColor: '#db2777',
+    borderRadius: 20,
+    height: 40,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 40,
+  },
+  reviewAvatarImage: {
+    height: '100%',
+    width: '100%',
+  },
+  reviewAvatarText: {
+    color: C.white,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  reviewNameRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  reviewUsername: {
+    color: C.white,
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  ownerActions: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  iconButton: {
+    alignItems: 'center',
+    borderRadius: 8,
+    height: 28,
+    justifyContent: 'center',
+    width: 28,
+  },
+  iconButtonText: {
+    color: '#94a3b8',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  featuredBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(239,13,26,0.16)',
+    borderColor: 'rgba(239,13,26,0.35)',
+    borderRadius: 999,
+    borderWidth: 1,
+    marginTop: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  featuredBadgeText: {
+    color: '#fecdd3',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  reviewBody: {
+    marginTop: 14,
+  },
+  reviewText: {
+    color: '#e2e8f0',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  reviewMutedText: {
+    color: '#64748b',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  spoilerCard: {
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderColor: 'rgba(245,158,11,0.24)',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  spoilerCardText: {
+    color: '#fde68a',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  reviewMetaBar: {
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 14,
+    paddingTop: 10,
+  },
+  reviewMetaButton: {
+    alignItems: 'center',
+    borderRadius: 8,
+    minHeight: 28,
+    minWidth: 28,
+    justifyContent: 'center',
+  },
+  reviewMetaButtonActive: {
+    backgroundColor: 'rgba(239,13,26,0.12)',
+  },
+  reviewMetaIcon: {
+    color: '#94a3b8',
+    fontSize: 20,
+    lineHeight: 22,
+  },
+  reviewMetaIconActive: {
+    color: C.red,
+  },
+  reviewCountRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
+  likesText: {
+    color: C.white,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  commentsPanel: {
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopWidth: 1,
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
+  },
+  noCommentsText: {
+    color: '#64748b',
+    fontSize: 12,
+  },
+  commentRow: {
+    flexDirection: 'row',
+    gap: 9,
+  },
+  commentAvatar: {
+    alignItems: 'center',
+    backgroundColor: '#334155',
+    borderRadius: 14,
+    height: 28,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 28,
+  },
+  commentAvatarImage: {
+    height: '100%',
+    width: '100%',
+  },
+  commentAvatarText: {
+    color: C.white,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  commentBubble: {
+    backgroundColor: 'rgba(15,23,42,0.72)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  commentUsername: {
+    color: C.white,
+    fontSize: 11,
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  commentText: {
+    color: '#cbd5e1',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  commentError: {
+    color: '#f87171',
+    fontSize: 12,
+  },
+  commentComposer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  commentInput: {
+    backgroundColor: 'rgba(3,7,18,0.72)',
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: C.white,
+    flex: 1,
+    fontSize: 12,
+    minHeight: 40,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
+  commentPostButton: {
+    alignItems: 'center',
+    backgroundColor: C.red,
+    borderRadius: 12,
+    justifyContent: 'center',
+    minHeight: 40,
+    paddingHorizontal: 12,
+  },
+  commentPostText: {
+    color: C.white,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  commentSignInHint: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 10,
+  },
+  commentSignInHintText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

@@ -23,14 +23,18 @@ export const toggleLikeReview = async (userId, reviewId) => {
 
   await ReviewLikeModel.create(userId, reviewId);
   if (review.user_id !== userId) {
-  await createNotification({
-    userId: review.user_id,
-    actorUserId: userId,
-    type: notificationTypes.REVIEW_LIKE,
-    entityType: 'REVIEW',
-    entityId: reviewId.toString(),
-  });
-}
+    try {
+      await createNotification({
+        userId: review.user_id,
+        actorUserId: userId,
+        type: notificationTypes.REVIEW_LIKE,
+        entityType: 'REVIEW',
+        entityId: reviewId.toString(),
+      });
+    } catch (err) {
+      console.error("[REVIEW_LIKE] Failed to create notification:", err);
+    }
+  }
   const count = await ReviewLikeModel.countByReviewId(reviewId);
   return { status: "liked", count };
 };

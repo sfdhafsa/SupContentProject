@@ -22,6 +22,7 @@ import {
 } from "../../controllers/social/comments/reviewComments.controller.js";
 
 import {
+  optionalProtect,
   protect,
 } from "../../middlewares/auth.middleware.js";
 
@@ -29,7 +30,7 @@ const router = express.Router();
 
 router.post("/",protect,createReview);
 
-router.get("/movie/:tmdbId",getReviewsByMovie);
+router.get("/movie/:tmdbId", optionalProtect, getReviewsByMovie);
 
 router.patch("/:id",protect,updateReview);
 

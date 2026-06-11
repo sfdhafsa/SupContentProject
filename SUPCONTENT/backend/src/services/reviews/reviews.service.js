@@ -53,14 +53,14 @@ export const createReview = async ({
   });
 };
 
-export const getReviewsByMovie = async (tmdbId) => {
+export const getReviewsByMovie = async ({ tmdbId, viewerId } = {}) => {
   const movie = await MovieModel.findByExternalId(tmdbId);
 
   if (!movie) {
     return [];
   }
 
-  return await ReviewModel.findByMovieId(movie.id);
+  return await ReviewModel.findByMovieId(movie.id, viewerId || null);
 };
 
 export const updateReview = async (payload) => {

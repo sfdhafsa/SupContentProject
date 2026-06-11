@@ -116,8 +116,6 @@ Stop-PreviousDevProcesses
 Start-Sleep -Seconds 2
 
 $backendTunnel = $null
-$mobileTunnel = $null
-
 try {
   Write-Host 'Creating backend tunnel...' -ForegroundColor Cyan
   $backendTunnel = Start-QuickTunnel -Name 'backend' -Port 3000
@@ -159,22 +157,15 @@ try {
   Write-Host "Google callback: $googleCallbackUrl" -ForegroundColor Yellow
   Write-Host 'Register this exact callback in Google Cloud Console for OAuth.' -ForegroundColor Yellow
 
-  Write-Host 'Creating mobile tunnel...' -ForegroundColor Cyan
-  $mobileTunnel = Start-QuickTunnel -Name 'mobile' -Port 8081
-  $env:EXPO_PACKAGER_PROXY_URL = $mobileTunnel.Url
-
-  Write-Host "Mobile tunnel: $($mobileTunnel.Url)" -ForegroundColor Green
-  Write-Host 'Starting Expo Go on port 8081...' -ForegroundColor Cyan
+  Write-Host 'Starting Expo Go through the Expo tunnel...' -ForegroundColor Cyan
   Push-Location $mobileRoot
   try {
-    & npx.cmd expo start --localhost --clear --port 8081
+    & npx.cmd expo start --tunnel --clear --port 8081
   } finally {
     Pop-Location
   }
 } finally {
-  Remove-Item Env:\EXPO_PACKAGER_PROXY_URL -ErrorAction SilentlyContinue
-
-  foreach ($tunnel in @($mobileTunnel, $backendTunnel)) {
+  foreach ($tunnel in @($backendTunnel)) {
     if ($tunnel -and $tunnel.Process -and -not $tunnel.Process.HasExited) {
       Stop-Process -Id $tunnel.Process.Id -Force -ErrorAction SilentlyContinue
     }
