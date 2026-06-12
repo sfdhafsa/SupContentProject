@@ -1,9 +1,11 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   Image,
+  Linking,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -27,6 +29,9 @@ import {
 } from '../src/services/moviesApi';
 
 const { width: SW, height: SH } = Dimensions.get('window');
+const HERO_H     = Math.round(SH * 0.30);
+const CARD_W     = Math.floor((SW - 52) / 3);
+const ROW_CARD_W = Math.round(SW * 0.26);
 
 const C = {
   red:    '#ef0d1a',
@@ -43,9 +48,42 @@ const C = {
   bg:     '#f3f4f6',
 };
 
-const HERO_H     = Math.round(SH * 0.30);
-const CARD_W     = Math.floor((SW - 52) / 3);
-const ROW_CARD_W = Math.round(SW * 0.26);
+// ─────────────────────────────────────────
+// Skeleton animé
+// ─────────────────────────────────────────
+function SkeletonBox({ width, height, borderRadius = 8, style }) {
+  const anim = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <Animated.View style={[{ width, height, borderRadius, backgroundColor: C.gray200, opacity: anim }, style]} />
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <View style={{ width: CARD_W }}>
+      <SkeletonBox width={CARD_W} height={Math.round(CARD_W * 1.5)} borderRadius={10} />
+      <SkeletonBox width={CARD_W * 0.8} height={9} borderRadius={4} style={{ marginTop: 6 }} />
+      <SkeletonBox width={CARD_W * 0.5} height={8} borderRadius={4} style={{ marginTop: 3 }} />
+    </View>
+  );
+}
+
+function SkeletonRowCard() {
+  return (
+    <View style={{ width: ROW_CARD_W }}>
+      <SkeletonBox width={ROW_CARD_W} height={Math.round(ROW_CARD_W * 1.45)} borderRadius={10} />
+      <SkeletonBox width={ROW_CARD_W * 0.8} height={9} borderRadius={4} style={{ marginTop: 6 }} />
+    </View>
+  );
+}
 
 // ─────────────────────────────────────────
 // Stars
@@ -58,6 +96,46 @@ function Stars({ rating, size = 10 }) {
         <Text key={i} style={{ fontSize: size, color: i < filled ? C.yellow : 'rgba(255,255,255,0.25)' }}>★</Text>
       ))}
     </View>
+  );
+}
+
+// ─────────────────────────────────────────
+// AnimatedMovieCard
+// ─────────────────────────────────────────
+function AnimatedMovieCard({ movie, onPress, width, height }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const W = width  || CARD_W;
+  const H = height || Math.round(W * 1.5);
+
+  const pressIn  = () => Animated.spring(scale, { toValue: 0.94, useNativeDriver: true, speed: 20 }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 20 }).start();
+
+  return (
+    <Pressable
+      onPress={() => onPress(movie.tmdb_id)}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+    >
+      <Animated.View style={{ width: W, transform: [{ scale }] }}>
+        <View style={{ width: W, height: H, borderRadius: 10, overflow: 'hidden', backgroundColor: C.gray200 }}>
+          {movie.poster_url
+            ? <Image source={{ uri: movie.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 22 }}>🎬</Text>
+              </View>
+          }
+        </View>
+        <Text style={{ fontSize: 11, fontWeight: '600', color: C.black, marginTop: 5 }} numberOfLines={1}>
+          {movie.title}
+        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+          <Text style={{ fontSize: 10, color: C.gray400 }}>{movie.release_date?.slice(0, 4) || '—'}</Text>
+          {movie.vote_average > 0 && (
+            <Text style={{ fontSize: 10, color: C.yellow, fontWeight: '700' }}>★{movie.vote_average.toFixed(1)}</Text>
+          )}
+        </View>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -92,8 +170,7 @@ function HeroCarousel({ movies, onPress }) {
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
         onMomentumScrollEnd={(e) => {
-          const i = Math.round(e.nativeEvent.contentOffset.x / SW);
-          setIdx(i);
+          setIdx(Math.round(e.nativeEvent.contentOffset.x / SW));
         }}
       >
         {list.map((movie) => (
@@ -103,20 +180,13 @@ function HeroCarousel({ movies, onPress }) {
             style={{ width: SW, height: HERO_H }}
           >
             {(movie.backdrop_url || movie.poster_url)
-              ? <Image
-                  source={{ uri: movie.backdrop_url || movie.poster_url }}
-                  style={StyleSheet.absoluteFill}
-                  resizeMode="cover"
-                />
+              ? <Image source={{ uri: movie.backdrop_url || movie.poster_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
               : <View style={[StyleSheet.absoluteFill, { backgroundColor: C.gray800 }]} />
             }
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.48)' }]} />
             <View style={{ position: 'absolute', bottom: 14, left: 14, right: 70 }}>
               <Stars rating={movie.vote_average} size={11} />
-              <Text
-                style={{ color: C.white, fontSize: 16, fontWeight: '800', marginTop: 3 }}
-                numberOfLines={1}
-              >
+              <Text style={{ color: C.white, fontSize: 16, fontWeight: '800', marginTop: 3 }} numberOfLines={1}>
                 {movie.title}
               </Text>
               {movie.release_date && (
@@ -127,14 +197,7 @@ function HeroCarousel({ movies, onPress }) {
               <Pressable
                 onPress={() => onPress(movie.tmdb_id)}
                 hitSlop={8}
-                style={{
-                  marginTop: 8,
-                  backgroundColor: C.white,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  alignSelf: 'flex-start',
-                }}
+                style={{ marginTop: 8, backgroundColor: C.white, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, alignSelf: 'flex-start' }}
               >
                 <Text style={{ color: C.black, fontSize: 11, fontWeight: '800' }}>▶ Voir</Text>
               </Pressable>
@@ -143,38 +206,21 @@ function HeroCarousel({ movies, onPress }) {
         ))}
       </ScrollView>
 
-      {/* Flèche gauche */}
       {idx > 0 && (
-        <Pressable
-          onPress={() => goTo(idx - 1)}
-          hitSlop={10}
-          style={s.arrowLeft}
-        >
+        <Pressable onPress={() => goTo(idx - 1)} hitSlop={10} style={s.arrowLeft}>
           <Text style={s.arrowTxt}>‹</Text>
         </Pressable>
       )}
-
-      {/* Flèche droite */}
       {idx < list.length - 1 && (
-        <Pressable
-          onPress={() => goTo(idx + 1)}
-          hitSlop={10}
-          style={s.arrowRight}
-        >
+        <Pressable onPress={() => goTo(idx + 1)} hitSlop={10} style={s.arrowRight}>
           <Text style={s.arrowTxt}>›</Text>
         </Pressable>
       )}
 
-      {/* Dots */}
       <View style={{ position: 'absolute', bottom: 10, right: 12, flexDirection: 'row', gap: 4 }}>
         {list.map((_, i) => (
           <Pressable key={i} onPress={() => goTo(i)} hitSlop={6}>
-            <View style={{
-              width: i === idx ? 14 : 6,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: i === idx ? C.white : 'rgba(255,255,255,0.4)',
-            }} />
+            <View style={{ width: i === idx ? 14 : 6, height: 6, borderRadius: 3, backgroundColor: i === idx ? C.white : 'rgba(255,255,255,0.4)' }} />
           </Pressable>
         ))}
       </View>
@@ -183,41 +229,50 @@ function HeroCarousel({ movies, onPress }) {
 }
 
 // ─────────────────────────────────────────
-// MovieCard (grille)
+// GenrePill animé
 // ─────────────────────────────────────────
-function MovieCard({ movie, onPress }) {
+function GenrePill({ genre, selected, onToggle }) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const press = () => {
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 0.90, useNativeDriver: true, speed: 30 }),
+      Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 20 }),
+    ]).start();
+    onToggle(String(genre.id));
+  };
+
   return (
-    <Pressable onPress={() => onPress(movie.tmdb_id)} style={{ width: CARD_W }}>
-      <View style={{ width: CARD_W, height: Math.round(CARD_W * 1.5), borderRadius: 10, overflow: 'hidden', backgroundColor: C.gray200 }}>
-        {movie.poster_url
-          ? <Image source={{ uri: movie.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-          : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 20 }}>🎬</Text>
-            </View>
-        }
-      </View>
-      <Text style={{ fontSize: 11, fontWeight: '600', color: C.black, marginTop: 5 }} numberOfLines={1}>
-        {movie.title}
-      </Text>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
-        <Text style={{ fontSize: 10, color: C.gray400 }}>{movie.release_date?.slice(0, 4) || '—'}</Text>
-        {movie.vote_average > 0 && (
-          <Text style={{ fontSize: 10, color: C.yellow, fontWeight: '700' }}>
-            ★{movie.vote_average.toFixed(1)}
-          </Text>
-        )}
-      </View>
+    <Pressable onPress={press} hitSlop={4}>
+      <Animated.View style={[
+        s.pill,
+        selected && s.pillActive,
+        { transform: [{ scale }] },
+      ]}>
+        <Text style={[s.pillTxt, selected && s.pillTxtActive]}>
+          {selected ? '✓ ' : ''}{genre.name}
+        </Text>
+      </Animated.View>
     </Pressable>
   );
 }
 
-function SkeletonCard() {
+function GenrePills({ genres, selectedIds, onToggle }) {
   return (
-    <View style={{ width: CARD_W, opacity: 0.4 }}>
-      <View style={{ width: CARD_W, height: Math.round(CARD_W * 1.5), borderRadius: 10, backgroundColor: C.gray200 }} />
-      <View style={{ height: 9, backgroundColor: C.gray200, borderRadius: 4, marginTop: 5, width: '80%' }} />
-      <View style={{ height: 8, backgroundColor: C.gray200, borderRadius: 4, marginTop: 3, width: '50%' }} />
-    </View>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 4 }}
+    >
+      {genres.map((g) => (
+        <GenrePill
+          key={g.id}
+          genre={g}
+          selected={selectedIds.includes(String(g.id))}
+          onToggle={onToggle}
+        />
+      ))}
+    </ScrollView>
   );
 }
 
@@ -226,7 +281,7 @@ function SkeletonCard() {
 // ─────────────────────────────────────────
 function MovieRow({ title, movies, onPress, loading }) {
   return (
-    <View style={{ marginTop: 18 }}>
+    <View style={{ marginTop: 20 }}>
       <Text style={s.sectionTitle}>{title}</Text>
       <ScrollView
         horizontal
@@ -234,29 +289,15 @@ function MovieRow({ title, movies, onPress, loading }) {
         contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}
       >
         {loading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <View key={i} style={{ width: ROW_CARD_W, opacity: 0.4 }}>
-                <View style={{ width: ROW_CARD_W, height: Math.round(ROW_CARD_W * 1.45), borderRadius: 10, backgroundColor: C.gray200 }} />
-                <View style={{ height: 9, backgroundColor: C.gray200, borderRadius: 4, marginTop: 6, width: '80%' }} />
-              </View>
-            ))
+          ? Array.from({ length: 4 }).map((_, i) => <SkeletonRowCard key={i} />)
           : movies.map((m) => (
-              <Pressable key={m.tmdb_id} onPress={() => onPress(m.tmdb_id)} style={{ width: ROW_CARD_W }}>
-                <View style={{ width: ROW_CARD_W, height: Math.round(ROW_CARD_W * 1.45), borderRadius: 10, overflow: 'hidden', backgroundColor: C.gray200 }}>
-                  {m.poster_url
-                    ? <Image source={{ uri: m.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                    : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 18 }}>🎬</Text>
-                      </View>
-                  }
-                </View>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: C.black, marginTop: 5 }} numberOfLines={1}>
-                  {m.title}
-                </Text>
-                {m.vote_average > 0 && (
-                  <Text style={{ fontSize: 10, color: C.yellow }}>★{m.vote_average.toFixed(1)}</Text>
-                )}
-              </Pressable>
+              <AnimatedMovieCard
+                key={m.tmdb_id}
+                movie={m}
+                onPress={onPress}
+                width={ROW_CARD_W}
+                height={Math.round(ROW_CARD_W * 1.45)}
+              />
             ))
         }
       </ScrollView>
@@ -265,89 +306,76 @@ function MovieRow({ title, movies, onPress, loading }) {
 }
 
 // ─────────────────────────────────────────
-// GenrePills
-// ─────────────────────────────────────────
-function GenrePills({ genres, selectedIds, onToggle }) {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 2 }}
-    >
-      {genres.map((g) => {
-        const sel = selectedIds.includes(String(g.id));
-        return (
-          <Pressable
-            key={g.id}
-            onPress={() => onToggle(String(g.id))}
-            hitSlop={4}
-            style={[s.pill, sel && s.pillActive]}
-          >
-            <Text style={[s.pillTxt, sel && s.pillTxtActive]}>{g.name}</Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
-// ─────────────────────────────────────────
 // SearchItem
 // ─────────────────────────────────────────
 function SearchItem({ item, onPress }) {
-  if (item.type === 'movie') {
-    return (
-      <Pressable onPress={() => onPress(item.tmdb_id)} style={s.searchItem}>
-        <View style={s.searchPoster}>
-          {item.poster_url
-            ? <Image source={{ uri: item.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-            : <Text style={{ fontSize: 14 }}>🎬</Text>
-          }
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.searchTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={s.searchSub}>{item.release_date?.slice(0, 4) || '—'}</Text>
-          {item.vote_average > 0 && (
-            <Text style={{ fontSize: 11, color: C.yellow, fontWeight: '700', marginTop: 2 }}>
-              ★{item.vote_average.toFixed(1)}
-            </Text>
-          )}
-        </View>
-        <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
-      </Pressable>
-    );
-  }
-  if (item.type === 'user') {
-    return (
-      <Pressable style={s.searchItem}>
-        <View style={[s.searchAvatar, { backgroundColor: C.red }]}>
-          <Text style={{ color: C.white, fontWeight: '800', fontSize: 15 }}>
-            {item.username?.slice(0, 1).toUpperCase()}
-          </Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.searchTitle}>@{item.username}</Text>
-          {item.bio && <Text style={s.searchSub} numberOfLines={1}>{item.bio}</Text>}
-        </View>
-        <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
-      </Pressable>
-    );
-  }
-  if (item.type === 'list') {
-    return (
-      <Pressable style={s.searchItem}>
-        <View style={[s.searchAvatar, { backgroundColor: '#7c3aed' }]}>
-          <Text style={{ fontSize: 16 }}>📋</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.searchTitle}>{item.name}</Text>
-          <Text style={s.searchSub}>{item.movie_count || 0} films</Text>
-        </View>
-        <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
-      </Pressable>
-    );
-  }
-  return null;
+  const scale = useRef(new Animated.Value(1)).current;
+  const pressIn  = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 25 }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 25 }).start();
+
+  const content = (() => {
+    if (item.type === 'movie') {
+      return (
+        <>
+          <View style={s.searchPoster}>
+            {item.poster_url
+              ? <Image source={{ uri: item.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              : <Text style={{ fontSize: 14 }}>🎬</Text>
+            }
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.searchTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={s.searchSub}>{item.release_date?.slice(0, 4) || '—'}</Text>
+            {item.vote_average > 0 && (
+              <Text style={{ fontSize: 11, color: C.yellow, fontWeight: '700', marginTop: 2 }}>★{item.vote_average.toFixed(1)}</Text>
+            )}
+          </View>
+          <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
+        </>
+      );
+    }
+    if (item.type === 'user') {
+      return (
+        <>
+          <View style={[s.searchAvatar, { backgroundColor: C.red }]}>
+            <Text style={{ color: C.white, fontWeight: '800', fontSize: 15 }}>{item.username?.slice(0, 1).toUpperCase()}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.searchTitle}>@{item.username}</Text>
+            {item.bio && <Text style={s.searchSub} numberOfLines={1}>{item.bio}</Text>}
+          </View>
+          <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
+        </>
+      );
+    }
+    if (item.type === 'list') {
+      return (
+        <>
+          <View style={[s.searchAvatar, { backgroundColor: '#7c3aed' }]}>
+            <Text style={{ fontSize: 16 }}>📋</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.searchTitle}>{item.name}</Text>
+            <Text style={s.searchSub}>{item.movie_count || 0} films</Text>
+          </View>
+          <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
+        </>
+      );
+    }
+    return null;
+  })();
+
+  return (
+    <Pressable
+      onPress={() => item.type === 'movie' && onPress(item.tmdb_id)}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+    >
+      <Animated.View style={[s.searchItem, { transform: [{ scale }] }]}>
+        {content}
+      </Animated.View>
+    </Pressable>
+  );
 }
 
 // ─────────────────────────────────────────
@@ -355,6 +383,17 @@ function SearchItem({ item, onPress }) {
 // ─────────────────────────────────────────
 function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
   onToggleGenre, onYearRange, onRating, onSort, onApply, onReset }) {
+
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: visible ? 1 : 0,
+      useNativeDriver: true,
+      tension: 70,
+      friction: 12,
+    }).start();
+  }, [visible]);
 
   const YEARS = [
     { label: '2020+',   min: 2020, max: 2025 },
@@ -369,18 +408,16 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
     { value: 'primary_release_date.desc', label: 'Récents' },
     { value: 'primary_release_date.asc',  label: 'Anciens' },
   ];
-  const RATES = [
-    { label: '9+', value: 9 },
-    { label: '8+', value: 8 },
-    { label: '7+', value: 7 },
-    { label: '6+', value: 6 },
-  ];
+  const RATES = [{ label: '9+', value: 9 }, { label: '8+', value: 8 }, { label: '7+', value: 7 }, { label: '6+', value: 6 }];
 
   if (!visible) return null;
 
   return (
-    <View style={s.filterPanel}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+    <Animated.View style={[s.filterPanel, {
+      opacity: slideAnim,
+      transform: [{ translateY: slideAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
+    }]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 }}>
         <Text style={{ fontSize: 14, fontWeight: '800', color: C.black }}>Filtres & Tri</Text>
         <Pressable onPress={onReset} hitSlop={8}>
           <Text style={{ fontSize: 13, color: C.red, fontWeight: '700' }}>Effacer tout</Text>
@@ -388,8 +425,7 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
       </View>
 
       <Text style={s.filterLbl}>TRIER PAR</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
         {SORTS.map((o) => (
           <Pressable key={o.value} onPress={() => onSort(o.value)} style={[s.pill, sortBy === o.value && s.pillActive]}>
             <Text style={[s.pillTxt, sortBy === o.value && s.pillTxtActive]}>{o.label}</Text>
@@ -398,24 +434,21 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
       </ScrollView>
 
       <Text style={s.filterLbl}>GENRES (multi-sélection)</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-        {genres.map((g) => {
-          const sel = genreIds.includes(String(g.id));
-          return (
-            <Pressable key={g.id} onPress={() => onToggleGenre(String(g.id))}
-              style={[s.pill, sel && s.pillActive]}>
-              <Text style={[s.pillTxt, sel && s.pillTxtActive]}>{sel ? '✓ ' : ''}{g.name}</Text>
-            </Pressable>
-          );
-        })}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+        {genres.map((g) => (
+          <GenrePill
+            key={g.id}
+            genre={g}
+            selected={genreIds.includes(String(g.id))}
+            onToggle={onToggleGenre}
+          />
+        ))}
       </View>
 
       <Text style={s.filterLbl}>PÉRIODE</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
         {YEARS.map((r) => (
-          <Pressable key={r.label}
-            onPress={() => onYearRange(yearRange?.label === r.label ? null : r)}
+          <Pressable key={r.label} onPress={() => onYearRange(yearRange?.label === r.label ? null : r)}
             style={[s.pill, yearRange?.label === r.label && s.pillActive]}>
             <Text style={[s.pillTxt, yearRange?.label === r.label && s.pillTxtActive]}>{r.label}</Text>
           </Pressable>
@@ -425,8 +458,7 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
       <Text style={s.filterLbl}>NOTE MINIMUM</Text>
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
         {RATES.map((o) => (
-          <Pressable key={o.value}
-            onPress={() => onRating(minRating === o.value ? '' : o.value)}
+          <Pressable key={o.value} onPress={() => onRating(minRating === o.value ? '' : o.value)}
             style={[s.pill, minRating === o.value && { backgroundColor: C.yellow, borderColor: C.yellow }]}>
             <Text style={[s.pillTxt, minRating === o.value && { color: C.white }]}>★{o.label}</Text>
           </Pressable>
@@ -434,10 +466,10 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
       </View>
 
       <Pressable onPress={onApply}
-        style={{ backgroundColor: C.red, paddingVertical: 13, borderRadius: 10, alignItems: 'center' }}>
+        style={{ backgroundColor: C.red, paddingVertical: 13, borderRadius: 12, alignItems: 'center' }}>
         <Text style={{ color: C.white, fontSize: 14, fontWeight: '800' }}>Appliquer</Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -445,12 +477,13 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
 // Discover (main)
 // ─────────────────────────────────────────
 export default function Discover() {
-  const router = useRouter();
+  const router       = useRouter();
+  const searchParams = useLocalSearchParams();
 
-  const [query, setQuery]                   = useState('');
+  const [query, setQuery]                   = useState(searchParams.q || '');
   const [searchResults, setResults]         = useState([]);
   const [searchLoading, setSearchLoading]   = useState(false);
-  const [isSearching, setIsSearching]       = useState(false);
+  const [isSearching, setIsSearching]       = useState(!!searchParams.q);
 
   const [genreIds, setGenreIds]             = useState([]);
   const [yearRange, setYearRange]           = useState(null);
@@ -467,7 +500,11 @@ export default function Discover() {
   const [sectionsLoading, setSectionsLoading] = useState(true);
   const [filterLoading, setFilterLoading]   = useState(false);
 
-  const debounceRef = useRef(null);
+  const debounceRef  = useRef(null);
+  const resultsAnim  = useRef(new Animated.Value(0)).current;
+
+  // Barre de recherche inline dans discover (séparée de TopNavbar)
+  const [inlineQuery, setInlineQuery] = useState(searchParams.q || '');
 
   useEffect(() => {
     getGenres().then(setGenres).catch(() => {});
@@ -482,19 +519,28 @@ export default function Discover() {
       .finally(() => setSectionsLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!query.trim()) { setIsSearching(false); setResults([]); return; }
+  // Animation résultats
+  const animateResults = () => {
+    resultsAnim.setValue(0);
+    Animated.spring(resultsAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 10 }).start();
+  };
+
+  const runSearch = useCallback(async (q) => {
+    if (!q.trim()) { setIsSearching(false); setResults([]); return; }
     setIsSearching(true);
     setSearchLoading(true);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await searchMovies({ query });
-        setResults((res.results || []).slice(0, 10).map((m) => ({ ...m, type: 'movie' })));
-      } catch { setResults([]); }
-      finally { setSearchLoading(false); }
-    }, 400);
-  }, [query]);
+    try {
+      const res = await searchMovies({ query: q });
+      setResults((res.results || []).slice(0, 10).map((m) => ({ ...m, type: 'movie' })));
+      animateResults();
+    } catch { setResults([]); }
+    finally { setSearchLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => runSearch(inlineQuery), 400);
+  }, [inlineQuery]);
 
   const loadFiltered = useCallback(async () => {
     setFilterLoading(true);
@@ -507,6 +553,7 @@ export default function Discover() {
         sort_by:    sortBy,
       });
       setFiltered(res.results || []);
+      animateResults();
     } catch { setFiltered([]); }
     finally { setFilterLoading(false); }
   }, [genreIds, yearRange, minRating, sortBy]);
@@ -522,43 +569,46 @@ export default function Discover() {
   const resetFilters = () => { setGenreIds([]); setYearRange(null); setMinRating(''); setSortBy('popularity.desc'); };
   const activeCount  = [genreIds.length > 0 ? 1 : null, yearRange, minRating].filter(Boolean).length;
 
+  // Callback pour TopNavbar
+  const handleTopSearch = useCallback((text) => {
+    setInlineQuery(text);
+  }, []);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.white} />
-
-      {/* Top Navbar */}
-      <TopNavbar username="User" />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <TopNavbar username="User" onSearch={handleTopSearch} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
       >
         <ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 72 }}
+          contentContainerStyle={{ paddingBottom: 80 }}
         >
           {/* Hero */}
           {!isSearching && !isFiltering && trending.length > 0 && (
             <HeroCarousel movies={trending} onPress={handlePress} />
           )}
 
-          {/* Search bar */}
-          <View style={s.searchBar}>
+          {/* Search bar inline */}
+          <View style={s.searchBarInline}>
             <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
             <TextInput
               style={{ flex: 1, fontSize: 15, color: C.black, paddingVertical: 0 }}
               placeholder="Films, utilisateurs, listes..."
               placeholderTextColor={C.gray400}
-              value={query}
-              onChangeText={setQuery}
+              value={inlineQuery}
+              onChangeText={setInlineQuery}
               returnKeyType="search"
               autoCorrect={false}
+              autoCapitalize="none"
             />
-            {query.length > 0 && (
-              <Pressable onPress={() => setQuery('')} hitSlop={10} style={{ paddingLeft: 8 }}>
+            {inlineQuery.length > 0 && (
+              <Pressable onPress={() => setInlineQuery('')} hitSlop={10} style={{ paddingLeft: 8 }}>
                 <Text style={{ color: C.gray400, fontSize: 18 }}>✕</Text>
               </Pressable>
             )}
@@ -596,7 +646,12 @@ export default function Discover() {
 
           {/* Search results */}
           {isSearching && (
-            <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+            <Animated.View style={{
+              paddingHorizontal: 16,
+              marginTop: 8,
+              opacity: resultsAnim,
+              transform: [{ translateY: resultsAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+            }}>
               <Text style={s.sectionTitle}>
                 {searchLoading ? 'Recherche...' : `${searchResults.length} résultat(s)`}
               </Text>
@@ -604,18 +659,23 @@ export default function Discover() {
                 ? <ActivityIndicator color={C.red} style={{ marginTop: 24 }} />
                 : searchResults.length === 0
                   ? <Text style={{ color: C.gray400, fontSize: 14, textAlign: 'center', marginTop: 24 }}>
-                      Aucun résultat pour "{query}"
+                      Aucun résultat pour "{inlineQuery}"
                     </Text>
                   : searchResults.map((item, i) => (
                       <SearchItem key={i} item={item} onPress={handlePress} />
                     ))
               }
-            </View>
+            </Animated.View>
           )}
 
           {/* Filtered */}
           {!isSearching && isFiltering && (
-            <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
+            <Animated.View style={{
+              paddingHorizontal: 16,
+              marginTop: 12,
+              opacity: resultsAnim,
+              transform: [{ translateY: resultsAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+            }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <Text style={s.sectionTitle}>
                   {filterLoading ? 'Chargement...' : `${filtered.length} film(s)`}
@@ -627,10 +687,12 @@ export default function Discover() {
               {filterLoading
                 ? <View style={s.grid}>{Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}</View>
                 : <View style={s.grid}>
-                    {filtered.map((m) => <MovieCard key={m.tmdb_id} movie={m} onPress={handlePress} />)}
+                    {filtered.map((m) => (
+                      <AnimatedMovieCard key={m.tmdb_id} movie={m} onPress={handlePress} />
+                    ))}
                   </View>
               }
-            </View>
+            </Animated.View>
           )}
 
           {/* Discover */}
@@ -650,50 +712,28 @@ export default function Discover() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Bottom Tab Bar */}
       <BottomTabBar />
     </SafeAreaView>
   );
 }
 
-// ─────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────
 const s = StyleSheet.create({
   arrowLeft: {
-    position: 'absolute',
-    left: 10,
-    top: '50%',
-    marginTop: -20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    position: 'absolute', left: 10, top: '50%', marginTop: -20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(0,0,0,0.52)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
+    alignItems: 'center', justifyContent: 'center', zIndex: 10,
   },
   arrowRight: {
-    position: 'absolute',
-    right: 10,
-    top: '50%',
-    marginTop: -20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    position: 'absolute', right: 10, top: '50%', marginTop: -20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(0,0,0,0.52)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
+    alignItems: 'center', justifyContent: 'center', zIndex: 10,
   },
   arrowTxt: {
-    color: C.white,
-    fontSize: 26,
-    fontWeight: '700',
-    lineHeight: 30,
-    marginTop: -2,
+    color: '#fff', fontSize: 26, fontWeight: '700', lineHeight: 30, marginTop: -2,
   },
-  searchBar: {
+  searchBarInline: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 16,
@@ -711,118 +751,68 @@ const s = StyleSheet.create({
     elevation: 2,
   },
   filterBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: C.gray200,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
+    width: 36, height: 36, borderRadius: 10,
+    borderWidth: 1, borderColor: C.gray200,
+    alignItems: 'center', justifyContent: 'center', marginLeft: 8,
   },
-  filterBtnActive: {
-    borderColor: C.red,
-    backgroundColor: '#fff0f0',
-  },
+  filterBtnActive: { borderColor: C.red, backgroundColor: '#fff0f0' },
   filterBadge: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: C.red,
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'absolute', top: -5, right: -5,
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: C.red, alignItems: 'center', justifyContent: 'center',
   },
-  filterBadgeTxt: {
-    color: C.white,
-    fontSize: 9,
-    fontWeight: '800',
-  },
+  filterBadgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
   filterPanel: {
-    backgroundColor: C.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: C.gray200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: C.white, borderRadius: 16, padding: 16,
+    marginBottom: 8, borderWidth: 1, borderColor: C.gray200,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10, shadowRadius: 12, elevation: 6,
   },
   filterLbl: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: C.gray400,
-    letterSpacing: 0.8,
-    marginBottom: 8,
+    fontSize: 10, fontWeight: '800', color: C.gray400,
+    letterSpacing: 0.8, marginBottom: 8,
   },
   pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: C.gray100,
-    borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 9,
+    borderRadius: 24,
+    backgroundColor: '#f0f0f5',
+    borderWidth: 1.5,
     borderColor: C.gray200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   pillActive: {
     backgroundColor: C.red,
     borderColor: C.red,
+    shadowColor: C.red,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
   },
   pillTxt: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: C.gray700,
+    fontSize: 12, fontWeight: '700', color: C.gray700,
   },
-  pillTxtActive: {
-    color: C.white,
-  },
+  pillTxtActive: { color: C.white },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: C.black,
-    marginBottom: 10,
+    fontSize: 15, fontWeight: '800', color: C.black, marginBottom: 10,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   searchItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.gray100,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.gray100,
+    backgroundColor: C.white,
   },
   searchPoster: {
-    width: 38,
-    height: 54,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: C.gray200,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 38, height: 54, borderRadius: 8, overflow: 'hidden',
+    backgroundColor: C.gray200, alignItems: 'center', justifyContent: 'center',
   },
   searchAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 38, height: 38, borderRadius: 19,
+    alignItems: 'center', justifyContent: 'center',
   },
-  searchTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.black,
-  },
-  searchSub: {
-    fontSize: 12,
-    color: C.gray400,
-    marginTop: 2,
-  },
+  searchTitle: { fontSize: 14, fontWeight: '700', color: C.black },
+  searchSub:   { fontSize: 12, color: C.gray400, marginTop: 2 },
 });

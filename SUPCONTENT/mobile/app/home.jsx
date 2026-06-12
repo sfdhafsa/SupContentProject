@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
+  Animated,
+  Dimensions,
   Image,
-  ImageBackground,
   Pressable,
+  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -13,141 +16,313 @@ import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
-import { getAuthUser } from '../src/services/authStorage';
 import FeedList from '../src/components/feed/FeedList';
 import { useFeed } from '../src/hooks/useFeed';
+import { getAuthUser } from '../src/services/authStorage';
+import { getTrending } from '../src/services/moviesApi';
 
-const friends = [
-  { name: 'You', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80' },
-  { name: 'Emma', image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80' },
-  { name: 'Sarah', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80' },
-  { name: 'John', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80' },
-  { name: 'Cinema', image: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=120&q=80' },
-];
+const { width: SW } = Dimensions.get('window');
+const CARD_W = Math.round(SW * 0.36);
+const CARD_H = Math.round(CARD_W * 1.5);
 
-const trending = [
-  { title: 'Blade Runner', rating: '8.4', image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=320&q=80' },
-  { title: 'Interstellar', rating: '8.6', image: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&w=320&q=80' },
-  { title: 'The Batman', rating: '8.8', image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=320&q=80' },
-];
+const C = {
+  red:     '#ef0d1a',
+  white:   '#ffffff',
+  black:   '#111827',
+  gray50:  '#f9fafb',
+  gray100: '#f3f4f6',
+  gray200: '#e5e7eb',
+  gray400: '#9ca3af',
+  gray500: '#6b7280',
+  gray700: '#374151',
+  gray800: '#1f2937',
+  yellow:  '#f59e0b',
+  bg:      '#ffffff',
+  purple:  '#7c3aed',
+};
 
-const watching = [
-  { title: 'Fight Club', image: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=420&q=80' },
-  { title: 'Forrest Gump', image: 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=420&q=80' },
-];
-
-function SectionHeader({ icon, title }) {
+// ─────────────────────────────────────────
+// Skeleton animé
+// ─────────────────────────────────────────
+function SkeletonBox({ width, height, borderRadius = 8, style }) {
+  const anim = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1,   duration: 800, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
   return (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionTitleWrap}>
-        <Text style={styles.sectionIcon}>{icon}</Text>
-        <Text style={styles.sectionTitle}>{title}</Text>
-      </View>
-      <Pressable>
-        <Text style={styles.seeAll}>Tout voir</Text>
-      </Pressable>
+    <Animated.View style={[
+      { width, height, borderRadius, backgroundColor: C.gray200, opacity: anim },
+      style,
+    ]} />
+  );
+}
+
+function SkeletonMovieCard() {
+  return (
+    <View style={{ width: CARD_W, marginRight: 12 }}>
+      <SkeletonBox width={CARD_W} height={CARD_H} borderRadius={12} />
+      <SkeletonBox width={CARD_W * 0.75} height={10} borderRadius={4} style={{ marginTop: 8 }} />
+      <SkeletonBox width={CARD_W * 0.45} height={9}  borderRadius={4} style={{ marginTop: 4 }} />
     </View>
   );
 }
 
+// ─────────────────────────────────────────
+// AnimatedMovieCard
+// ─────────────────────────────────────────
+function AnimatedMovieCard({ movie, onPress, index }) {
+  const scale    = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 400,
+      delay: index * 80,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const pressIn  = () => Animated.spring(scale, { toValue: 0.93, useNativeDriver: true, speed: 25 }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 25 }).start();
+
+  return (
+    <Pressable
+      onPress={() => onPress(movie.tmdb_id)}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+    >
+      <Animated.View style={{
+        width: CARD_W,
+        marginRight: 12,
+        opacity: fadeAnim,
+        transform: [{ scale }, {
+          translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
+        }],
+      }}>
+        <View style={{
+          width: CARD_W,
+          height: CARD_H,
+          borderRadius: 12,
+          overflow: 'hidden',
+          backgroundColor: C.gray200,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 8,
+          elevation: 5,
+        }}>
+          {movie.poster_url
+            ? <Image source={{ uri: movie.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.gray100 }}>
+                <Text style={{ fontSize: 32 }}>🎬</Text>
+              </View>
+          }
+          {/* Badge note */}
+          {movie.vote_average > 0 && (
+            <View style={{
+              position: 'absolute', top: 8, left: 8,
+              backgroundColor: 'rgba(0,0,0,0.72)',
+              paddingHorizontal: 6, paddingVertical: 3,
+              borderRadius: 8,
+              flexDirection: 'row', alignItems: 'center', gap: 3,
+            }}>
+              <Text style={{ color: C.yellow, fontSize: 10 }}>★</Text>
+              <Text style={{ color: C.white, fontSize: 10, fontWeight: '800' }}>
+                {movie.vote_average.toFixed(1)}
+              </Text>
+            </View>
+          )}
+        </View>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: C.black, marginTop: 8 }} numberOfLines={1}>
+          {movie.title}
+        </Text>
+        {movie.release_date && (
+          <Text style={{ fontSize: 11, color: C.gray400, marginTop: 2 }}>
+            {movie.release_date.slice(0, 4)}
+          </Text>
+        )}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+// ─────────────────────────────────────────
+// SectionHeader
+// ─────────────────────────────────────────
+function SectionHeader({ icon, title, onSeeAll }) {
+  return (
+    <View style={s.sectionHeader}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Text style={{ fontSize: 16 }}>{icon}</Text>
+        <Text style={s.sectionTitle}>{title}</Text>
+      </View>
+      {onSeeAll && (
+        <Pressable onPress={onSeeAll} hitSlop={8}>
+          <Text style={{ color: C.red, fontSize: 12, fontWeight: '700' }}>Tout voir</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────
+// HomeContent
+// ─────────────────────────────────────────
 function HomeContent() {
-  const [username, setUsername] = useState('User');
+  const router    = useRouter();
+  const [username, setUsername]       = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
-  const {
-    items: feedItems,
-    loading: feedLoading,
-    error: feedError,
-  } = useFeed();
+  const [trending, setTrending]       = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+
+  const headerAnim = useRef(new Animated.Value(0)).current;
+
+  const { items: feedItems, loading: feedLoading, error: feedError } = useFeed();
 
   useEffect(() => {
     getAuthUser().then((user) => {
-      setUsername(user?.username || user?.email || 'User');
+      setUsername(user?.username || user?.email?.split('@')[0] || 'Cinéphile');
       setCurrentUserId(user?.id ?? null);
     });
+
+    // Animation header
+    Animated.spring(headerAnim, {
+      toValue: 1,
+      tension: 60,
+      friction: 12,
+      useNativeDriver: true,
+    }).start();
+
+    // Chargement tendances
+    setTrendingLoading(true);
+    getTrending()
+      .then((res) => setTrending((res.results || []).slice(0, 10)))
+      .catch(() => setTrending([]))
+      .finally(() => setTrendingLoading(false));
   }, []);
 
+  const handleMoviePress = useCallback((tmdbId) => {
+    router.push(`/movie/${tmdbId}`);
+  }, [router]);
+
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Bonjour';
+    if (h < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  };
 
   return (
     <ScreenContainer>
-      <View style={styles.phone}>
-        <TopNavbar username={username} />
+      <View style={s.page}>
+        <TopNavbar username={username || 'User'} />
 
         <ScrollView
-          contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 80 }}
         >
-          <ImageBackground
-            imageStyle={styles.heroImage}
-            source={{ uri: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=760&q=80' }}
-            style={styles.hero}
-          >
-            <View style={styles.heroOverlay}>
-              <View style={styles.heroBadgeRow}>
-                <Text style={styles.featuredBadge}>A LA UNE</Text>
-                <Text style={styles.ratingBadge}>8.4</Text>
+          {/* ── HEADER PERSONNALISÉ ── */}
+          <Animated.View style={[s.greetingSection, {
+            opacity: headerAnim,
+            transform: [{
+              translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }),
+            }],
+          }]}>
+            <View style={s.greetingRow}>
+              <View>
+                <Text style={s.greetingLabel}>{getGreeting()},</Text>
+                <Text style={s.greetingName}>{username || '...'} 👋</Text>
               </View>
-              <Text style={styles.heroTitle}>Inception</Text>
-              <View style={styles.heroActions}>
-                <Pressable style={styles.detailsButton}>
-                  <Text style={styles.playIcon}>Lire</Text>
-                  <Text style={styles.detailsText}>Details</Text>
-                </Pressable>
-                <Pressable style={styles.saveButton}>
-                  <Text style={styles.saveText}>+</Text>
-                </Pressable>
+              <View style={s.cinemabadge}>
+                <Text style={{ fontSize: 16 }}>🎬</Text>
+                <Text style={s.cinemabadgeTxt}>Cinéphile</Text>
               </View>
             </View>
-          </ImageBackground>
+            <Text style={s.greetingSub}>Découvrez les films du moment</Text>
+          </Animated.View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.friendRow}>
-            {friends.map((friend) => (
-              <View key={friend.name} style={styles.friendItem}>
-                <Image source={{ uri: friend.image }} style={styles.friendImage} />
-                <Text style={styles.friendName}>{friend.name === 'You' ? 'Vous' : friend.name}</Text>
-              </View>
-            ))}
-          </ScrollView>
-
-          <SectionHeader icon="T" title="Tendances" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.movieRow}>
-            {trending.map((movie) => (
-              <View key={movie.title} style={styles.movieCard}>
-                <Image source={{ uri: movie.image }} style={styles.movieImage} />
-                <View style={styles.movieRating}>
-                  <Text style={styles.movieRatingText}>{movie.rating}</Text>
-                </View>
-                <View style={styles.bookmark}>
-                  <Text style={styles.bookmarkText}>+</Text>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-
-          <SectionHeader icon="C" title="Continuer le visionnage" />
-          <View style={styles.watchGrid}>
-            {watching.map((movie) => (
-              <View key={movie.title} style={styles.watchCard}>
-                <Image source={{ uri: movie.image }} style={styles.watchImage} />
-                <View style={styles.watchOverlay}>
-                  <Text style={styles.watchTitle}>{movie.title}</Text>
-                  <View style={styles.progressTrack}>
-                    <View style={styles.progressFill} />
-                  </View>
-                </View>
-              </View>
-            ))}
+          {/* ── FILMS TENDANCE SEMAINE ── */}
+          <View style={{ marginTop: 8 }}>
+            <SectionHeader
+              icon="🔥"
+              title="Tendances cette semaine"
+              onSeeAll={() => router.push('/discover')}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}
+            >
+              {trendingLoading
+                ? Array.from({ length: 5 }).map((_, i) => <SkeletonMovieCard key={i} />)
+                : trending.map((movie, i) => (
+                    <AnimatedMovieCard
+                      key={movie.tmdb_id}
+                      movie={movie}
+                      onPress={handleMoviePress}
+                      index={i}
+                    />
+                  ))
+              }
+            </ScrollView>
           </View>
 
-          <View style={styles.feedSection}>
-            <SectionHeader icon="A" title="Activité des amis" />
-            <View style={styles.feedList}>
-              <FeedList
-                items={feedItems}
-                loading={feedLoading}
-                error={feedError}
-                currentUserId={currentUserId}
-              />
+          {/* ── ACTIVITÉ DES AMIS ── */}
+          <View style={{ marginTop: 20 }}>
+            <SectionHeader icon="👥" title="Activité des amis" />
+            <View style={s.feedWrapper}>
+              {feedLoading ? (
+                <View style={{ gap: 12, paddingHorizontal: 16, paddingTop: 12 }}>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <View key={i} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                      <SkeletonBox width={40} height={40} borderRadius={20} />
+                      <View style={{ flex: 1, gap: 6 }}>
+                        <SkeletonBox width="70%" height={10} borderRadius={4} />
+                        <SkeletonBox width="50%" height={9}  borderRadius={4} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : feedError ? (
+                <View style={s.feedEmpty}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>😕</Text>
+                  <Text style={{ color: C.gray400, fontSize: 13, textAlign: 'center' }}>
+                    Impossible de charger l'activité
+                  </Text>
+                </View>
+              ) : feedItems?.length === 0 ? (
+                <View style={s.feedEmpty}>
+                  <Text style={{ fontSize: 40, marginBottom: 10 }}>🍿</Text>
+                  <Text style={{ color: C.black, fontSize: 15, fontWeight: '700', marginBottom: 6 }}>
+                    Aucune activité pour l'instant
+                  </Text>
+                  <Text style={{ color: C.gray400, fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
+                    Suivez des amis pour voir leurs films, critiques et listes ici.
+                  </Text>
+                  <Pressable
+                    onPress={() => router.push('/discover')}
+                    style={s.discoverBtn}
+                    hitSlop={4}
+                  >
+                    <Text style={{ color: C.white, fontSize: 13, fontWeight: '800' }}>Explorer des films</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+                  <FeedList
+                    items={feedItems}
+                    loading={false}
+                    error={null}
+                    currentUserId={currentUserId}
+                  />
+                </View>
+              )}
             </View>
           </View>
         </ScrollView>
@@ -166,238 +341,91 @@ export default function Home() {
   );
 }
 
-const styles = StyleSheet.create({
-  phone: {
-    backgroundColor: '#ffffff',
+const s = StyleSheet.create({
+  page: {
     flex: 1,
-    overflow: 'hidden',
-    position: 'relative',
-    width: '100%',
-  },
-  content: {
-    paddingBottom: 88,
-  },
-  hero: {
-    height: 240,
-    justifyContent: 'flex-end',
-  },
-  heroImage: {
-    resizeMode: 'cover',
-  },
-  heroOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.22)',
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 20,
-  },
-  heroBadgeRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 5,
-    marginBottom: 5,
-  },
-  featuredBadge: {
-    backgroundColor: '#ef0d1a',
-    borderRadius: 4,
-    color: '#ffffff',
-    fontSize: 8,
-    fontWeight: '900',
-    paddingHorizontal: 5,
-    paddingVertical: 3,
-  },
-  ratingBadge: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  heroTitle: {
-    color: '#ffffff',
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  heroActions: {
-    flexDirection: 'row',
-    gap: 7,
-  },
-  detailsButton: {
-    alignItems: 'center',
-    backgroundColor: '#ef0d1a',
-    borderRadius: 8,
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-  },
-  playIcon: {
-    color: '#ffffff',
-    fontSize: 8,
-    fontWeight: '800',
-  },
-  detailsText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  saveButton: {
-    alignItems: 'center',
-    borderColor: 'rgba(255,255,255,0.55)',
-    borderRadius: 8,
-    borderWidth: 1,
-    height: 38,
-    justifyContent: 'center',
-    width: 40,
-  },
-  saveText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  friendRow: {
-    gap: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-  },
-  friendItem: {
-    alignItems: 'center',
-    width: 48,
-  },
-  friendImage: {
-    borderColor: '#e5e7eb',
-    borderRadius: 23,
-    borderWidth: 2,
-    height: 46,
-    width: 46,
-  },
-  friendName: {
-    color: '#374151',
-    fontSize: 10,
-    marginTop: 5,
-  },
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 2,
-  },
-  sectionTitleWrap: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 5,
-  },
-  sectionIcon: {
-    color: '#ef0d1a',
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  sectionTitle: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  seeAll: {
-    color: '#ef0d1a',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  movieRow: {
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  movieCard: {
-    borderRadius: 8,
-    height: 180,
-    overflow: 'hidden',
-    position: 'relative',
-    width: 124,
-  },
-  movieImage: {
-    height: '100%',
-    width: '100%',
-  },
-  movieRating: {
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    borderRadius: 8,
-    left: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    position: 'absolute',
-    top: 5,
-  },
-  movieRatingText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  bookmark: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    borderRadius: 8,
-    height: 20,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: 5,
-    top: 5,
-    width: 18,
-  },
-  bookmarkText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  watchGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  watchCard: {
-    borderRadius: 8,
-    flex: 1,
-    height: 110,
-    overflow: 'hidden',
-  },
-  watchImage: {
-    height: '100%',
-    width: '100%',
-  },
-  watchOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    bottom: 0,
-    left: 0,
-    padding: 7,
-    position: 'absolute',
-    right: 0,
-  },
-  watchTitle: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  progressTrack: {
-    backgroundColor: 'rgba(255,255,255,0.35)',
-    borderRadius: 2,
-    height: 3,
-  },
-  progressFill: {
-    backgroundColor: '#ef0d1a',
-    borderRadius: 2,
-    height: 3,
-    width: '62%',
+    backgroundColor: C.bg,
   },
 
-  feedSection: {
-    borderTopColor: '#eef0f3',
-    borderTopWidth: 1,
-    paddingTop: 10,
-  },
-  feedList: {
+  // Greeting
+  greetingSection: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    gap: 10,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.gray100,
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
+  greetingLabel: {
+    fontSize: 14,
+    color: C.gray400,
+    fontWeight: '500',
+  },
+  greetingName: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: C.black,
+    marginTop: 2,
+  },
+  greetingSub: {
+    fontSize: 13,
+    color: C.gray500,
+    marginTop: 4,
+  },
+  cinemabage: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cinemabage: {
+    backgroundColor: '#fff0f0',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    gap: 2,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  cinemabadgeTxt: {
+    color: C.red,
+    fontSize: 9,
+    fontWeight: '800',
+  },
+
+  // Section header
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: C.black,
+  },
+
+  // Feed
+  feedWrapper: {
+    minHeight: 120,
+  },
+  feedEmpty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 32,
+  },
+  discoverBtn: {
+    marginTop: 16,
+    backgroundColor: C.red,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
 });
