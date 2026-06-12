@@ -26,13 +26,14 @@ function FeedAvatar({ avatarUrl, username }) {
 
 export default function FeedCard({ item, currentUserId }) {
   const router = useRouter();
-  const { activity, author, movie, review, comment } = item;
+  const { activity, author, movie, review, comment, collection } = item;
   const username = author?.username || '';
   const headline = activity?.headline || '';
   const headlineWithoutUsername = username && headline.startsWith(username)
     ? headline.slice(username.length).trimStart()
     : headline;
   const canOpenReviewTarget = Boolean(movie?.external_id && review?.id);
+  const canOpenCollection = Boolean(collection?.id);
 
   const openAuthorProfile = () => {
     if (!author?.id) return;
@@ -61,7 +62,21 @@ export default function FeedCard({ item, currentUserId }) {
     });
   };
 
+  const openCollection = () => {
+    if (!collection?.id) return;
+
+    router.push({
+      pathname: '/list/[id]',
+      params: { id: String(collection.id) },
+    });
+  };
+
   const openMovie = () => {
+    if (canOpenCollection) {
+      openCollection();
+      return;
+    }
+
     if (!movie?.external_id) return;
 
     if (canOpenReviewTarget) {
@@ -106,15 +121,21 @@ export default function FeedCard({ item, currentUserId }) {
 
         {activity?.body ? (
           <Pressable
-            accessibilityRole={canOpenReviewTarget ? 'button' : undefined}
-            accessibilityLabel={canOpenReviewTarget ? 'Ouvrir la critique' : undefined}
-            disabled={!canOpenReviewTarget}
-            onPress={openReviewTarget}
+            accessibilityRole={canOpenReviewTarget || canOpenCollection ? 'button' : undefined}
+            accessibilityLabel={
+              canOpenCollection
+                ? 'Ouvrir la liste'
+                : canOpenReviewTarget
+                  ? 'Ouvrir la critique'
+                  : undefined
+            }
+            disabled={!canOpenReviewTarget && !canOpenCollection}
+            onPress={canOpenCollection ? openCollection : openReviewTarget}
           >
             <Text
               style={[
                 styles.feedItemBody,
-                canOpenReviewTarget && styles.feedItemBodyLink,
+                (canOpenReviewTarget || canOpenCollection) && styles.feedItemBodyLink,
               ]}
               numberOfLines={2}
             >
@@ -149,13 +170,31 @@ export default function FeedCard({ item, currentUserId }) {
             </Text>
           ) : null}
         </View>
+
+        {collection?.name ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Ouvrir la liste ${collection.name}`}
+            disabled={!canOpenCollection}
+            onPress={openCollection}
+            style={styles.feedCollection}
+          >
+            <Text style={styles.feedCollectionLabel} numberOfLines={1}>
+              {collection.name}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {movie?.poster_url ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Ouvrir ${movie.title || 'le film'}`}
-          disabled={!movie?.external_id}
+          accessibilityLabel={
+            canOpenCollection
+              ? `Ouvrir la liste ${collection?.name || ''}`.trim()
+              : `Ouvrir ${movie.title || 'le film'}`
+          }
+          disabled={!canOpenCollection && !movie?.external_id}
           onPress={openMovie}
         >
           <Image
@@ -255,6 +294,21 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 10,
     flex: 1,
+  },
+
+  feedCollection: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#f5f3ff',
+    borderRadius: 6,
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+
+  feedCollectionLabel: {
+    color: '#6d28d9',
+    fontSize: 10,
+    fontWeight: '800',
   },
 
   feedPoster: {
