@@ -81,6 +81,12 @@ const formatReview = (review) => ({
   review: review.text || 'A noté ce film.',
 });
 
+const formatActivity = (activity) => ({
+  ...activity,
+  date: formatShortDate(activity.created_at),
+  review: activity.review ? formatReview(activity.review) : null,
+});
+
 /* ── Composants UI ── */
 
 function Banner() {
@@ -203,6 +209,31 @@ function ReviewCard({ item }) {
   );
 }
 
+function ActivityCard({ item }) {
+  if (item.type === 'REVIEW_CREATED') return <ReviewCard item={item.review} />;
+  if (item.type === 'LIST_CREATED') {
+    return (
+      <View style={styles.activityCard}>
+        <Text style={styles.activityTitle}>Nouvelle liste créée</Text>
+        <Text style={styles.activityMovie}>{item.list?.name}</Text>
+        {!!item.list?.description && <Text style={styles.activityBody}>{item.list.description}</Text>}
+        <Text style={styles.reviewDate}>{item.list?.movie_count || 0} films · {item.date}</Text>
+      </View>
+    );
+  }
+  const label = item.type === 'REVIEW_LIKED'
+    ? 'A aimé une critique de'
+    : 'A commenté une critique de';
+  return (
+    <View style={styles.activityCard}>
+      <Text style={styles.activityTitle}>{label}</Text>
+      <Text style={styles.activityMovie}>{item.review?.movie}</Text>
+      {!!item.comment?.text && <Text style={styles.activityBody}>“{item.comment.text}”</Text>}
+      <Text style={styles.reviewDate}>{item.date}</Text>
+    </View>
+  );
+}
+
 function ListCard({ list }) {
   const count = list.movie_count ?? list.movies?.length ?? 0;
   return (
@@ -295,6 +326,7 @@ function ProfileContent() {
   const [profileError, setProfileError] = useState('');
   const [reviews, setReviews] = useState([]);
   const [lists, setLists] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [stats, setStats] = useState({
@@ -324,9 +356,10 @@ function ProfileContent() {
       setProfileLoading(true);
       setProfileError('');
 
-      const [exportResult, libraryResult, followersResult, followingResult] =
+      const [exportResult, activityResult, libraryResult, followersResult, followingResult] =
         await Promise.allSettled([
           api.get('/users/me/export'),
+          api.get(`/users/${user.id}/activity`),
           api.get('/library/stats'),
           api.get(`/social/follow/${user.id}/followers`),
           api.get(`/social/follow/${user.id}/following`),
@@ -346,6 +379,9 @@ function ProfileContent() {
 
         setReviews(activeReviews.map(formatReview));
         setLists(customLists);
+        const activityData =
+          activityResult.status === 'fulfilled' ? activityResult.value.data || {} : {};
+        setActivities((activityData.activities || []).map(formatActivity));
         setFollowersList(followersData.followers || []);
         setFollowingList(followingData.following || []);
         setStats({
@@ -355,7 +391,7 @@ function ProfileContent() {
           reviews: activeReviews.length,
         });
 
-        if ([exportResult, libraryResult, followersResult, followingResult]
+        if ([exportResult, activityResult, libraryResult, followersResult, followingResult]
           .some((result) => result.status === 'rejected')) {
           setProfileError('Certaines statistiques ne sont pas disponibles.');
         }
@@ -415,13 +451,13 @@ function ProfileContent() {
             </View>
 
             <Text style={styles.sectionTitle}>Activité récente</Text>
-            {reviews.length === 0 ? (
+            {activities.length === 0 ? (
               <EmptyTab
                 label="Aucune activité récente."
-                sub="Commencez à noter des films pour les voir ici."
+                sub="Vos critiques, likes, commentaires et listes apparaîtront ici."
               />
             ) : (
-              reviews.slice(0, 3).map((item) => <ReviewCard key={item.id} item={item} />)
+              activities.slice(0, 5).map((item) => <ActivityCard key={item.id} item={item} />)
             )}
           </View>
         );
@@ -886,6 +922,17 @@ const styles = StyleSheet.create({
   starTextFilled: { color: '#F59E0B' },
   reviewDate: { color: MUTED, fontSize: 9 },
   reviewText: { color: MUTED, fontSize: 10, lineHeight: 14 },
+  activityCard: {
+    backgroundColor: CARD,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 12,
+    marginBottom: 8,
+  },
+  activityTitle: { color: TEXT, fontSize: 11, fontWeight: '700' },
+  activityMovie: { color: RED, fontSize: 12, fontWeight: '700', marginTop: 4 },
+  activityBody: { color: MUTED, fontSize: 10, lineHeight: 14, marginVertical: 6 },
 
   // Carte liste
   listCard: {

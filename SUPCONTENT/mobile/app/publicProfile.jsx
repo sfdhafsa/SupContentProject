@@ -96,6 +96,14 @@ function formatReview(review) {
   };
 }
 
+function formatActivity(activity) {
+  return {
+    ...activity,
+    date: formatShortDate(activity.created_at),
+    review: activity.review ? formatReview(activity.review) : null,
+  };
+}
+
 /* ── Constantes ── */
 
 const CARD_WIDTH = (315 - 24 - 8) / 2;
@@ -181,6 +189,31 @@ function ReviewCard({ item }) {
         {item.date && <Text style={styles.reviewDate}>{item.date}</Text>}
       </View>
       <Text style={styles.reviewText} numberOfLines={3}>{item.review}</Text>
+    </View>
+  );
+}
+
+function ActivityCard({ item }) {
+  if (item.type === 'REVIEW_CREATED') return <ReviewCard item={item.review} />;
+  if (item.type === 'LIST_CREATED') {
+    return (
+      <View style={styles.activityCard}>
+        <Text style={styles.activityTitle}>A créé une liste publique</Text>
+        <Text style={styles.activityMovie}>{item.list?.name}</Text>
+        {!!item.list?.description && <Text style={styles.activityBody}>{item.list.description}</Text>}
+        <Text style={styles.reviewDate}>{item.list?.movie_count || 0} films · {item.date}</Text>
+      </View>
+    );
+  }
+  const label = item.type === 'REVIEW_LIKED'
+    ? 'A aimé une critique de'
+    : 'A commenté une critique de';
+  return (
+    <View style={styles.activityCard}>
+      <Text style={styles.activityTitle}>{label}</Text>
+      <Text style={styles.activityMovie}>{item.review?.movie}</Text>
+      {!!item.comment?.text && <Text style={styles.activityBody}>“{item.comment.text}”</Text>}
+      <Text style={styles.reviewDate}>{item.date}</Text>
     </View>
   );
 }
@@ -294,6 +327,7 @@ export default function PublicProfileScreen() {
   const [profileUser, setProfileUser] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [lists, setLists] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [stats, setStats] = useState({ followers: 0, following: 0, movies_watched: 0, reviews: 0 });
@@ -357,6 +391,7 @@ export default function PublicProfileScreen() {
             ? rawReviews.filter((r) => !r.deleted_at)
             : [];
           setReviews(activeReviews.map(formatReview));
+          setActivities((reviewsRes.activities || []).map(formatActivity));
 
           setStats({
             followers: followersRes.count || followers.length,
@@ -447,21 +482,21 @@ export default function PublicProfileScreen() {
       case 'Overview':
         return (
           <View>
-            {/* Critiques récentes */}
+            {/* Activités récentes */}
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
                 <View style={styles.sectionIcon}>
                   <View style={[styles.starSmall, { borderColor: '#F59E0B' }]} />
                 </View>
-                <Text style={styles.sectionTitle}>Critiques récentes</Text>
+                <Text style={styles.sectionTitle}>Activité récente</Text>
               </View>
             </View>
 
-            {reviews.length === 0 ? (
-              <EmptyTab label="Aucune critique." />
+            {activities.length === 0 ? (
+              <EmptyTab label="Aucune activité." />
             ) : (
-              reviews.slice(0, 2).map((item) => (
-                <ReviewCard key={item.id} item={item} />
+              activities.slice(0, 5).map((item) => (
+                <ActivityCard key={item.id} item={item} />
               ))
             )}
           </View>
@@ -1026,6 +1061,17 @@ const styles = StyleSheet.create({
   starTextFilled: { color: '#F59E0B' },
   reviewDate: { color: MUTED, fontSize: 9 },
   reviewText: { color: MUTED, fontSize: 10, lineHeight: 14 },
+  activityCard: {
+    backgroundColor: CARD,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 12,
+    marginBottom: 8,
+  },
+  activityTitle: { color: TEXT, fontSize: 11, fontWeight: '700' },
+  activityMovie: { color: RED, fontSize: 12, fontWeight: '700', marginTop: 4 },
+  activityBody: { color: MUTED, fontSize: 10, lineHeight: 14, marginVertical: 6 },
 
   // Carte liste
   listCard: {

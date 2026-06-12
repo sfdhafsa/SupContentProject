@@ -43,9 +43,15 @@ function Set-EnvValue {
     [Parameter(Mandatory)] [string] $Value
   )
 
+  $utf8 = [System.Text.UTF8Encoding]::new($false, $true)
   $lines = [System.Collections.Generic.List[string]]::new()
   if (Test-Path -LiteralPath $Path) {
-    foreach ($line in @(Get-Content -LiteralPath $Path)) {
+    $file = Get-Item -LiteralPath $Path
+    if ($file.Length -gt 1MB) {
+      throw "Refusing to update the unusually large environment file '$Path' ($($file.Length) bytes)."
+    }
+
+    foreach ($line in [System.IO.File]::ReadAllLines($Path, $utf8)) {
       $lines.Add([string]$line)
     }
   }
@@ -64,7 +70,7 @@ function Set-EnvValue {
     $lines.Add("$prefix$Value")
   }
 
-  [System.IO.File]::WriteAllLines($Path, $lines)
+  [System.IO.File]::WriteAllLines($Path, $lines, $utf8)
 }
 
 function Start-QuickTunnel {

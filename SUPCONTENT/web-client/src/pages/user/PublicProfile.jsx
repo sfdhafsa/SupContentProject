@@ -90,6 +90,12 @@ const formatReview = (review) => ({
   review: review.text || "Rated this movie.",
 });
 
+const formatActivity = (activity) => ({
+  ...activity,
+  date: formatShortDate(activity.created_at),
+  review: activity.review ? formatReview(activity.review) : null,
+});
+
 export default function PublicProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -107,6 +113,7 @@ export default function PublicProfile() {
 
   const [reviews, setReviews] = useState([]);
   const [lists, setLists]   = useState([]);
+  const [activities, setActivities] = useState([]);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [stats, setStats] = useState({
@@ -163,6 +170,7 @@ export default function PublicProfile() {
         ]);
         setReviews((res.data.reviews || []).map(formatReview));
         setLists(res.data.lists || []);
+        setActivities((res.data.activities || []).map(formatActivity));
         setFollowersList(followersRes.data.followers || []);
         setFollowingList(followingRes.data.following || []);
         setStats({
@@ -412,10 +420,10 @@ export default function PublicProfile() {
             <div className="flex flex-col gap-4">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40"/>)}
             </div>
-          ) : reviews.length === 0 ? (
-            <EmptyState message="No activity yet." sub="This user hasn't reviewed any movies yet."/>
+          ) : activities.length === 0 ? (
+            <EmptyState message="No activity yet." sub="Reviews, likes, comments and public lists will appear here."/>
           ) : (
-            reviews.slice(0, 3).map((item) => <ReviewCard key={item.id} item={item}/>)
+            activities.slice(0, 5).map((item) => <ActivityCard key={item.id} item={item}/>)
           )}
         </div>
       )}
@@ -545,6 +553,33 @@ function FollowUserRow({ user, onClose }) {
         <p className="truncate text-xs text-gray-400">@{user.username}</p>
       </div>
     </Link>
+  );
+}
+
+function ActivityCard({ item }) {
+  if (item.type === "REVIEW_CREATED") return <ReviewCard item={item.review}/>;
+
+  if (item.type === "LIST_CREATED") {
+    return (
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
+        <p className="text-sm font-semibold text-gray-900 dark:text-white">Created a public list</p>
+        <p className="mt-2 text-base font-bold text-[#D0021B]">{item.list?.name}</p>
+        {item.list?.description && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{item.list.description}</p>}
+        <p className="mt-2 text-xs text-gray-400">{item.list?.movie_count || 0} films · {item.date}</p>
+      </div>
+    );
+  }
+
+  const label = item.type === "REVIEW_LIKED" ? "Liked a review of" : "Commented on a review of";
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
+      <p className="text-sm text-gray-600 dark:text-gray-300">
+        <span className="font-semibold text-gray-900 dark:text-white">{label}</span>{" "}
+        {item.review?.movie}
+      </p>
+      {item.comment?.text && <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">“{item.comment.text}”</p>}
+      <p className="mt-2 text-xs text-gray-400">{item.date}</p>
+    </div>
   );
 }
 

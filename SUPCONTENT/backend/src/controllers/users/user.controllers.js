@@ -422,13 +422,14 @@ export const searchUsers = async (req, res, next) => {
 export const getPublicUserActivity = async (req, res, next) => {
   try {
     const userId = req.params.id;
+    const includePrivateLists = String(req.user?.userId || '') === String(userId);
     const user = await UserModel.findById(userId);
 
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur introuvable.' });
     }
 
-    const [reviews, publicLists, followers, following, watched] = await Promise.all([
+    const [reviews, publicLists, likedReviews, comments, followers, following, watched] = await Promise.all([
       pool.query(
         `SELECT
            r.id,
@@ -467,9 +468,46 @@ export const getPublicUserActivity = async (req, res, next) => {
          FROM custom_lists cl
          LEFT JOIN custom_list_movies clm ON clm.list_id = cl.id
          WHERE cl.user_id = $1
-           AND cl.is_public = TRUE
+           AND ($2::BOOLEAN OR cl.is_public = TRUE)
          GROUP BY cl.id
-         ORDER BY cl.updated_at DESC`,
+         ORDER BY cl.created_at DESC`,
+        [userId, includePrivateLists]
+      ),
+      pool.query(
+        `SELECT
+           rl.review_id AS id,
+           rl.created_at,
+           r.rating,
+           r.text AS review_text,
+           m.external_id,
+           m.title,
+           m.poster_url,
+           m.release_date
+         FROM review_likes rl
+         JOIN reviews r ON r.id = rl.review_id AND r.deleted_at IS NULL
+         JOIN movies m ON m.id = r.movie_id
+         WHERE rl.user_id = $1
+         ORDER BY rl.created_at DESC`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+           c.id,
+           c.text,
+           c.created_at,
+           c.review_id,
+           r.rating,
+           r.text AS review_text,
+           m.external_id,
+           m.title,
+           m.poster_url,
+           m.release_date
+         FROM comments c
+         JOIN reviews r ON r.id = c.review_id AND r.deleted_at IS NULL
+         JOIN movies m ON m.id = r.movie_id
+         WHERE c.user_id = $1
+           AND c.deleted_at IS NULL
+         ORDER BY c.created_at DESC`,
         [userId]
       ),
       pool.query(
@@ -489,11 +527,50 @@ export const getPublicUserActivity = async (req, res, next) => {
       ),
     ]);
 
-    res.json({
-      reviews: reviews.rows.map((row) =>
+    const normalizedReviews = reviews.rows.map((row) =>
         normalizeDateFields(row, ['created_at', 'updated_at', 'release_date'])
-      ),
-      lists: publicLists.rows.map((row) => normalizeDateFields(row, ['created_at', 'updated_at'])),
+      );
+    const normalizedLists = publicLists.rows.map((row) =>
+      normalizeDateFields(row, ['created_at', 'updated_at'])
+    );
+    const activities = [
+      ...normalizedReviews.map((review) => ({
+        type: 'REVIEW_CREATED',
+        id: `review-${review.id}`,
+        created_at: review.created_at,
+        review,
+      })),
+      ...normalizedLists.map((list) => ({
+        type: 'LIST_CREATED',
+        id: `list-${list.id}`,
+        created_at: list.created_at,
+        list,
+      })),
+      ...likedReviews.rows.map((row) => {
+        const review = normalizeDateFields(row, ['created_at', 'release_date']);
+        return {
+          type: 'REVIEW_LIKED',
+          id: `like-${review.id}`,
+          created_at: review.created_at,
+          review,
+        };
+      }),
+      ...comments.rows.map((row) => {
+        const normalized = normalizeDateFields(row, ['created_at', 'release_date']);
+        return {
+          type: 'REVIEW_COMMENTED',
+          id: `comment-${normalized.id}`,
+          created_at: normalized.created_at,
+          comment: { id: normalized.id, text: normalized.text },
+          review: normalized,
+        };
+      }),
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.json({
+      reviews: normalizedReviews,
+      lists: normalizedLists,
+      activities,
       stats: {
         followers: followers.rows[0]?.count || 0,
         following: following.rows[0]?.count || 0,
