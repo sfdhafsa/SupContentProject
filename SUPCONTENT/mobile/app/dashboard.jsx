@@ -32,14 +32,6 @@ export default function Dashboard() {
   const hoursWatched = stats?.totalHoursWatched || 0;
   const totalMovies = stats?.totalMovies || 0;
 
-  const completionItems = [
-    { label: 'Username set', done: !!user?.username },
-    { label: 'Bio added', done: !!user?.bio },
-    { label: 'Avatar uploaded', done: !!user?.avatar_url },
-    { label: 'Website added', done: !!user?.website },
-  ];
-  const completionPct = Math.round((completionItems.filter(i => i.done).length / completionItems.length) * 100);
-
   const STAT_CARDS = [
     { label: 'Movies Watched', value: moviesWatched },
     { label: 'Hours Watched', value: hoursWatched },
@@ -50,8 +42,8 @@ export default function Dashboard() {
   const BAR_DATA = [
     { key: 'COMPLETED', label: 'Vus', color: '#10b981' },
     { key: 'IN_PROGRESS', label: 'En cours', color: '#f59e0b' },
-    { key: 'TO_WATCH', label: 'À voir', color: '#6366f1' },
-    { key: 'DROPPED', label: 'Abandonnés', color: '#ef4444' },
+    { key: 'TO_WATCH', label: 'A voir', color: '#6366f1' },
+    { key: 'DROPPED', label: 'Abandonnes', color: '#ef4444' },
   ];
 
   return (
@@ -61,13 +53,13 @@ export default function Dashboard() {
 
         <View style={s.subNav}>
           <Pressable style={s.subNavBtn} onPress={() => router.push('/library')}>
-            <Text style={s.subNavText}>📚 Biblio</Text>
+            <Text style={s.subNavText}>Biblio</Text>
           </Pressable>
           <Pressable style={s.subNavBtn} onPress={() => router.push('/lists')}>
-            <Text style={s.subNavText}>📋 Listes</Text>
+            <Text style={s.subNavText}>Listes</Text>
           </Pressable>
           <Pressable style={[s.subNavBtn, s.subNavBtnActive]}>
-            <Text style={[s.subNavText, s.subNavTextActive]}>📊 Stats</Text>
+            <Text style={[s.subNavText, s.subNavTextActive]}>Stats</Text>
           </Pressable>
         </View>
 
@@ -86,30 +78,9 @@ export default function Dashboard() {
               ))}
             </View>
 
-            <View style={s.completenessCard}>
-              <Text style={s.completenessTitle}>Profile Completeness</Text>
-              <View style={s.completenessRow}>
-                <Text style={s.completenessLabel}>Completion</Text>
-                <Text style={s.completenessPct}>{completionPct}%</Text>
-              </View>
-              <View style={s.progressTrack}>
-                <View style={[s.progressFill, { width: `${completionPct}%` }]} />
-              </View>
-              <View style={s.checkList}>
-                {completionItems.map(({ label, done }) => (
-                  <View key={label} style={s.checkItem}>
-                    <View style={[s.checkDot, done ? s.checkDotDone : s.checkDotPending]}>
-                      {done && <Text style={s.checkMark}>✓</Text>}
-                    </View>
-                    <Text style={[s.checkLabel, !done && s.checkLabelPending]}>{label}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
             {totalMovies > 0 && (
               <>
-                <Text style={s.sectionTitle}>Répartition</Text>
+                <Text style={s.sectionTitle}>Repartition</Text>
                 <View style={s.barCard}>
                   <View style={s.barTrack}>
                     {BAR_DATA.map(({ key, color }) => {
@@ -139,11 +110,17 @@ export default function Dashboard() {
               <>
                 <Text style={s.sectionTitle}>Temps de visionnage</Text>
                 <View style={s.durationCard}>
-                  <Text style={s.durationIcon}>⏱️</Text>
                   <Text style={s.durationValue}>{hoursWatched}h</Text>
-                  <Text style={s.durationLabel}>de films regardés</Text>
+                  <Text style={s.durationLabel}>de films regardes</Text>
                 </View>
               </>
+            )}
+
+            {totalMovies === 0 && (
+              <View style={s.emptyBox}>
+                <Text style={s.emptyTitle}>Aucune statistique</Text>
+                <Text style={s.emptySub}>Ajoutez des films a votre bibliotheque pour voir vos stats ici.</Text>
+              </View>
             )}
 
           </ScrollView>
@@ -157,45 +134,32 @@ export default function Dashboard() {
 
 const s = StyleSheet.create({
   pageWeb: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', padding: 20 },
-  pageMobile: { flex: 1, backgroundColor: '#0a0a12' },
-  phoneWeb: { backgroundColor: '#0a0a12', borderRadius: 22, height: 592, maxWidth: 315, overflow: 'hidden', width: '100%' },
-  phoneMobile: { flex: 1, backgroundColor: '#0a0a12' },
-  subNav: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1a1a2e' },
+  pageMobile: { flex: 1, backgroundColor: '#ffffff' },
+  phoneWeb: { backgroundColor: '#ffffff', borderRadius: 22, height: 592, maxWidth: 315, overflow: 'hidden', width: '100%' },
+  phoneMobile: { flex: 1, backgroundColor: '#ffffff' },
+  subNav: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   subNavBtn: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   subNavBtnActive: { borderBottomWidth: 2, borderBottomColor: '#ef0d1a' },
-  subNavText: { color: '#6b7280', fontSize: 12, fontWeight: '600' },
+  subNavText: { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
   subNavTextActive: { color: '#ef0d1a' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: 16, paddingBottom: 100, gap: 16 },
-  sectionTitle: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
+  sectionTitle: { color: '#111827', fontSize: 14, fontWeight: '800' },
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  statCard: { width: '47%', backgroundColor: '#0f0f1e', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#1e1e3a', alignItems: 'center', gap: 6 },
-  statValue: { color: '#ffffff', fontSize: 26, fontWeight: '900' },
-  statLabel: { color: '#6b7280', fontSize: 10, textAlign: 'center' },
-  completenessCard: { backgroundColor: '#0f0f1e', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#1e1e3a', gap: 10 },
-  completenessTitle: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
-  completenessRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  completenessLabel: { color: '#6b7280', fontSize: 11 },
-  completenessPct: { color: '#ffffff', fontSize: 11, fontWeight: '800' },
-  progressTrack: { height: 8, backgroundColor: '#1e1e3a', borderRadius: 4, overflow: 'hidden' },
-  progressFill: { height: 8, backgroundColor: '#ef0d1a', borderRadius: 4 },
-  checkList: { gap: 8, marginTop: 4 },
-  checkItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  checkDot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  checkDotDone: { backgroundColor: '#10b981' },
-  checkDotPending: { backgroundColor: '#1e1e3a', borderWidth: 1, borderColor: '#2a2a4e' },
-  checkMark: { color: '#fff', fontSize: 11, fontWeight: '900' },
-  checkLabel: { color: '#ffffff', fontSize: 13 },
-  checkLabelPending: { color: '#6b7280' },
-  barCard: { backgroundColor: '#0f0f1e', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#1e1e3a', gap: 10 },
+  statCard: { width: '47%', backgroundColor: '#f9fafb', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#e5e7eb', alignItems: 'center', gap: 6 },
+  statValue: { color: '#111827', fontSize: 26, fontWeight: '900' },
+  statLabel: { color: '#9ca3af', fontSize: 10, textAlign: 'center' },
+  barCard: { backgroundColor: '#f9fafb', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#e5e7eb', gap: 10 },
   barTrack: { flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', gap: 1 },
   barSegment: { borderRadius: 6 },
   barLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
-  legendText: { color: '#9ca3af', fontSize: 11 },
-  durationCard: { backgroundColor: '#0f0f1e', borderRadius: 14, padding: 20, borderWidth: 1, borderColor: '#1e1e3a', alignItems: 'center', gap: 6 },
-  durationIcon: { fontSize: 28 },
+  legendText: { color: '#374151', fontSize: 11 },
+  durationCard: { backgroundColor: '#f9fafb', borderRadius: 14, padding: 20, borderWidth: 1, borderColor: '#e5e7eb', alignItems: 'center', gap: 6 },
   durationValue: { color: '#ef0d1a', fontSize: 36, fontWeight: '900' },
-  durationLabel: { color: '#6b7280', fontSize: 11 },
+  durationLabel: { color: '#9ca3af', fontSize: 11 },
+  emptyBox: { alignItems: 'center', paddingVertical: 40, gap: 8 },
+  emptyTitle: { color: '#111827', fontSize: 16, fontWeight: '800' },
+  emptySub: { color: '#9ca3af', fontSize: 12, textAlign: 'center' },
 });

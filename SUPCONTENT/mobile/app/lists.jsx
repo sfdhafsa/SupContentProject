@@ -112,20 +112,20 @@ export default function Lists() {
 
         <View style={s.subNav}>
           <Pressable style={s.subNavBtn} onPress={() => router.push('/library')}>
-            <Text style={s.subNavText}>📚 Biblio</Text>
+            <Text style={s.subNavText}>Biblio</Text>
           </Pressable>
           <Pressable style={[s.subNavBtn, s.subNavBtnActive]}>
-            <Text style={[s.subNavText, s.subNavTextActive]}>📋 Listes</Text>
+            <Text style={[s.subNavText, s.subNavTextActive]}>Listes</Text>
           </Pressable>
           <Pressable style={s.subNavBtn} onPress={() => router.push('/dashboard')}>
-            <Text style={s.subNavText}>📊 Stats</Text>
+            <Text style={s.subNavText}>Stats</Text>
           </Pressable>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
           <View style={s.header}>
-            <Text style={s.headerTitle}>Mes listes ✨</Text>
-            <Text style={s.headerSub}>Organisez vos films par thèmes, envies ou coups de cœur.</Text>
+            <Text style={s.headerTitle}>Mes listes</Text>
+            <Text style={s.headerSub}>Organisez vos films par themes, envies ou coups de coeur.</Text>
           </View>
 
           <View style={s.formCard}>
@@ -139,8 +139,8 @@ export default function Lists() {
             <Text style={s.formLabel}>NOM</Text>
             <TextInput
               style={[s.input, nameFocused && s.inputFocused]}
-              placeholder="Ex: Films à voir ce mois-ci"
-              placeholderTextColor="#3d3d5c"
+              placeholder="Ex: Films a voir ce mois-ci"
+              placeholderTextColor="#9ca3af"
               value={name}
               onChangeText={setName}
               onFocus={() => setNameFocused(true)}
@@ -150,7 +150,7 @@ export default function Lists() {
             <TextInput
               style={[s.input, descFocused && s.inputFocused]}
               placeholder="Optionnel"
-              placeholderTextColor="#3d3d5c"
+              placeholderTextColor="#9ca3af"
               value={desc}
               onChangeText={setDesc}
               onFocus={() => setDescFocused(true)}
@@ -159,9 +159,8 @@ export default function Lists() {
             <View style={s.formBottom}>
               <Pressable style={s.publicRow} onPress={() => setIsPublic(!isPublic)}>
                 <View style={[s.checkbox, isPublic && s.checkboxOn]}>
-                  {isPublic && <Text style={s.checkmark}>✓</Text>}
+                  {isPublic && <Text style={s.checkmark}>v</Text>}
                 </View>
-                <Text style={s.lockIcon}>🔒</Text>
                 <Text style={s.publicLabel}>Publique</Text>
               </Pressable>
               <View style={s.formBtns}>
@@ -171,7 +170,7 @@ export default function Lists() {
                   </Pressable>
                 )}
                 <Pressable style={[s.createBtn, creating && { opacity: 0.7 }]} onPress={handleCreate} disabled={creating}>
-                  <Text style={s.createBtnText}>{editingList ? 'Modifier' : '+ Créer'}</Text>
+                  <Text style={s.createBtnText}>{editingList ? 'Modifier' : 'Creer'}</Text>
                 </Pressable>
               </View>
             </View>
@@ -184,16 +183,14 @@ export default function Lists() {
                 <Text style={s.sectionBadgeText}>{lists.length}</Text>
               </View>
             </View>
-            <Pressable><Text style={s.seeAll}>Tout voir &gt;</Text></Pressable>
           </View>
 
           {loading ? (
             <View style={s.center}><ActivityIndicator color="#ef0d1a" /></View>
           ) : lists.length === 0 ? (
             <View style={s.emptyCard}>
-              <Text style={s.emptyIcon}>🗂️</Text>
               <Text style={s.emptyTitle}>Aucune liste pour le moment</Text>
-              <Text style={s.emptySub}>Créez une liste pour organiser vos films.</Text>
+              <Text style={s.emptySub}>Creez une liste pour organiser vos films.</Text>
             </View>
           ) : (
             <View style={s.listsContainer}>
@@ -202,7 +199,7 @@ export default function Lists() {
                 return (
                   <View key={list.id} style={s.listCard}>
                     <View style={s.listIconBox}>
-                      <Text style={s.listIconText}>{list.is_public ? '🌍' : '🔒'}</Text>
+                      <Text style={s.listIconText}>{list.is_public ? 'G' : 'P'}</Text>
                     </View>
                     <View style={s.listInfo}>
                       <Text style={s.listName} numberOfLines={1}>{list.name}</Text>
@@ -211,7 +208,7 @@ export default function Lists() {
                         <Text style={s.listMetaDot}> • </Text>
                         <View style={[s.statusBadge, list.is_public ? s.statusBadgePublic : s.statusBadgePrivate]}>
                           <Text style={[s.statusBadgeText, list.is_public ? s.statusPublicText : s.statusPrivateText]}>
-                            {list.is_public ? '🌍 Publique' : '🔒 Privée'}
+                            {list.is_public ? 'Publique' : 'Privee'}
                           </Text>
                         </View>
                       </View>
@@ -219,10 +216,10 @@ export default function Lists() {
                     </View>
                     <View style={s.listActions}>
                       <Pressable style={s.iconBtnEdit} onPress={() => startEdit(list)}>
-                        <Text style={{ fontSize: 14 }}>✏️</Text>
+                        <Text style={s.iconBtnText}>Ed</Text>
                       </Pressable>
                       <Pressable style={s.iconBtnDel} onPress={() => setDeleteTarget(list)}>
-                        <Text style={{ fontSize: 14 }}>🗑️</Text>
+                        <Text style={s.iconBtnTextRed}>Sup</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -241,19 +238,16 @@ export default function Lists() {
             </Animated.View>
             <Animated.View style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}>
               <View style={s.sheetHandle} />
-              <View style={s.sheetIconWrap}>
-                <Text style={{ fontSize: 22 }}>🗑️</Text>
-              </View>
               <Text style={s.sheetTitle}>Supprimer la liste</Text>
               <Text style={s.sheetSub}>
                 Supprimer <Text style={s.sheetListName}>"{deleteTarget?.name}"</Text> ?
               </Text>
               {movieCount > 0 && (
                 <View style={s.sheetWarningBox}>
-                  <Text style={s.sheetWarning}>⚠️ {movieCount} film{movieCount > 1 ? 's' : ''} retiré{movieCount > 1 ? 's' : ''}</Text>
+                  <Text style={s.sheetWarning}>{movieCount} film{movieCount > 1 ? 's' : ''} sera retire{movieCount > 1 ? 's' : ''}</Text>
                 </View>
               )}
-              <Text style={s.sheetIrreversible}>Cette action est irréversible.</Text>
+              <Text style={s.sheetIrreversible}>Cette action est irreversible.</Text>
               <View style={s.sheetBtns}>
                 <Pressable style={s.sheetCancel} onPress={closeSheet}>
                   <Text style={s.sheetCancelText}>Annuler</Text>
@@ -272,81 +266,79 @@ export default function Lists() {
 
 const s = StyleSheet.create({
   pageWeb: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', padding: 20 },
-  pageMobile: { flex: 1, backgroundColor: '#0a0a12' },
-  phoneWeb: { backgroundColor: '#0a0a12', borderRadius: 22, height: 592, maxWidth: 315, overflow: 'hidden', width: '100%', position: 'relative' },
-  phoneMobile: { flex: 1, backgroundColor: '#0a0a12', position: 'relative' },
-  subNav: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1a1a2e' },
+  pageMobile: { flex: 1, backgroundColor: '#ffffff' },
+  phoneWeb: { backgroundColor: '#ffffff', borderRadius: 22, height: 592, maxWidth: 315, overflow: 'hidden', width: '100%', position: 'relative' },
+  phoneMobile: { flex: 1, backgroundColor: '#ffffff', position: 'relative' },
+  subNav: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   subNavBtn: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   subNavBtnActive: { borderBottomWidth: 2, borderBottomColor: '#ef0d1a' },
-  subNavText: { color: '#6b7280', fontSize: 12, fontWeight: '600' },
+  subNavText: { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
   subNavTextActive: { color: '#ef0d1a' },
   scroll: { padding: 16, paddingBottom: 100, gap: 14 },
   header: { gap: 4 },
-  headerTitle: { color: '#ffffff', fontSize: 20, fontWeight: '900' },
-  headerSub: { color: '#6b7280', fontSize: 11 },
-  formCard: { backgroundColor: '#0f0f1e', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#1e1e3a', gap: 10, overflow: 'hidden' },
+  headerTitle: { color: '#111827', fontSize: 20, fontWeight: '900' },
+  headerSub: { color: '#9ca3af', fontSize: 11 },
+  formCard: { backgroundColor: '#f9fafb', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e5e7eb', gap: 10, overflow: 'hidden' },
   formCardAccent: { position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: '#ef0d1a' },
   formCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
   formCardIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#ef0d1a', alignItems: 'center', justifyContent: 'center' },
-  formCardTitle: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
-  formLabel: { color: '#4b5563', fontSize: 9, fontWeight: '700', letterSpacing: 1 },
-  input: { backgroundColor: '#080814', borderWidth: 1, borderColor: '#1e1e3a', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, color: '#ffffff', fontSize: 13 },
+  formCardTitle: { color: '#111827', fontSize: 14, fontWeight: '800' },
+  formLabel: { color: '#9ca3af', fontSize: 9, fontWeight: '700', letterSpacing: 1 },
+  input: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, color: '#111827', fontSize: 13 },
   inputFocused: { borderColor: '#ef0d1a' },
   formBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   publicRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: '#4b5563', alignItems: 'center', justifyContent: 'center' },
+  checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: '#d1d5db', alignItems: 'center', justifyContent: 'center' },
   checkboxOn: { backgroundColor: '#ef0d1a', borderColor: '#ef0d1a' },
   checkmark: { color: '#fff', fontSize: 11, fontWeight: '900' },
-  lockIcon: { fontSize: 12 },
-  publicLabel: { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
+  publicLabel: { color: '#374151', fontSize: 12, fontWeight: '600' },
   formBtns: { flexDirection: 'row', gap: 8 },
-  cancelBtn: { backgroundColor: '#1a1a2e', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  cancelBtnText: { color: '#9ca3af', fontSize: 11, fontWeight: '600' },
-  createBtn: { backgroundColor: '#ef0d1a', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8, shadowColor: '#ef0d1a', shadowOpacity: 0.4, shadowRadius: 6, elevation: 4 },
+  cancelBtn: { backgroundColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+  cancelBtnText: { color: '#374151', fontSize: 11, fontWeight: '600' },
+  createBtn: { backgroundColor: '#ef0d1a', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8 },
   createBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionTitle: { color: '#6b7280', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  sectionTitle: { color: '#9ca3af', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
   sectionBadge: { backgroundColor: '#ef0d1a', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   sectionBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  seeAll: { color: '#6b7280', fontSize: 10, fontWeight: '600' },
   center: { paddingVertical: 40, alignItems: 'center' },
-  emptyCard: { backgroundColor: '#0f0f1e', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#1e1e3a', gap: 8 },
-  emptyIcon: { fontSize: 32, marginBottom: 4 },
-  emptyTitle: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
-  emptySub: { color: '#6b7280', fontSize: 11, textAlign: 'center' },
+  emptyCard: { backgroundColor: '#f9fafb', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#e5e7eb', gap: 8 },
+  emptyTitle: { color: '#111827', fontSize: 13, fontWeight: '700' },
+  emptySub: { color: '#9ca3af', fontSize: 11, textAlign: 'center' },
   listsContainer: { gap: 10 },
-  listCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0f0f1e', borderRadius: 16, padding: 14, gap: 12, borderWidth: 1, borderColor: '#1e1e3a' },
-  listIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#1a1a2e', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#2a2a4e' },
-  listIconText: { fontSize: 22 },
+  listCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 16, padding: 14, gap: 12, borderWidth: 1, borderColor: '#e5e7eb' },
+  listIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center' },
+  listIconText: { color: '#6b7280', fontSize: 11, fontWeight: '800' },
   listInfo: { flex: 1, gap: 5 },
-  listName: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
+  listName: { color: '#111827', fontSize: 13, fontWeight: '800' },
   listMetaRow: { flexDirection: 'row', alignItems: 'center' },
-  listMeta: { color: '#6b7280', fontSize: 10 },
-  listMetaDot: { color: '#6b7280', fontSize: 10 },
+  listMeta: { color: '#9ca3af', fontSize: 10 },
+  listMetaDot: { color: '#9ca3af', fontSize: 10 },
   statusBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  statusBadgePublic: { backgroundColor: '#052e16' },
-  statusBadgePrivate: { backgroundColor: '#1c1207' },
+  statusBadgePublic: { backgroundColor: '#d1fae5' },
+  statusBadgePrivate: { backgroundColor: '#fef3c7' },
   statusBadgeText: { fontSize: 9, fontWeight: '700' },
-  statusPublicText: { color: '#4ade80' },
-  statusPrivateText: { color: '#fbbf24' },
-  listDesc: { color: '#4b5563', fontSize: 10 },
+  statusPublicText: { color: '#065f46' },
+  statusPrivateText: { color: '#92400e' },
+  listDesc: { color: '#9ca3af', fontSize: 10 },
   listActions: { gap: 8 },
-  iconBtnEdit: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a1a2e', borderRadius: 10, borderWidth: 1, borderColor: '#2a2a4e' },
-  iconBtnDel: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a0808', borderRadius: 10, borderWidth: 1, borderColor: '#3d1010' },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 10 },
-  sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#0f0f1e', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, borderWidth: 1, borderBottomWidth: 0, borderColor: '#1e1e3a', alignItems: 'center', gap: 10, zIndex: 11 },
-  sheetHandle: { width: 40, height: 4, backgroundColor: '#2a2a4e', borderRadius: 2, marginBottom: 8 },
-  sheetIconWrap: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#1a0808', borderWidth: 1, borderColor: '#3d1010', alignItems: 'center', justifyContent: 'center' },
-  sheetTitle: { color: '#ffffff', fontSize: 16, fontWeight: '900' },
-  sheetSub: { color: '#9ca3af', fontSize: 13, textAlign: 'center' },
-  sheetListName: { color: '#ffffff', fontWeight: '800' },
-  sheetWarningBox: { backgroundColor: '#1c1207', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: '#3d2007', width: '100%' },
-  sheetWarning: { color: '#fbbf24', fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  iconBtnEdit: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e5e7eb', borderRadius: 10 },
+  iconBtnDel: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fee2e2', borderRadius: 10 },
+  iconBtnText: { color: '#374151', fontSize: 10, fontWeight: '700' },
+  iconBtnTextRed: { color: '#ef4444', fontSize: 10, fontWeight: '700' },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 10 },
+  sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, borderWidth: 1, borderBottomWidth: 0, borderColor: '#e5e7eb', alignItems: 'center', gap: 10, zIndex: 11 },
+  sheetHandle: { width: 40, height: 4, backgroundColor: '#e5e7eb', borderRadius: 2, marginBottom: 8 },
+  sheetTitle: { color: '#111827', fontSize: 16, fontWeight: '900' },
+  sheetSub: { color: '#6b7280', fontSize: 13, textAlign: 'center' },
+  sheetListName: { color: '#111827', fontWeight: '800' },
+  sheetWarningBox: { backgroundColor: '#fef3c7', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: '#fde68a', width: '100%' },
+  sheetWarning: { color: '#92400e', fontSize: 11, fontWeight: '600', textAlign: 'center' },
   sheetIrreversible: { color: '#ef4444', fontSize: 10, fontWeight: '600' },
   sheetBtns: { flexDirection: 'row', gap: 10, width: '100%', marginTop: 6 },
-  sheetCancel: { flex: 1, borderWidth: 1, borderColor: '#2a2a4e', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  sheetCancelText: { color: '#9ca3af', fontSize: 13, fontWeight: '700' },
-  sheetConfirm: { flex: 1, backgroundColor: '#ef0d1a', borderRadius: 14, paddingVertical: 14, alignItems: 'center', shadowColor: '#ef0d1a', shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
+  sheetCancel: { flex: 1, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  sheetCancelText: { color: '#6b7280', fontSize: 13, fontWeight: '700' },
+  sheetConfirm: { flex: 1, backgroundColor: '#ef0d1a', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   sheetConfirmText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });

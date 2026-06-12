@@ -17,10 +17,10 @@ const CARD_H = CARD_W * 1.5;
 
 const STATUSES = [
   { key: null, label: 'Tous' },
-  { key: 'TO_WATCH', label: 'À voir' },
+  { key: 'TO_WATCH', label: 'A voir' },
   { key: 'IN_PROGRESS', label: 'En cours' },
   { key: 'COMPLETED', label: 'Vu' },
-  { key: 'DROPPED', label: 'Abandonné' },
+  { key: 'DROPPED', label: 'Abandonne' },
 ];
 
 const STATUS_COLORS = {
@@ -29,11 +29,6 @@ const STATUS_COLORS = {
   COMPLETED: '#10b981',
   DROPPED: '#ef4444',
 };
-
-const CARD_GRADIENTS = [
-  '#7c3d0a', '#1e1b4b', '#052e16', '#1c1207',
-  '#1e3a5f', '#2d1b4e', '#1a1a2e', '#0f2027',
-];
 
 export default function Library() {
   const router = useRouter();
@@ -92,24 +87,22 @@ export default function Library() {
 
         <View style={s.subNav}>
           <Pressable style={[s.subNavBtn, s.subNavBtnActive]}>
-            <Text style={[s.subNavText, s.subNavTextActive]}>📚 Biblio</Text>
+            <Text style={[s.subNavText, s.subNavTextActive]}>Biblio</Text>
           </Pressable>
           <Pressable style={s.subNavBtn} onPress={() => router.push('/lists')}>
-            <Text style={s.subNavText}>📋 Listes</Text>
+            <Text style={s.subNavText}>Listes</Text>
           </Pressable>
           <Pressable style={s.subNavBtn} onPress={() => router.push('/dashboard')}>
-            <Text style={s.subNavText}>📊 Stats</Text>
+            <Text style={s.subNavText}>Stats</Text>
           </Pressable>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
-
           <View style={s.header}>
-            <Text style={s.headerTitle}>Ma bibliothèque ✨</Text>
-            <Text style={s.headerSub}>Vos films sauvegardés</Text>
+            <Text style={s.headerTitle}>Ma bibliotheque</Text>
+            <Text style={s.headerSub}>Vos films sauvegardes</Text>
           </View>
 
-          {/* Filtres */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
             {STATUSES.map(st => {
               const count = st.key === null ? movies.length : movies.filter(m => m.status === st.key).length;
@@ -125,11 +118,10 @@ export default function Library() {
             })}
           </ScrollView>
 
-          {/* Stats rapides */}
           <View style={s.statsRow}>
             <View style={s.statBox}>
               <Text style={s.statValue}>{totalCount}</Text>
-              <Text style={s.statLabel}>Sauvegardés</Text>
+              <Text style={s.statLabel}>Sauvegardes</Text>
             </View>
             <View style={s.statDivider} />
             <View style={s.statBox}>
@@ -139,20 +131,18 @@ export default function Library() {
             <View style={s.statDivider} />
             <View style={s.statBox}>
               <Text style={s.statValue}>{aVoirCount}</Text>
-              <Text style={s.statLabel}>À voir</Text>
+              <Text style={s.statLabel}>A voir</Text>
             </View>
           </View>
 
-          {/* Grille films */}
           {loading ? (
             <View style={s.center}><ActivityIndicator color="#ef0d1a" size="large" /></View>
           ) : filtered.length === 0 ? (
             <View style={s.emptyBox}>
-              <Text style={s.emptyIcon}>🎬</Text>
               <Text style={s.emptyTitle}>Aucun film ici</Text>
-              <Text style={s.emptySub}>Ajoutez des films à votre bibliothèque</Text>
+              <Text style={s.emptySub}>Ajoutez des films a votre bibliotheque</Text>
               <Pressable style={s.discoverBtn} onPress={() => router.push('/discover')}>
-                <Text style={s.discoverBtnText}>Découvrir des films</Text>
+                <Text style={s.discoverBtnText}>Decouvrir des films</Text>
               </Pressable>
             </View>
           ) : (
@@ -160,28 +150,24 @@ export default function Library() {
               {filtered.map((movie, index) => {
                 const poster = movie.poster_url ? `${TMDB_IMG}${movie.poster_url}` : null;
                 const isSelected = selectedMovie?.movie_id === movie.movie_id;
-                const bgColor = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
                 return (
                   <Pressable
                     key={movie.id || movie.movie_id}
-                    style={[s.movieCard, { backgroundColor: bgColor, width: CARD_W, height: CARD_H }]}
+                    style={[s.movieCard, { width: CARD_W, height: CARD_H }]}
                     onPress={() => setSelectedMovie(isSelected ? null : movie)}
                   >
                     {poster ? (
                       <Image source={{ uri: poster }} style={s.poster} resizeMode="cover" />
                     ) : (
                       <View style={s.posterFallback}>
-                        <Text style={s.posterFallbackIcon}>▦</Text>
+                        <Text style={s.posterFallbackIcon}>?</Text>
                       </View>
                     )}
-
                     {!isSelected && (
                       <View style={s.ratingBadge}>
-                        <Text style={s.ratingStar}>★</Text>
                         <Text style={s.ratingText}>{(7 + (index % 3)).toFixed(1)}</Text>
                       </View>
                     )}
-
                     {isSelected && (
                       <View style={s.overlay}>
                         <Text style={s.overlayTitle} numberOfLines={2}>{movie.title}</Text>
@@ -195,20 +181,15 @@ export default function Library() {
                               <Text style={s.overlayBtnText}>{st.label}</Text>
                             </Pressable>
                           ))}
-                          <Pressable
-                            style={[s.overlayBtn, { backgroundColor: '#374151' }]}
-                            onPress={() => handleRemove(movie)}
-                          >
-                            <Text style={s.overlayBtnText}>🗑️ Retirer</Text>
+                          <Pressable style={[s.overlayBtn, { backgroundColor: '#6b7280' }]} onPress={() => handleRemove(movie)}>
+                            <Text style={s.overlayBtnText}>Retirer</Text>
                           </Pressable>
                         </View>
                       </View>
                     )}
-
                     {!isSelected && movie.status && (
-                      <View style={[s.statusDot, { backgroundColor: STATUS_COLORS[movie.status] || '#6b7280' }]} />
+                      <View style={[s.statusDot, { backgroundColor: STATUS_COLORS[movie.status] || '#9ca3af' }]} />
                     )}
-
                     {!isSelected && (
                       <View style={s.cardBottom}>
                         <Text style={s.cardTitle} numberOfLines={1}>{movie.title}</Text>
@@ -232,54 +213,52 @@ export default function Library() {
 
 const s = StyleSheet.create({
   pageWeb: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', padding: 20 },
-  pageMobile: { flex: 1, backgroundColor: '#0a0a12' },
-  phoneWeb: { backgroundColor: '#0a0a12', borderRadius: 22, height: 592, maxWidth: 315, overflow: 'hidden', width: '100%' },
-  phoneMobile: { flex: 1, backgroundColor: '#0a0a12' },
-  subNav: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1a1a2e' },
+  pageMobile: { flex: 1, backgroundColor: '#ffffff' },
+  phoneWeb: { backgroundColor: '#ffffff', borderRadius: 22, height: 592, maxWidth: 315, overflow: 'hidden', width: '100%' },
+  phoneMobile: { flex: 1, backgroundColor: '#ffffff' },
+  subNav: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   subNavBtn: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   subNavBtnActive: { borderBottomWidth: 2, borderBottomColor: '#ef0d1a' },
-  subNavText: { color: '#6b7280', fontSize: 12, fontWeight: '600' },
+  subNavText: { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
   subNavTextActive: { color: '#ef0d1a' },
   scroll: { padding: 16, paddingBottom: 100, gap: 14 },
   header: { gap: 4 },
-  headerTitle: { color: '#ffffff', fontSize: 20, fontWeight: '900' },
-  headerSub: { color: '#6b7280', fontSize: 11 },
+  headerTitle: { color: '#111827', fontSize: 20, fontWeight: '900' },
+  headerSub: { color: '#9ca3af', fontSize: 11 },
   chips: { gap: 8, paddingVertical: 2 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#0f0f1e', borderWidth: 1, borderColor: '#1e1e3a' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb' },
   chipActive: { backgroundColor: '#ef0d1a', borderColor: '#ef0d1a' },
   chipText: { color: '#6b7280', fontSize: 12, fontWeight: '700' },
   chipTextActive: { color: '#fff' },
-  chipBadge: { backgroundColor: '#1e1e3a', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 },
-  chipBadgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  chipBadge: { backgroundColor: '#e5e7eb', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 },
+  chipBadgeActive: { backgroundColor: 'rgba(255,255,255,0.3)' },
   chipBadgeText: { color: '#6b7280', fontSize: 10, fontWeight: '800' },
   chipBadgeTextActive: { color: '#fff' },
-  statsRow: { flexDirection: 'row', backgroundColor: '#0f0f1e', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#1e1e3a', alignItems: 'center', justifyContent: 'space-around' },
+  statsRow: { flexDirection: 'row', backgroundColor: '#f9fafb', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e5e7eb', alignItems: 'center', justifyContent: 'space-around' },
   statBox: { alignItems: 'center', gap: 4 },
-  statValue: { color: '#ffffff', fontSize: 24, fontWeight: '900' },
-  statLabel: { color: '#6b7280', fontSize: 10 },
-  statDivider: { width: 1, height: 32, backgroundColor: '#1e1e3a' },
+  statValue: { color: '#111827', fontSize: 24, fontWeight: '900' },
+  statLabel: { color: '#9ca3af', fontSize: 10 },
+  statDivider: { width: 1, height: 32, backgroundColor: '#e5e7eb' },
   center: { paddingVertical: 60, alignItems: 'center' },
   emptyBox: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyIcon: { fontSize: 44 },
-  emptyTitle: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
-  emptySub: { color: '#6b7280', fontSize: 12, textAlign: 'center' },
-  discoverBtn: { marginTop: 8, backgroundColor: '#ef0d1a', borderRadius: 14, paddingHorizontal: 22, paddingVertical: 12, shadowColor: '#ef0d1a', shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
+  emptyTitle: { color: '#111827', fontSize: 16, fontWeight: '800' },
+  emptySub: { color: '#9ca3af', fontSize: 12, textAlign: 'center' },
+  discoverBtn: { marginTop: 8, backgroundColor: '#ef0d1a', borderRadius: 14, paddingHorizontal: 22, paddingVertical: 12 },
   discoverBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' },
-  movieCard: { borderRadius: 16, overflow: 'hidden', position: 'relative' },
+  movieCard: { borderRadius: 16, overflow: 'hidden', position: 'relative', backgroundColor: '#f3f4f6' },
   poster: { width: '100%', height: '100%' },
-  posterFallback: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-  posterFallbackIcon: { color: 'rgba(255,255,255,0.15)', fontSize: 44 },
-  ratingBadge: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
-  ratingStar: { color: '#fbbf24', fontSize: 11 },
+  posterFallback: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e5e7eb' },
+  posterFallbackIcon: { color: '#9ca3af', fontSize: 44 },
+  ratingBadge: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
   ratingText: { color: '#ffffff', fontSize: 11, fontWeight: '800' },
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.92)', padding: 10, justifyContent: 'space-between' },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', padding: 10, justifyContent: 'space-between' },
   overlayTitle: { color: '#fff', fontSize: 11, fontWeight: '800' },
   overlayActions: { gap: 5 },
   overlayBtn: { borderRadius: 8, paddingVertical: 7, alignItems: 'center' },
   overlayBtnText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  cardBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 10, backgroundColor: 'rgba(0,0,0,0.65)' },
+  cardBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 10, backgroundColor: 'rgba(0,0,0,0.55)' },
   cardTitle: { color: '#ffffff', fontSize: 11, fontWeight: '800' },
-  cardMeta: { color: '#9ca3af', fontSize: 10, marginTop: 2 },
+  cardMeta: { color: '#d1d5db', fontSize: 10, marginTop: 2 },
   statusDot: { position: 'absolute', top: 8, left: 8, width: 9, height: 9, borderRadius: 5 },
 });

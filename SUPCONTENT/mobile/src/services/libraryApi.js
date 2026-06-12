@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../config/api';
-import { getAuthToken } from './authStorage.web';
+import { getAuthToken } from './authStorage';
 
 async function getAuthHeaders() {
   const token = await getAuthToken();
