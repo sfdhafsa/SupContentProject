@@ -467,6 +467,18 @@ export default function PublicProfileScreen() {
     }
   }
 
+  function handleMessagePress() {
+    if (!id) return;
+
+    router.push({
+      pathname: '/conversation/[userId]',
+      params: {
+        userId: id,
+        username: username || 'Conversation',
+      },
+    });
+  }
+
   function renderTabContent() {
     if (loading) {
       return (
@@ -608,7 +620,7 @@ export default function PublicProfileScreen() {
                 </Text>
               </Pressable>
 
-              <Pressable style={styles.messageBtn}>
+              <Pressable style={styles.messageBtn} onPress={handleMessagePress}>
                 <Text style={styles.messageBtnText}>Message</Text>
               </Pressable>
 
