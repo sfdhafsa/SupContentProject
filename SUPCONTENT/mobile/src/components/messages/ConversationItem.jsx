@@ -22,7 +22,16 @@ function Avatar({ avatarUrl, username, unreadCount }) {
 }
 
 export default function ConversationItem({ conversation }) {
-  const { other_user, last_message, unread_count } = conversation;
+  const otherUser = conversation.other_user || {
+    id: conversation.other_user_id,
+    username: conversation.other_username,
+    avatar_url: conversation.other_avatar_url,
+  };
+  const lastMessage = conversation.last_message || {
+    content: conversation.last_message_content,
+    created_at: conversation.last_message_created_at,
+  };
+  const unreadCount = Number(conversation.unread_count) || 0;
 
   const formatDate = (iso) => {
     if (!iso) return '';
@@ -38,25 +47,25 @@ export default function ConversationItem({ conversation }) {
   };
 
   return (
-    <View style={[styles.container, unread_count > 0 && styles.containerUnread]}>
+    <View style={[styles.container, unreadCount > 0 && styles.containerUnread]}>
       <Avatar
-        avatarUrl={other_user?.avatar_url}
-        username={other_user?.username}
-        unreadCount={unread_count}
+        avatarUrl={otherUser?.avatar_url}
+        username={otherUser?.username}
+        unreadCount={unreadCount}
       />
 
       <View style={styles.content}>
         <View style={styles.topRow}>
           <Text style={styles.username} numberOfLines={1}>
-            {other_user?.username || 'Utilisateur'}
+            {otherUser?.username || 'Utilisateur'}
           </Text>
-          <Text style={styles.date}>{formatDate(last_message?.created_at)}</Text>
+          <Text style={styles.date}>{formatDate(lastMessage?.created_at)}</Text>
         </View>
         <Text
-          style={[styles.preview, unread_count > 0 && styles.previewUnread]}
+          style={[styles.preview, unreadCount > 0 && styles.previewUnread]}
           numberOfLines={1}
         >
-          {last_message?.content || 'Aucun message'}
+          {lastMessage?.content || 'Aucun message'}
         </Text>
       </View>
     </View>

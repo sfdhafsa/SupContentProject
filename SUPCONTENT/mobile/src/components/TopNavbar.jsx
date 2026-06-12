@@ -58,6 +58,26 @@ function BellIcon({ color = C.black }) {
   );
 }
 
+function ChatIcon({ color = C.black }) {
+  return (
+    <View style={{ width: 18, height: 18, position: 'relative' }}>
+      <View style={{
+        position: 'absolute', top: 3, left: 2,
+        width: 14, height: 11, borderRadius: 5,
+        borderWidth: 1.5, borderColor: color,
+      }} />
+      <View style={{
+        position: 'absolute', top: 13, left: 5,
+        width: 0, height: 0,
+        borderTopWidth: 4,
+        borderTopColor: color,
+        borderRightWidth: 4,
+        borderRightColor: 'transparent',
+      }} />
+    </View>
+  );
+}
+
 export default function TopNavbar({ username = 'User', onSearch }) {
   const router                        = useRouter();
   const { isAuthenticated }           = useAuthSession();
@@ -147,6 +167,16 @@ export default function TopNavbar({ username = 'User', onSearch }) {
               : <SearchIcon />
             }
           </Pressable>
+
+          {authed && (
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() => router.push('/messages')}
+              hitSlop={8}
+            >
+              <ChatIcon />
+            </Pressable>
+          )}
 
           {authed && (
             <Pressable
