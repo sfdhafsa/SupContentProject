@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import LogoMark from './LogoMark';
 import useAuthSession from '../hooks/useAuthSession';
+import useNotificationBadge from '../hooks/useNotificationBadge';
 import { clearAuthSession } from '../services/authStorage';
 
 const C = {
@@ -60,6 +61,7 @@ function BellIcon({ color = C.black }) {
 export default function TopNavbar({ username = 'User', onSearch }) {
   const router                        = useRouter();
   const { isAuthenticated }           = useAuthSession();
+  const { unreadCount }                = useNotificationBadge();
   const [sessionOverride, setSessionOverride] = useState(null);
   const authed                        = sessionOverride ?? isAuthenticated;
   const initial                       = username.slice(0, 1).toUpperCase();
@@ -153,6 +155,13 @@ export default function TopNavbar({ username = 'User', onSearch }) {
               hitSlop={8}
             >
               <BellIcon />
+              {unreadCount > 0 ? (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              ) : null}
             </Pressable>
           )}
 
@@ -255,6 +264,26 @@ const styles = StyleSheet.create({
   },
   iconBtnActive: {
     backgroundColor: '#fff0f0',
+  },
+  notificationBadge: {
+    alignItems: 'center',
+    backgroundColor: C.red,
+    borderColor: C.white,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    minHeight: 18,
+    minWidth: 18,
+    paddingHorizontal: 3,
+    position: 'absolute',
+    right: -4,
+    top: -4,
+  },
+  notificationBadgeText: {
+    color: C.white,
+    fontSize: 9,
+    fontWeight: '900',
+    lineHeight: 12,
   },
   outBtn: {
     height: 34,

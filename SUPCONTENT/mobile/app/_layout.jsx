@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import useAuthSession, { AuthSessionProvider } from '../src/hooks/useAuthSession';
+import { NotificationBadgeProvider } from '../src/hooks/useNotificationBadge';
 
 const authOnlyPrefixes = ['/login', '/register', '/forgot-password', '/reset-password'];
 const protectedPrefixes = ['/home', '/profile', '/settings', '/notifications', '/messages', '/conversation'];
@@ -68,7 +69,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthSessionProvider>
-        <RootNavigator />
+        <NotificationBadgeProvider>
+          <RootNavigator />
+        </NotificationBadgeProvider>
       </AuthSessionProvider>
     </SafeAreaProvider>
   );

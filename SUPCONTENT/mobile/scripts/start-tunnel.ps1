@@ -76,45 +76,60 @@ function Set-EnvValue {
 function Start-QuickTunnel {
   param(
     [Parameter(Mandatory)] [string] $Name,
-    [Parameter(Mandatory)] [int] $Port
+    [Parameter(Mandatory)] [int] $Port,
+    [int] $MaxAttempts = 4
   )
 
-  $stdoutLog = Join-Path $logDirectory "$Name.stdout.log"
-  $stderrLog = Join-Path $logDirectory "$Name.stderr.log"
-  Remove-Item -LiteralPath $stdoutLog, $stderrLog -Force -ErrorAction SilentlyContinue
+  $lastDetails = ''
 
-  $process = Start-Process `
-    -FilePath $cloudflared `
-    -ArgumentList @('tunnel', '--url', "http://localhost:$Port", '--protocol', 'http2') `
-    -RedirectStandardOutput $stdoutLog `
-    -RedirectStandardError $stderrLog `
-    -WindowStyle Hidden `
-    -PassThru
+  for ($launchAttempt = 1; $launchAttempt -le $MaxAttempts; $launchAttempt++) {
+    $stdoutLog = Join-Path $logDirectory "$Name.$launchAttempt.stdout.log"
+    $stderrLog = Join-Path $logDirectory "$Name.$launchAttempt.stderr.log"
+    Remove-Item -LiteralPath $stdoutLog, $stderrLog -Force -ErrorAction SilentlyContinue
 
-  for ($attempt = 0; $attempt -lt 50; $attempt++) {
-    Start-Sleep -Milliseconds 500
-
-    if ($process.HasExited) {
-      $details = Get-Content -LiteralPath $stderrLog -Raw -ErrorAction SilentlyContinue
-      throw "The $Name tunnel stopped unexpectedly.`n$details"
+    if ($launchAttempt -gt 1) {
+      $delaySeconds = [Math]::Min(10, 2 * $launchAttempt)
+      Write-Warning "Retrying the $Name tunnel ($launchAttempt/$MaxAttempts) in $delaySeconds seconds..."
+      Start-Sleep -Seconds $delaySeconds
     }
 
-    $logs = @(
-      (Get-Content -LiteralPath $stdoutLog -Raw -ErrorAction SilentlyContinue),
-      (Get-Content -LiteralPath $stderrLog -Raw -ErrorAction SilentlyContinue)
-    ) -join "`n"
+    $process = Start-Process `
+      -FilePath $cloudflared `
+      -ArgumentList @('tunnel', '--url', "http://localhost:$Port", '--protocol', 'http2') `
+      -RedirectStandardOutput $stdoutLog `
+      -RedirectStandardError $stderrLog `
+      -WindowStyle Hidden `
+      -PassThru
 
-    $match = [regex]::Match($logs, 'https://[a-z0-9-]+\.trycloudflare\.com')
-    if ($match.Success) {
-      return @{
-        Process = $process
-        Url = $match.Value
+    for ($urlAttempt = 0; $urlAttempt -lt 60; $urlAttempt++) {
+      Start-Sleep -Milliseconds 500
+
+      $logs = @(
+        (Get-Content -LiteralPath $stdoutLog -Raw -ErrorAction SilentlyContinue),
+        (Get-Content -LiteralPath $stderrLog -Raw -ErrorAction SilentlyContinue)
+      ) -join "`n"
+
+      $match = [regex]::Match($logs, 'https://[a-z0-9-]+\.trycloudflare\.com')
+      if ($match.Success) {
+        return @{
+          Process = $process
+          Url = $match.Value
+        }
       }
+
+      if ($process.HasExited) {
+        $lastDetails = $logs.Trim()
+        break
+      }
+    }
+
+    if (-not $process.HasExited) {
+      $lastDetails = "Cloudflare did not provide a public URL within 30 seconds."
+      Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
     }
   }
 
-  Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-  throw "Cloudflare did not provide a public URL for $Name within 25 seconds."
+  throw "The $Name tunnel failed after $MaxAttempts attempts.`n$lastDetails"
 }
 
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
