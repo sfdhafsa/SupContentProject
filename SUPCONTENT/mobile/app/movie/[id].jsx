@@ -210,11 +210,13 @@ function ReviewCard({
   useEffect(() => {
     if (!shouldFocus) return;
 
-    setCommentsOpen(true);
-    if (comments.length === 0) {
+    if (targetCommentId) {
+      setCommentsOpen(true);
+    }
+    if (targetCommentId && comments.length === 0) {
       loadComments();
     }
-  }, [shouldFocus, review.id]);
+  }, [shouldFocus, targetCommentId, review.id]);
 
   async function loadComments() {
     setCommentsLoading(true);
@@ -456,14 +458,9 @@ function ReviewsSection({
   const [formError, setFormError] = useState(null);
   const [editingReview, setEditingReview] = useState(null);
   const [notice, setNotice] = useState('');
-  const focusedReviewScrolledRef = useRef(false);
   const reviewsListYRef = useRef(0);
 
   const myReview = reviews.find((review) => String(review.user_id) === String(user?.id));
-
-  useEffect(() => {
-    focusedReviewScrolledRef.current = false;
-  }, [targetReviewId, targetCommentId, tmdbId]);
 
   const loadReviews = () => {
     setLoading(true);
@@ -608,9 +605,6 @@ function ReviewsSection({
               shouldFocus={String(review.id) === String(targetReviewId)}
               targetCommentId={String(review.id) === String(targetReviewId) ? targetCommentId : null}
               onFocusedLayout={(reviewY) => {
-                if (focusedReviewScrolledRef.current) return;
-
-                focusedReviewScrolledRef.current = true;
                 onFocusedReviewLayout?.(reviewsListYRef.current + reviewY);
               }}
             />
@@ -1043,12 +1037,15 @@ export default function MovieDetail() {
               targetReviewId={targetReviewId}
               targetCommentId={targetCommentId}
               onFocusedReviewLayout={(reviewY) => {
-                setTimeout(() => {
+                const scrollToReview = () => {
                   scrollRef.current?.scrollTo({
                     y: Math.max(0, reviewsSectionYRef.current + reviewY - 80),
                     animated: true,
                   });
-                }, 300);
+                };
+
+                setTimeout(scrollToReview, 150);
+                setTimeout(scrollToReview, 650);
               }}
             />
           </View>

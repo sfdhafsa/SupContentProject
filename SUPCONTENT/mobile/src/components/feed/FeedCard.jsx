@@ -64,6 +64,11 @@ export default function FeedCard({ item, currentUserId }) {
   const openMovie = () => {
     if (!movie?.external_id) return;
 
+    if (canOpenReviewTarget) {
+      openReviewTarget();
+      return;
+    }
+
     router.push(`/movie/${movie.external_id}`);
   };
 
@@ -120,11 +125,17 @@ export default function FeedCard({ item, currentUserId }) {
 
         <View style={styles.feedItemMeta}>
           {review?.rating ? (
-            <View style={styles.feedRatingBadge}>
+            <Pressable
+              accessibilityRole={canOpenReviewTarget ? 'button' : undefined}
+              accessibilityLabel={canOpenReviewTarget ? 'Ouvrir la critique' : undefined}
+              disabled={!canOpenReviewTarget}
+              onPress={openReviewTarget}
+              style={styles.feedRatingBadge}
+            >
               <Text style={styles.feedRatingText}>
                 ★ {review.rating}
               </Text>
-            </View>
+            </Pressable>
           ) : null}
 
           {movie?.title ? (
