@@ -272,9 +272,9 @@ function Headline({ item, currentUser }) {
 }
 
 /* Movie card — style Figma avec grand poster */
-function MovieCard({ movie, rating }) {
+function MovieCard({ movie, rating, href }) {
   if (!movie) return null;
-  const movieHref = movie.external_id ? `/movies/${movie.external_id}` : null;
+  const movieHref = href || (movie.external_id ? `/movies/${movie.external_id}` : null);
   const releaseYear = getYear(movie.release_date);
   const content = (
     <>
@@ -347,6 +347,12 @@ function FeedItem({ item, currentUser }) {
   const isComment = item.type === "REVIEW_COMMENTED";
   const collectionHref =
     isCollection && item.collection?.id ? `/lists/${item.collection.id}` : null;
+  const reviewHref =
+    item.movie?.external_id && item.review?.id
+      ? `/movies/${item.movie.external_id}?review=${item.review.id}${
+          item.comment?.id ? `&comment=${item.comment.id}` : ""
+        }`
+      : null;
 
   const getActivityDate = () =>
     item.activity?.created_at ||
@@ -467,7 +473,11 @@ function FeedItem({ item, currentUser }) {
 
       {/* Movie card */}
       <div className="sm:ml-[52px] mb-4">
-        <MovieCard movie={item.movie} rating={item.review?.rating} />
+        <MovieCard
+          movie={item.movie}
+          rating={item.review?.rating}
+          href={isReview || isRating || isComment ? reviewHref : null}
+        />
       </div>
 
       {/* Collection badge */}

@@ -187,9 +187,9 @@ function StarRating({ rating }) {
 }
 
 /* ── Movie Card ── */
-function MovieCard({ movie }) {
+function MovieCard({ movie, href }) {
   if (!movie) return null;
-  const movieHref = movie.external_id ? `/movies/${movie.external_id}` : null;
+  const movieHref = href || (movie.external_id ? `/movies/${movie.external_id}` : null);
   const releaseYear = getYear(movie.release_date);
   const content = (
     <>
@@ -285,6 +285,12 @@ function FeedItem({ item }) {
   const isCollection = item.type === "COLLECTION_MOVIE_ADDED";
   const collectionHref =
     isCollection && item.collection?.id ? `/lists/${item.collection.id}` : null;
+  const reviewHref =
+    item.movie?.external_id && item.review?.id
+      ? `/movies/${item.movie.external_id}?review=${item.review.id}${
+          item.comment?.id ? `&comment=${item.comment.id}` : ""
+        }`
+      : null;
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return "";
@@ -364,7 +370,10 @@ function FeedItem({ item }) {
 
       {/* ── Movie card ── */}
       <div className="mb-3">
-        <MovieCard movie={item.movie} />
+        <MovieCard
+          movie={item.movie}
+          href={isReview || isRating ? reviewHref : null}
+        />
       </div>
 
       {/* ── Collection info ── */}

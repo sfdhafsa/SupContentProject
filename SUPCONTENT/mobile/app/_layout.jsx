@@ -55,6 +55,7 @@ function RootNavigator() {
       <Stack.Screen name="library" />
       <Stack.Screen name="messages" />
       <Stack.Screen name="conversation/[userId]" />
+      <Stack.Screen name="list/[id]" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="settings" />
