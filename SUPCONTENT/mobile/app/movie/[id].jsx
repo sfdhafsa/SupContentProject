@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -148,8 +148,9 @@ function ReviewForm({ initialReview, submitting, error, onCancel, onSubmit }) {
   );
 }
 
-function CommentRow({ comment }) {
+function CommentRow({ comment, targetCommentId }) {
   const initials = comment.username ? comment.username.slice(0, 2).toUpperCase() : 'U';
+  const isTarget = String(comment.id) === String(targetCommentId);
 
   return (
     <View style={s.commentRow}>
@@ -160,7 +161,7 @@ function CommentRow({ comment }) {
           <Text style={s.commentAvatarText}>{initials}</Text>
         )}
       </View>
-      <View style={s.commentBubble}>
+      <View style={[s.commentBubble, isTarget && s.focusedCommentBubble]}>
         <Text style={s.commentUsername} numberOfLines={1}>{comment.username || 'User'}</Text>
         <Text style={s.commentText}>{comment.text}</Text>
       </View>
@@ -178,6 +179,9 @@ function ReviewCard({
   onLiked,
   onCommentCountChange,
   onRequireAuth,
+  shouldFocus,
+  targetCommentId,
+  onFocusedLayout,
 }) {
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [liked, setLiked] = useState(Boolean(review.has_liked));
@@ -203,7 +207,16 @@ function ReviewCard({
     setLiked(Boolean(review.has_liked));
   }, [review.has_liked]);
 
-  const loadComments = async () => {
+  useEffect(() => {
+    if (!shouldFocus) return;
+
+    setCommentsOpen(true);
+    if (comments.length === 0) {
+      loadComments();
+    }
+  }, [shouldFocus, review.id]);
+
+  async function loadComments() {
     setCommentsLoading(true);
     setCommentError('');
     try {
@@ -216,7 +229,7 @@ function ReviewCard({
     } finally {
       setCommentsLoading(false);
     }
-  };
+  }
 
   const toggleComments = () => {
     const nextOpen = !commentsOpen;
@@ -297,7 +310,18 @@ function ReviewCard({
   };
 
   return (
-    <View style={[s.reviewCard, review.is_featured && s.featuredReviewCard]}>
+    <View
+      onLayout={(event) => {
+        if (shouldFocus) {
+          onFocusedLayout?.(event.nativeEvent.layout.y);
+        }
+      }}
+      style={[
+        s.reviewCard,
+        review.is_featured && s.featuredReviewCard,
+        shouldFocus && s.focusedReviewCard,
+      ]}
+    >
       <View style={s.reviewCardHeader}>
         <View style={s.reviewAvatar}>
           {review.avatar_url ? (
@@ -377,7 +401,11 @@ function ReviewCard({
               ) : (
                 <View style={{ gap: 10 }}>
                   {comments.map((comment) => (
-                    <CommentRow key={comment.id} comment={comment} />
+                    <CommentRow
+                      key={comment.id}
+                      comment={comment}
+                      targetCommentId={targetCommentId}
+                    />
                   ))}
                 </View>
               )}
@@ -414,7 +442,13 @@ function ReviewCard({
   );
 }
 
-function ReviewsSection({ tmdbId, router }) {
+function ReviewsSection({
+  tmdbId,
+  router,
+  targetReviewId,
+  targetCommentId,
+  onFocusedReviewLayout,
+}) {
   const { token, user, loading: authLoading, isAuthenticated } = useAuthSession();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -422,8 +456,14 @@ function ReviewsSection({ tmdbId, router }) {
   const [formError, setFormError] = useState(null);
   const [editingReview, setEditingReview] = useState(null);
   const [notice, setNotice] = useState('');
+  const focusedReviewScrolledRef = useRef(false);
+  const reviewsListYRef = useRef(0);
 
   const myReview = reviews.find((review) => String(review.user_id) === String(user?.id));
+
+  useEffect(() => {
+    focusedReviewScrolledRef.current = false;
+  }, [targetReviewId, targetCommentId, tmdbId]);
 
   const loadReviews = () => {
     setLoading(true);
@@ -544,7 +584,12 @@ function ReviewsSection({ tmdbId, router }) {
           <Text style={s.emptyReviewsText}>Be the first to share your thoughts about this movie.</Text>
         </View>
       ) : (
-        <View style={{ gap: 12 }}>
+        <View
+          onLayout={(event) => {
+            reviewsListYRef.current = event.nativeEvent.layout.y;
+          }}
+          style={{ gap: 12 }}
+        >
           {reviews.map((review) => (
             <ReviewCard
               key={review.id}
@@ -560,6 +605,14 @@ function ReviewsSection({ tmdbId, router }) {
               onLiked={updateLikes}
               onCommentCountChange={updateCommentCount}
               onRequireAuth={() => router.push('/login')}
+              shouldFocus={String(review.id) === String(targetReviewId)}
+              targetCommentId={String(review.id) === String(targetReviewId) ? targetCommentId : null}
+              onFocusedLayout={(reviewY) => {
+                if (focusedReviewScrolledRef.current) return;
+
+                focusedReviewScrolledRef.current = true;
+                onFocusedReviewLayout?.(reviewsListYRef.current + reviewY);
+              }}
             />
           ))}
         </View>
@@ -591,8 +644,10 @@ function formatMoney(n) {
 }
 
 export default function MovieDetail() {
-  const { id }    = useLocalSearchParams();
+  const { id, review: targetReviewId, comment: targetCommentId } = useLocalSearchParams();
   const router    = useRouter();
+  const scrollRef = useRef(null);
+  const reviewsSectionYRef = useRef(0);
   const [movie, setMovie]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
@@ -643,6 +698,7 @@ export default function MovieDetail() {
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
 
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
         bounces
@@ -976,7 +1032,26 @@ export default function MovieDetail() {
             </View>
           )}
 
-          <ReviewsSection tmdbId={id} router={router} />
+          <View
+            onLayout={(event) => {
+              reviewsSectionYRef.current = event.nativeEvent.layout.y;
+            }}
+          >
+            <ReviewsSection
+              tmdbId={id}
+              router={router}
+              targetReviewId={targetReviewId}
+              targetCommentId={targetCommentId}
+              onFocusedReviewLayout={(reviewY) => {
+                setTimeout(() => {
+                  scrollRef.current?.scrollTo({
+                    y: Math.max(0, reviewsSectionYRef.current + reviewY - 80),
+                    animated: true,
+                  });
+                }, 300);
+              }}
+            />
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -1237,6 +1312,10 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(239,13,26,0.08)',
     borderColor: 'rgba(239,13,26,0.35)',
   },
+  focusedReviewCard: {
+    backgroundColor: 'rgba(239,13,26,0.08)',
+    borderColor: 'rgba(239,13,26,0.42)',
+  },
   reviewCardHeader: {
     flexDirection: 'row',
     gap: 12,
@@ -1405,6 +1484,10 @@ const s = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 10,
     paddingVertical: 8,
+  },
+  focusedCommentBubble: {
+    backgroundColor: 'rgba(239,13,26,0.10)',
+    borderColor: 'rgba(239,13,26,0.45)',
   },
   commentUsername: {
     color: C.white,

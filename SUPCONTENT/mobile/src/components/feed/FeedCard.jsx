@@ -26,12 +26,14 @@ function FeedAvatar({ avatarUrl, username }) {
 
 export default function FeedCard({ item }) {
   const router = useRouter();
-  const { activity, author, movie, review } = item;
+  const { activity, author, movie, review, comment } = item;
   const username = author?.username || '';
   const headline = activity?.headline || '';
   const headlineWithoutUsername = username && headline.startsWith(username)
     ? headline.slice(username.length).trimStart()
     : headline;
+  const canOpenReviewTarget = Boolean(movie?.external_id && review?.id);
+
   const openAuthorProfile = () => {
     if (!author?.id) return;
 
@@ -39,6 +41,25 @@ export default function FeedCard({ item }) {
       pathname: '/publicProfile',
       params: { id: String(author.id) },
     });
+  };
+
+  const openReviewTarget = () => {
+    if (!canOpenReviewTarget) return;
+
+    router.push({
+      pathname: '/movie/[id]',
+      params: {
+        id: String(movie.external_id),
+        review: String(review.id),
+        ...(comment?.id ? { comment: String(comment.id) } : {}),
+      },
+    });
+  };
+
+  const openMovie = () => {
+    if (!movie?.external_id) return;
+
+    router.push(`/movie/${movie.external_id}`);
   };
 
   return (
@@ -74,12 +95,22 @@ export default function FeedCard({ item }) {
         </Text>
 
         {activity?.body ? (
-          <Text
-            style={styles.feedItemBody}
-            numberOfLines={2}
+          <Pressable
+            accessibilityRole={canOpenReviewTarget ? 'button' : undefined}
+            accessibilityLabel={canOpenReviewTarget ? 'Ouvrir la critique' : undefined}
+            disabled={!canOpenReviewTarget}
+            onPress={openReviewTarget}
           >
-            {activity.body}
-          </Text>
+            <Text
+              style={[
+                styles.feedItemBody,
+                canOpenReviewTarget && styles.feedItemBodyLink,
+              ]}
+              numberOfLines={2}
+            >
+              {activity.body}
+            </Text>
+          </Pressable>
         ) : null}
 
         <View style={styles.feedItemMeta}>
@@ -93,6 +124,8 @@ export default function FeedCard({ item }) {
 
           {movie?.title ? (
             <Text
+              accessibilityRole="button"
+              onPress={openMovie}
               style={styles.feedMovieTitle}
               numberOfLines={1}
             >
@@ -103,10 +136,17 @@ export default function FeedCard({ item }) {
       </View>
 
       {movie?.poster_url ? (
-        <Image
-          source={{ uri: movie.poster_url }}
-          style={styles.feedPoster}
-        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Ouvrir ${movie.title || 'le film'}`}
+          disabled={!movie?.external_id}
+          onPress={openMovie}
+        >
+          <Image
+            source={{ uri: movie.poster_url }}
+            style={styles.feedPoster}
+          />
+        </Pressable>
       ) : null}
     </View>
   );
@@ -169,6 +209,10 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontSize: 12,
     lineHeight: 17,
+  },
+
+  feedItemBodyLink: {
+    color: '#374151',
   },
 
   feedItemMeta: {
