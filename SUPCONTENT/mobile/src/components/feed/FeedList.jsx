@@ -14,6 +14,7 @@ export default function FeedList({
   error,
   onRefresh,
   onLoadMore,
+  currentUserId,
 }) {
   if (loading && items.length === 0) {
     return (
@@ -40,7 +41,7 @@ export default function FeedList({
         String(item.id || index)
       }
       renderItem={({ item }) => (
-        <FeedCard item={item} />
+        <FeedCard item={item} currentUserId={currentUserId} />
       )}
       onRefresh={onRefresh}
       refreshing={refreshing}

@@ -53,6 +53,7 @@ function SectionHeader({ icon, title }) {
 
 function HomeContent() {
   const [username, setUsername] = useState('User');
+  const [currentUserId, setCurrentUserId] = useState(null);
   const {
     items: feedItems,
     loading: feedLoading,
@@ -62,6 +63,7 @@ function HomeContent() {
   useEffect(() => {
     getAuthUser().then((user) => {
       setUsername(user?.username || user?.email || 'User');
+      setCurrentUserId(user?.id ?? null);
     });
   }, []);
 
@@ -140,7 +142,12 @@ function HomeContent() {
           <View style={styles.feedSection}>
             <SectionHeader icon="A" title="Activité des amis" />
             <View style={styles.feedList}>
-              <FeedList items={feedItems} loading={feedLoading} error={feedError}/>
+              <FeedList
+                items={feedItems}
+                loading={feedLoading}
+                error={feedError}
+                currentUserId={currentUserId}
+              />
             </View>
           </View>
         </ScrollView>
