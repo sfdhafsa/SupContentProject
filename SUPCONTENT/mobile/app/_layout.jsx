@@ -4,8 +4,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import useAuthSession, { AuthSessionProvider } from '../src/hooks/useAuthSession';
 
-const authOnlyPrefixes = ['/login', '/register', '/forgot-password'];
-const protectedPrefixes = ['/home', '/profile', '/settings', '/notifications', '/messages', '/conversation', '/list'];
+const authOnlyPrefixes = ['/login', '/register', '/forgot-password', '/reset-password'];
+const protectedPrefixes = ['/home', '/profile', '/settings', '/notifications', '/messages', '/conversation'];
 
 function hasRoutePrefix(pathname, prefixes) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -48,6 +48,7 @@ function RootNavigator() {
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
       <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="reset-password" />
       <Stack.Screen name="home" />
       <Stack.Screen name="discover" />
       <Stack.Screen name="library" />

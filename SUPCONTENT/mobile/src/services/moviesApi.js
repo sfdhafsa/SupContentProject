@@ -40,6 +40,15 @@ export async function getTrending() {
   return data.data;
 }
 
+export async function getTrending(timeWindow = 'week') {
+  const res = await fetch(`${API_BASE_URL}/movies/trending?time_window=${timeWindow}`, {
+    headers: await getHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || 'Erreur trending');
+  return data.data;
+}
+
 export async function getTopRated() {
   const res = await fetch(`${API_BASE_URL}/movies/top-rated`, {
     headers: getHeaders(),

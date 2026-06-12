@@ -8,9 +8,12 @@ const getDefaultHost = () => {
 };
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || `${getDefaultHost()}/api`;
+const REQUEST_TIMEOUT_MS = 15000;
 
 async function request(path, options = {}) {
   const token = await getAuthToken();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = {
     Accept: 'application/json',
@@ -19,10 +22,29 @@ async function request(path, options = {}) {
     ...(options.headers || {}),
   };
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw Object.assign(
+        new Error("Le serveur met trop de temps à répondre. Vérifiez votre connexion et réessayez."),
+        { code: 'REQUEST_TIMEOUT' }
+      );
+    }
+
+    throw Object.assign(
+      new Error("Impossible de joindre le serveur. Vérifiez votre connexion et réessayez."),
+      { code: 'NETWORK_ERROR', cause: error }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const contentType = response.headers.get('content-type') || '';
   const data = contentType.includes('application/json')
