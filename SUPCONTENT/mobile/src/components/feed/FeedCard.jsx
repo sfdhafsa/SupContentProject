@@ -74,6 +74,15 @@ function getActionStyle(type) {
   return { color: GREEN, icon: MessageCircle };
 }
 
+function isJsonParseError(err) {
+  const message = String(err?.message || '').toLowerCase();
+  return (
+    err instanceof SyntaxError ||
+    message.includes('not valid json') ||
+    message.includes('unexpected token')
+  );
+}
+
 function FeedAvatar({ avatarUrl, username }) {
   if (avatarUrl) {
     return (
@@ -267,12 +276,20 @@ export default function FeedCard({ item, currentUserId }) {
 
     try {
       const result = await toggleReviewLike({ token, reviewId: review.id });
+      if (!['liked', 'unliked'].includes(result.status)) {
+        return;
+      }
+
       const nextLiked = result.status === 'liked';
       setLiked(nextLiked);
       if (Number.isFinite(Number(result.count))) {
         setLikesCount(Number(result.count));
       }
     } catch (err) {
+      if (isJsonParseError(err)) {
+        return;
+      }
+
       setLiked(previousLiked);
       setLikesCount((count) => Math.max(0, count - optimisticDelta));
       setActionError(err.message || 'Unable to update this like.');

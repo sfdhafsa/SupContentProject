@@ -22,10 +22,14 @@ async function parseResponse(response, fallback) {
   if (rawBody.trim()) {
     try {
       data = JSON.parse(rawBody);
-    } catch {
+    } catch (err) {
       if (!response.ok) {
         throw new Error(fallback);
       }
+      console.warn('[reviewsApi] Ignoring non-JSON success response', {
+        status: response.status,
+        message: err?.message,
+      });
       return {};
     }
   }
