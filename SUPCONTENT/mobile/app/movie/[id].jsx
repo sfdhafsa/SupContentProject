@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { getMovieById } from '../../src/services/moviesApi';
 import {
+  createReport,
   createReview,
   createReviewComment,
   deleteReview,
@@ -29,6 +31,12 @@ const { width: SW, height: SH } = Dimensions.get('window');
 const BACKDROP_H = Math.round(SH * 0.32);
 const POSTER_W   = Math.round(SW * 0.30);
 const POSTER_H   = Math.round(POSTER_W * 1.5);
+
+const REPORT_REASONS = [
+  { value: 'UNMARKED_SPOILER', label: 'Unmarked spoiler' },
+  { value: 'INSULT', label: 'Insult or harassment' },
+  { value: 'OTHER', label: 'Other' },
+];
 
 const C = {
   red:    '#ef0d1a',
@@ -169,6 +177,97 @@ function CommentRow({ comment, targetCommentId }) {
   );
 }
 
+function ReportReviewModal({
+  visible,
+  selectedReason,
+  submitting,
+  error,
+  onClose,
+  onSelectReason,
+  onSubmit,
+}) {
+  return (
+    <Modal
+      animationType="fade"
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <View style={s.reportModalOverlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <View style={s.reportModalCard}>
+          <View style={s.reportModalHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.reportModalTitle}>Report content</Text>
+              <Text style={s.reportModalText}>Select the reason that best matches the issue.</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close report dialog"
+              disabled={submitting}
+              hitSlop={8}
+              onPress={onClose}
+              style={s.reportCloseButton}
+            >
+              <Text style={s.reportCloseText}>×</Text>
+            </Pressable>
+          </View>
+
+          <View style={s.reportReasonList}>
+            {REPORT_REASONS.map((reason) => {
+              const selected = selectedReason === reason.value;
+              return (
+                <Pressable
+                  key={reason.value}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  disabled={submitting}
+                  onPress={() => onSelectReason(reason.value)}
+                  style={[s.reportReasonRow, selected && s.reportReasonRowActive]}
+                >
+                  <View style={[s.reportRadio, selected && s.reportRadioActive]}>
+                    {selected ? <View style={s.reportRadioDot} /> : null}
+                  </View>
+                  <Text style={[s.reportReasonText, selected && s.reportReasonTextActive]}>
+                    {reason.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {error ? (
+            <View style={s.reportErrorBox}>
+              <Text style={s.reportErrorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          <View style={s.reportModalActions}>
+            <Pressable
+              disabled={submitting}
+              onPress={onClose}
+              style={[s.reportCancelButton, submitting && s.disabledControl]}
+            >
+              <Text style={s.reportCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              disabled={submitting}
+              onPress={onSubmit}
+              style={[s.reportSubmitButton, submitting && s.disabledButton]}
+            >
+              {submitting ? (
+                <ActivityIndicator color={C.white} size="small" />
+              ) : (
+                <Text style={s.reportSubmitText}>Submit report</Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 function ReviewCard({
   review,
   currentUserId,
@@ -178,7 +277,9 @@ function ReviewCard({
   onDelete,
   onLiked,
   onCommentCountChange,
+  onReport,
   onRequireAuth,
+  reporting,
   router,
   shouldFocus,
   targetCommentId,
@@ -364,6 +465,19 @@ function ReviewCard({
                   <Text style={s.iconButtonText}>⌫</Text>
                 </Pressable>
               </View>
+            ) : isAuthenticated ? (
+              <View style={s.ownerActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Report review"
+                  disabled={reporting}
+                  hitSlop={8}
+                  onPress={() => onReport?.({ type: 'REVIEW', id: review.id })}
+                  style={[s.iconButton, reporting && s.disabledControl]}
+                >
+                  <Text style={[s.iconButtonText, reporting && s.iconButtonTextActive]}>⚐</Text>
+                </Pressable>
+              </View>
             ) : null}
           </View>
 
@@ -474,6 +588,10 @@ function ReviewsSection({
   const [formError, setFormError] = useState(null);
   const [editingReview, setEditingReview] = useState(null);
   const [notice, setNotice] = useState('');
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportReason, setReportReason] = useState(REPORT_REASONS[0].value);
+  const [reportError, setReportError] = useState('');
+  const [reportingReviewId, setReportingReviewId] = useState(null);
   const reviewsListYRef = useRef(0);
 
   const myReview = reviews.find((review) => String(review.user_id) === String(user?.id));
@@ -542,6 +660,50 @@ function ReviewsSection({
         item.id === reviewId ? { ...item, comments_count: count } : item
       )
     );
+  };
+
+  const submitReport = async () => {
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    if (!reportTarget || reportingReviewId) return;
+
+    setReportingReviewId(reportTarget.id);
+    setReportError('');
+    setNotice('');
+    try {
+      await createReport({
+        token,
+        targetType: reportTarget.type,
+        targetId: reportTarget.id,
+        reason: reportReason,
+      });
+      setReportTarget(null);
+      setNotice('Report submitted. The moderation team will review it.');
+    } catch (err) {
+      setReportError(err.message || 'Unable to submit this report.');
+    } finally {
+      setReportingReviewId(null);
+    }
+  };
+
+  const openReportModal = (target) => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    setNotice('');
+    setReportError('');
+    setReportReason(REPORT_REASONS[0].value);
+    setReportTarget(target);
+  };
+
+  const closeReportModal = () => {
+    if (reportingReviewId) return;
+    setReportTarget(null);
+    setReportError('');
   };
 
   return (
@@ -617,7 +779,9 @@ function ReviewsSection({
               onDelete={removeReview}
               onLiked={updateLikes}
               onCommentCountChange={updateCommentCount}
+              onReport={openReportModal}
               onRequireAuth={() => router.push('/login')}
+              reporting={String(reportingReviewId) === String(review.id)}
               router={router}
               shouldFocus={String(review.id) === String(targetReviewId)}
               targetCommentId={String(review.id) === String(targetReviewId) ? targetCommentId : null}
@@ -628,6 +792,15 @@ function ReviewsSection({
           ))}
         </View>
       )}
+      <ReportReviewModal
+        visible={Boolean(reportTarget)}
+        selectedReason={reportReason}
+        submitting={Boolean(reportingReviewId)}
+        error={reportError}
+        onClose={closeReportModal}
+        onSelectReason={setReportReason}
+        onSubmit={submitReport}
+      />
     </View>
   );
 }
@@ -1292,6 +1465,148 @@ const s = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 17,
   },
+  reportModalOverlay: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.46)',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  reportModalCard: {
+    backgroundColor: C.white,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 15,
+    paddingVertical: 21,
+    width: '100%',
+    maxWidth: 398,
+  },
+  reportModalHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reportModalTitle: {
+    color: '#111827',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  reportModalText: {
+    color: '#6b7280',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 7,
+  },
+  reportCloseButton: {
+    alignItems: 'center',
+    borderRadius: 8,
+    height: 24,
+    justifyContent: 'center',
+    width: 24,
+  },
+  reportCloseText: {
+    color: '#9ca3af',
+    fontSize: 16,
+    lineHeight: 18,
+  },
+  reportReasonList: {
+    gap: 8,
+    marginTop: 19,
+  },
+  reportReasonRow: {
+    alignItems: 'center',
+    backgroundColor: C.white,
+    borderColor: '#e5e7eb',
+    borderRadius: 9,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 11,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  reportReasonRowActive: {
+    backgroundColor: '#fee2e2',
+    borderColor: C.red,
+  },
+  reportRadio: {
+    alignItems: 'center',
+    borderColor: '#9ca3af',
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 14,
+    justifyContent: 'center',
+    width: 14,
+  },
+  reportRadioActive: {
+    borderColor: C.red,
+    borderWidth: 1.5,
+  },
+  reportRadioDot: {
+    backgroundColor: C.red,
+    borderRadius: 3.5,
+    height: 7,
+    width: 7,
+  },
+  reportReasonText: {
+    color: '#374151',
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  reportReasonTextActive: {
+    color: C.red,
+  },
+  reportErrorBox: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+    borderRadius: 9,
+    borderWidth: 1,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  reportErrorText: {
+    color: '#b91c1c',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+  },
+  reportModalActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'flex-end',
+    marginTop: 18,
+  },
+  reportCancelButton: {
+    backgroundColor: C.white,
+    borderColor: '#e5e7eb',
+    borderRadius: 9,
+    borderWidth: 1,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+  reportCancelText: {
+    color: '#374151',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  reportSubmitButton: {
+    alignItems: 'center',
+    backgroundColor: C.red,
+    borderRadius: 9,
+    justifyContent: 'center',
+    minHeight: 36,
+    minWidth: 111,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  reportSubmitText: {
+    color: C.white,
+    fontSize: 12,
+    fontWeight: '900',
+  },
   emptyReviewsCard: {
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.04)',
@@ -1378,6 +1693,9 @@ const s = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 15,
     fontWeight: '800',
+  },
+  iconButtonTextActive: {
+    color: C.red,
   },
   featuredBadge: {
     alignSelf: 'flex-start',

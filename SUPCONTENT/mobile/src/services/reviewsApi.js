@@ -87,6 +87,19 @@ export async function toggleReviewLike({ token, reviewId }) {
   return parseResponse(response, 'Unable to update this like.');
 }
 
+export async function createReport({ token, targetType, targetId, reason }) {
+  const response = await fetch(`${API_BASE_URL}/reports`, {
+    method: 'POST',
+    headers: getJsonHeaders(token),
+    body: JSON.stringify({
+      target_type: targetType,
+      target_id: targetId,
+      reason,
+    }),
+  });
+  return parseResponse(response, 'Unable to submit this report.');
+}
+
 export async function getReviewComments(reviewId) {
   const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments`, {
     headers: getJsonHeaders(),
