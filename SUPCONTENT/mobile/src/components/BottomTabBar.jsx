@@ -1,8 +1,6 @@
 import { usePathname, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import useAuthSession from '../hooks/useAuthSession';
-import { clearAuthSession } from '../services/authStorage';
 
 const publicTabs = [
   { label: 'Explore', route: '/discover', icon: 'search' },
@@ -15,8 +13,32 @@ const privateTabs = [
   { label: 'Explore', route: '/discover', icon: 'search' },
   { label: 'Library', route: '/library', icon: 'library' },
   { label: 'Profile', route: '/profile', icon: 'profile' },
-  { label: 'Out', action: 'logout', icon: 'logout' },
 ];
+
+const adminTab = {
+  label: 'Admin',
+  route: '/admin-view',
+  icon: 'admin',
+};
+
+function getPrivateTabs(user) {
+  const roles = (user?.roles || []).map((role) => String(role).toLowerCase());
+  return roles.includes('admin') ? [...privateTabs, adminTab] : privateTabs;
+}
+
+function isActiveRoute(pathname, route) {
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
+
+function ShieldIcon({ color }) {
+  return (
+    <View style={styles.shieldIcon}>
+      <View style={[styles.shieldBody, { borderColor: color }]} />
+      <View style={[styles.shieldCheckStem, { backgroundColor: color }]} />
+      <View style={[styles.shieldCheckArm, { backgroundColor: color }]} />
+    </View>
+  );
+}
 
 function TabIcon({ type, active }) {
   const color = active ? '#ef0d1a' : '#9ca3af';
@@ -44,13 +66,7 @@ function TabIcon({ type, active }) {
           <View style={[styles.authArrow, { borderColor: color }]} />
         </View>
       )}
-      {type === 'logout' && (
-        <View style={styles.logoutIcon}>
-          <View style={[styles.logoutDoor, { borderColor: color }]} />
-          <View style={[styles.logoutShaft, { backgroundColor: color }]} />
-          <View style={[styles.logoutChevron, { borderColor: color }]} />
-        </View>
-      )}
+      {type === 'admin' && <ShieldIcon color={color} />}
       {type === 'profile' && (
         <View style={styles.profileWrap}>
           <View style={[styles.profileHead, { borderColor: color }]} />
@@ -64,33 +80,20 @@ function TabIcon({ type, active }) {
 export default function BottomTabBar() {
   const router   = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated } = useAuthSession();
-  const [sessionOverride, setSessionOverride] = useState(null);
-  const authed = sessionOverride ?? isAuthenticated;
-  const tabs = authed ? privateTabs : publicTabs;
-
-  useEffect(() => {
-    setSessionOverride(null);
-  }, [isAuthenticated]);
+  const { isAuthenticated, user } = useAuthSession();
+  const tabs = isAuthenticated ? getPrivateTabs(user) : publicTabs;
 
   const handlePress = async (tab) => {
-    if (tab.action === 'logout') {
-      await clearAuthSession();
-      setSessionOverride(false);
-      router.replace('/discover');
-      return;
-    }
-
     router.push(tab.route);
   };
 
   return (
     <View style={styles.container}>
       {tabs.map((tab) => {
-        const isActive = pathname === tab.route;
+        const isActive = isActiveRoute(pathname, tab.route);
 
         return (
-          <Pressable key={tab.route || tab.action} onPress={() => handlePress(tab)} style={styles.tab}>
+          <Pressable key={tab.route} onPress={() => handlePress(tab)} style={styles.tab}>
             <View style={styles.iconSlot}>
               <TabIcon type={tab.icon} active={isActive} />
             </View>
@@ -208,42 +211,40 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     width: 7,
   },
-  logoutIcon: {
-    height: 20,
-    marginLeft: 2,
-    marginTop: 2,
+  shieldIcon: {
+    height: 21,
+    marginLeft: 3,
+    marginTop: 1,
     position: 'relative',
-    width: 22,
+    width: 19,
   },
-  logoutDoor: {
-    borderBottomLeftRadius: 3,
-    borderLeftWidth: 1.5,
-    borderTopLeftRadius: 3,
-    borderTopWidth: 1.5,
-    borderBottomWidth: 1.5,
-    height: 16,
-    left: 0,
+  shieldBody: {
+    borderRadius: 5,
+    borderWidth: 1.5,
+    height: 17,
+    left: 2,
     position: 'absolute',
-    top: 2,
-    width: 9,
-  },
-  logoutShaft: {
-    borderRadius: 1,
-    height: 1.6,
-    left: 7,
-    position: 'absolute',
-    top: 9,
-    width: 12,
-  },
-  logoutChevron: {
-    borderRightWidth: 1.6,
-    borderTopWidth: 1.6,
-    height: 7,
-    position: 'absolute',
-    right: 1,
-    top: 6,
+    top: 1,
     transform: [{ rotate: '45deg' }],
-    width: 7,
+    width: 15,
+  },
+  shieldCheckStem: {
+    borderRadius: 1,
+    height: 7,
+    left: 9,
+    position: 'absolute',
+    top: 8,
+    transform: [{ rotate: '45deg' }],
+    width: 1.5,
+  },
+  shieldCheckArm: {
+    borderRadius: 1,
+    height: 1.5,
+    left: 6,
+    position: 'absolute',
+    top: 11,
+    transform: [{ rotate: '45deg' }],
+    width: 5,
   },
   profileWrap: {
     alignItems: 'center',

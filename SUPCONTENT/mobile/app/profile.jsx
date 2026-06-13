@@ -17,6 +17,7 @@ import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
 import { useAuth } from '../src/services/authApi.js';
 import api from '../src/config/api.js';
+import { clearAuthSession } from '../src/services/authStorage.js';
 
 /* ── Utilitaires (inline, pas besoin d'import externe) ── */
 
@@ -349,6 +350,11 @@ function ProfileContent() {
     firstPresent(user?.created_at, user?.createdAt, user?.profile?.created_at)
   );
 
+  const handleLogout = async () => {
+    await clearAuthSession();
+    router.replace('/discover');
+  };
+
   useEffect(() => {
     if (!user?.id) return;
 
@@ -506,11 +512,6 @@ function ProfileContent() {
               <Avatar uri={avatar} initials={initials} />
             </View>
             <View style={styles.actionButtons}>
-              {isAdmin && (
-                <Pressable style={styles.adminViewBtn} onPress={() => router.push('/admin-view')}>
-                  <Text style={styles.adminViewBtnText}>Admin view</Text>
-                </Pressable>
-              )}
               <Pressable style={styles.editBtn} onPress={() => router.push('/settings')}>
                 <View style={styles.gearOuter}>
                   <View style={styles.gearInner} />
@@ -590,6 +591,18 @@ function ProfileContent() {
           {/* Contenu onglet */}
           {profileError ? <Text style={styles.profileError}>{profileError}</Text> : null}
           <View style={styles.tabContent}>{renderTabContent()}</View>
+
+          <View style={styles.actionsSection}>
+            <Text style={styles.sectionTitle}>Actions</Text>
+            <Pressable style={styles.profileLogoutBtn} onPress={handleLogout}>
+              <View style={styles.profileLogoutIcon}>
+                <View style={styles.profileLogoutDoor} />
+                <View style={styles.profileLogoutShaft} />
+                <View style={styles.profileLogoutChevron} />
+              </View>
+              <Text style={styles.profileLogoutText}>Sign out</Text>
+            </Pressable>
+          </View>
         </ScrollView>
 
         <BottomTabBar />
@@ -790,15 +803,6 @@ const styles = StyleSheet.create({
   },
   gearInner: { backgroundColor: TEXT, borderRadius: 2, height: 4, width: 4 },
   editBtnText: { color: TEXT, fontSize: 12, fontWeight: '700' },
-  adminViewBtn: {
-    alignItems: 'center',
-    backgroundColor: TEXT,
-    borderRadius: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  adminViewBtnText: { color: CARD, fontSize: 12, fontWeight: '800' },
   shareBtn: {
     alignItems: 'center',
     backgroundColor: CARD,
@@ -855,6 +859,62 @@ const styles = StyleSheet.create({
   userBio: { color: '#475569', fontSize: 13, lineHeight: 19, marginTop: 10 },
   userWebsite: { color: RED, fontSize: 12, fontWeight: '600', marginTop: 8 },
   joinDate: { color: '#94a3b8', fontSize: 11, marginTop: 6 },
+  actionsSection: {
+    paddingHorizontal: 14,
+    paddingTop: 4,
+  },
+  profileLogoutBtn: {
+    alignItems: 'center',
+    backgroundColor: CARD,
+    borderColor: BORDER,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 7,
+    justifyContent: 'center',
+    minHeight: 52,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+  },
+  profileLogoutText: { color: RED, fontSize: 12, fontWeight: '800' },
+  profileLogoutIcon: {
+    height: 16,
+    position: 'relative',
+    width: 18,
+  },
+  profileLogoutDoor: {
+    borderBottomLeftRadius: 3,
+    borderBottomWidth: 1.4,
+    borderColor: RED,
+    borderLeftWidth: 1.4,
+    borderTopLeftRadius: 3,
+    borderTopWidth: 1.4,
+    height: 13,
+    left: 0,
+    position: 'absolute',
+    top: 1,
+    width: 7,
+  },
+  profileLogoutShaft: {
+    backgroundColor: RED,
+    borderRadius: 1,
+    height: 1.4,
+    left: 6,
+    position: 'absolute',
+    top: 7,
+    width: 10,
+  },
+  profileLogoutChevron: {
+    borderColor: RED,
+    borderRightWidth: 1.4,
+    borderTopWidth: 1.4,
+    height: 6,
+    position: 'absolute',
+    right: 1,
+    top: 4,
+    transform: [{ rotate: '45deg' }],
+    width: 6,
+  },
 
   // Compteurs
   countersRow: {
