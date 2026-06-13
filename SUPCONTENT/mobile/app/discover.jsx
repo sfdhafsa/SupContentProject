@@ -577,7 +577,7 @@ export default function Discover() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      <TopNavbar username="User" onSearch={handleTopSearch} />
+      <TopNavbar onSearch={handleTopSearch} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
