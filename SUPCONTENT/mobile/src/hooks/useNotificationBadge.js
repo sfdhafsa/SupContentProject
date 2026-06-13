@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { AppState } from 'react-native';
 import useAuthSession from './useAuthSession';
 import { useSocket } from './useSocket';
 import { getUnreadNotificationCount } from '../services/notificationsApi';
@@ -47,6 +48,16 @@ export function NotificationBadgeProvider({ children }) {
   useEffect(() => {
     refreshUnreadCount();
   }, [refreshUnreadCount, token]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') refreshUnreadCount();
+    });
+
+    return () => subscription.remove();
+  }, [isAuthenticated, refreshUnreadCount]);
 
   const value = useMemo(() => ({
     unreadCount,
