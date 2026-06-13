@@ -506,6 +506,11 @@ function ProfileContent() {
               <Avatar uri={avatar} initials={initials} />
             </View>
             <View style={styles.actionButtons}>
+              {isAdmin && (
+                <Pressable style={styles.adminViewBtn} onPress={() => router.push('/admin-view')}>
+                  <Text style={styles.adminViewBtnText}>Admin view</Text>
+                </Pressable>
+              )}
               <Pressable style={styles.editBtn} onPress={() => router.push('/settings')}>
                 <View style={styles.gearOuter}>
                   <View style={styles.gearInner} />
@@ -785,6 +790,15 @@ const styles = StyleSheet.create({
   },
   gearInner: { backgroundColor: TEXT, borderRadius: 2, height: 4, width: 4 },
   editBtnText: { color: TEXT, fontSize: 12, fontWeight: '700' },
+  adminViewBtn: {
+    alignItems: 'center',
+    backgroundColor: TEXT,
+    borderRadius: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  adminViewBtnText: { color: CARD, fontSize: 12, fontWeight: '800' },
   shareBtn: {
     alignItems: 'center',
     backgroundColor: CARD,
