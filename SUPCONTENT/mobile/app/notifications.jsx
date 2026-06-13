@@ -23,6 +23,7 @@ import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
+import useNotificationBadge from '../src/hooks/useNotificationBadge';
 import { useSocket } from '../src/hooks/useSocket';
 import {
   followUser,
@@ -139,6 +140,7 @@ function LoadingState() {
 
 function NotificationsContent() {
   const router = useRouter();
+  const { refreshUnreadCount } = useNotificationBadge();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -154,13 +156,14 @@ function NotificationsContent() {
 
     try {
       setNotifications(await getNotifications());
+      await refreshUnreadCount();
     } catch (requestError) {
       setError(requestError.message || 'Impossible de charger les notifications.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [refreshUnreadCount]);
 
   useFocusEffect(
     useCallback(() => {
@@ -195,12 +198,13 @@ function NotificationsContent() {
       setNotifications((current) => current.map((item) => (
         item.id === notification.id ? { ...item, is_read: true } : item
       )));
+      await refreshUnreadCount();
     } catch (requestError) {
       setError(requestError.message || 'Impossible de marquer la notification comme lue.');
     } finally {
       setMarkingId(null);
     }
-  }, [markingId]);
+  }, [markingId, refreshUnreadCount]);
 
   const openProfile = useCallback((notification) => {
     const actorId = getActorId(notification);
@@ -290,12 +294,13 @@ function NotificationsContent() {
     try {
       await markAllNotificationsAsRead();
       setNotifications((current) => current.map((item) => ({ ...item, is_read: true })));
+      await refreshUnreadCount();
     } catch (requestError) {
       setError(requestError.message || 'Impossible de tout marquer comme lu.');
     } finally {
       setMarkingAll(false);
     }
-  }, [markingAll, unreadCount]);
+  }, [markingAll, refreshUnreadCount, unreadCount]);
 
   const renderNotification = useCallback(({ item }) => {
     const isFollowing = item.viewer_follows_actor;
