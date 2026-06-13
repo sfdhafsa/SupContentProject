@@ -3,7 +3,7 @@ import { getFeed } from '../services/feedApi';
 
 const LIMIT = 20;
 
-export function useFeed() {
+export function useFeed(order = 'desc') {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -25,7 +25,7 @@ export function useFeed() {
         const data = await getFeed({
           limit: LIMIT,
           offset: currentOffset,
-          order: 'desc',
+          order,
         });
 
         const newItems = data.items || [];
@@ -47,12 +47,12 @@ export function useFeed() {
         setRefreshing(false);
       }
     },
-    [offset]
+    [offset, order]
   );
 
   useEffect(() => {
     loadFeed(true);
-  }, []);
+  }, [order]);
 
   return {
     items,

@@ -180,10 +180,11 @@ function HomeContent() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [trending, setTrending]       = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
+  const [feedOrder, setFeedOrder]     = useState('desc');
 
   const headerAnim = useRef(new Animated.Value(0)).current;
 
-  const { items: feedItems, loading: feedLoading, error: feedError } = useFeed();
+  const { items: feedItems, loading: feedLoading, error: feedError } = useFeed(feedOrder);
 
   useEffect(() => {
     getAuthUser().then((user) => {
@@ -276,6 +277,29 @@ function HomeContent() {
           {/* ── ACTIVITÉ DES AMIS ── */}
           <View style={{ marginTop: 20 }}>
             <SectionHeader icon="👥" title="Activité des amis" />
+            <View style={s.feedOrderControl}>
+              {[
+                { value: 'desc', label: 'Newest' },
+                { value: 'asc', label: 'Oldest' },
+              ].map((option) => {
+                const isActive = feedOrder === option.value;
+
+                return (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => setFeedOrder(option.value)}
+                    disabled={isActive}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isActive }}
+                    style={[s.feedOrderButton, isActive && s.feedOrderButtonActive]}
+                  >
+                    <Text style={[s.feedOrderText, isActive && s.feedOrderTextActive]}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             <View style={s.feedWrapper}>
               {feedLoading ? (
                 <View style={{ gap: 12, paddingHorizontal: 16, paddingTop: 12 }}>
@@ -413,6 +437,39 @@ const s = StyleSheet.create({
   },
 
   // Feed
+  feedOrderControl: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 10,
+    padding: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.gray100,
+    backgroundColor: C.gray50,
+  },
+  feedOrderButton: {
+    flex: 1,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  feedOrderButtonActive: {
+    backgroundColor: C.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  feedOrderText: {
+    color: C.gray500,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  feedOrderTextActive: {
+    color: C.red,
+  },
   feedWrapper: {
     minHeight: 120,
   },
