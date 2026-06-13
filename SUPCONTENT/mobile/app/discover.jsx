@@ -5,7 +5,6 @@ import {
   Animated,
   Dimensions,
   Image,
-  Linking,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -25,8 +24,8 @@ import {
   getNowPlaying,
   getTopRated,
   getTrending,
-  searchMovies,
 } from '../src/services/moviesApi';
+import { searchAll } from '../src/services/searchApi';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const HERO_H     = Math.round(SH * 0.30);
@@ -45,18 +44,19 @@ const C = {
   gray700:'#374151',
   gray800:'#1f2937',
   yellow: '#f59e0b',
+  purple: '#7c3aed',
   bg:     '#f3f4f6',
 };
 
 // ─────────────────────────────────────────
-// Skeleton animé
+// Skeleton
 // ─────────────────────────────────────────
 function SkeletonBox({ width, height, borderRadius = 8, style }) {
   const anim = useRef(new Animated.Value(0.4)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1,   duration: 800, useNativeDriver: true }),
         Animated.timing(anim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
       ])
     ).start();
@@ -111,17 +111,13 @@ function AnimatedMovieCard({ movie, onPress, width, height }) {
   const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 20 }).start();
 
   return (
-    <Pressable
-      onPress={() => onPress(movie.tmdb_id)}
-      onPressIn={pressIn}
-      onPressOut={pressOut}
-    >
+    <Pressable onPress={() => onPress(movie.tmdb_id)} onPressIn={pressIn} onPressOut={pressOut}>
       <Animated.View style={{ width: W, transform: [{ scale }] }}>
         <View style={{ width: W, height: H, borderRadius: 10, overflow: 'hidden', backgroundColor: C.gray200 }}>
           {movie.poster_url
             ? <Image source={{ uri: movie.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
             : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 22 }}>🎬</Text>
+                <Text style={{ fontSize: 22, color: C.gray400 }}>—</Text>
               </View>
           }
         </View>
@@ -169,16 +165,10 @@ function HeroCarousel({ movies, onPress }) {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
-        onMomentumScrollEnd={(e) => {
-          setIdx(Math.round(e.nativeEvent.contentOffset.x / SW));
-        }}
+        onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.x / SW))}
       >
         {list.map((movie) => (
-          <Pressable
-            key={movie.tmdb_id}
-            onPress={() => onPress(movie.tmdb_id)}
-            style={{ width: SW, height: HERO_H }}
-          >
+          <Pressable key={movie.tmdb_id} onPress={() => onPress(movie.tmdb_id)} style={{ width: SW, height: HERO_H }}>
             {(movie.backdrop_url || movie.poster_url)
               ? <Image source={{ uri: movie.backdrop_url || movie.poster_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
               : <View style={[StyleSheet.absoluteFill, { backgroundColor: C.gray800 }]} />
@@ -229,7 +219,7 @@ function HeroCarousel({ movies, onPress }) {
 }
 
 // ─────────────────────────────────────────
-// GenrePill animé
+// GenrePill
 // ─────────────────────────────────────────
 function GenrePill({ genre, selected, onToggle }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -244,11 +234,7 @@ function GenrePill({ genre, selected, onToggle }) {
 
   return (
     <Pressable onPress={press} hitSlop={4}>
-      <Animated.View style={[
-        s.pill,
-        selected && s.pillActive,
-        { transform: [{ scale }] },
-      ]}>
+      <Animated.View style={[s.pill, selected && s.pillActive, { transform: [{ scale }] }]}>
         <Text style={[s.pillTxt, selected && s.pillTxtActive]}>
           {selected ? '✓ ' : ''}{genre.name}
         </Text>
@@ -265,12 +251,7 @@ function GenrePills({ genres, selectedIds, onToggle }) {
       contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 4 }}
     >
       {genres.map((g) => (
-        <GenrePill
-          key={g.id}
-          genre={g}
-          selected={selectedIds.includes(String(g.id))}
-          onToggle={onToggle}
-        />
+        <GenrePill key={g.id} genre={g} selected={selectedIds.includes(String(g.id))} onToggle={onToggle} />
       ))}
     </ScrollView>
   );
@@ -291,13 +272,7 @@ function MovieRow({ title, movies, onPress, loading }) {
         {loading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonRowCard key={i} />)
           : movies.map((m) => (
-              <AnimatedMovieCard
-                key={m.tmdb_id}
-                movie={m}
-                onPress={onPress}
-                width={ROW_CARD_W}
-                height={Math.round(ROW_CARD_W * 1.45)}
-              />
+              <AnimatedMovieCard key={m.tmdb_id} movie={m} onPress={onPress} width={ROW_CARD_W} height={Math.round(ROW_CARD_W * 1.45)} />
             ))
         }
       </ScrollView>
@@ -306,12 +281,31 @@ function MovieRow({ title, movies, onPress, loading }) {
 }
 
 // ─────────────────────────────────────────
-// SearchItem
+// SearchCategoryHeader
+// ─────────────────────────────────────────
+function SearchCategoryHeader({ label, count }) {
+  return (
+    <View style={s.categoryHeader}>
+      <Text style={s.categoryLabel}>{label}</Text>
+      <View style={s.categoryCountBadge}>
+        <Text style={s.categoryCountTxt}>{count}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────
+// SearchItem — films / users / listes
 // ─────────────────────────────────────────
 function SearchItem({ item, onPress }) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale    = useRef(new Animated.Value(1)).current;
   const pressIn  = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 25 }).start();
   const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 25 }).start();
+
+  const handlePress = () => {
+    if (item.type === 'movie') onPress(item.tmdb_id);
+    // user / list : navigation à brancher par les collègues concernés
+  };
 
   const content = (() => {
     if (item.type === 'movie') {
@@ -320,61 +314,124 @@ function SearchItem({ item, onPress }) {
           <View style={s.searchPoster}>
             {item.poster_url
               ? <Image source={{ uri: item.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-              : <Text style={{ fontSize: 14 }}>🎬</Text>
+              : <Text style={{ fontSize: 14, color: C.gray400 }}>—</Text>
             }
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.searchTitle} numberOfLines={1}>{item.title}</Text>
             <Text style={s.searchSub}>{item.release_date?.slice(0, 4) || '—'}</Text>
             {item.vote_average > 0 && (
-              <Text style={{ fontSize: 11, color: C.yellow, fontWeight: '700', marginTop: 2 }}>★{item.vote_average.toFixed(1)}</Text>
+              <Text style={{ fontSize: 11, color: C.yellow, fontWeight: '700', marginTop: 2 }}>
+                ★ {item.vote_average.toFixed(1)}
+              </Text>
             )}
           </View>
-          <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
+          <Text style={s.chevron}>›</Text>
         </>
       );
     }
+
     if (item.type === 'user') {
       return (
         <>
           <View style={[s.searchAvatar, { backgroundColor: C.red }]}>
-            <Text style={{ color: C.white, fontWeight: '800', fontSize: 15 }}>{item.username?.slice(0, 1).toUpperCase()}</Text>
+            <Text style={{ color: C.white, fontWeight: '800', fontSize: 15 }}>
+              {(item.username || '?').slice(0, 1).toUpperCase()}
+            </Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.searchTitle}>@{item.username}</Text>
-            {item.bio && <Text style={s.searchSub} numberOfLines={1}>{item.bio}</Text>}
+            {item.bio ? (
+              <Text style={s.searchSub} numberOfLines={1}>{item.bio}</Text>
+            ) : null}
           </View>
-          <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
+          <Text style={s.chevron}>›</Text>
         </>
       );
     }
+
     if (item.type === 'list') {
       return (
         <>
-          <View style={[s.searchAvatar, { backgroundColor: '#7c3aed' }]}>
-            <Text style={{ fontSize: 16 }}>📋</Text>
+          <View style={[s.searchAvatar, { backgroundColor: C.purple }]}>
+            <Text style={{ color: C.white, fontSize: 16, fontWeight: '800' }}>≡</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={s.searchTitle}>{item.name}</Text>
-            <Text style={s.searchSub}>{item.movie_count || 0} films</Text>
+            <Text style={s.searchTitle} numberOfLines={1}>{item.name}</Text>
+            <Text style={s.searchSub}>
+              {item.movie_count != null ? `${item.movie_count} film${item.movie_count !== 1 ? 's' : ''}` : 'Liste publique'}
+            </Text>
           </View>
-          <Text style={{ color: C.gray400, fontSize: 20, paddingLeft: 8 }}>›</Text>
+          <Text style={s.chevron}>›</Text>
         </>
       );
     }
+
     return null;
   })();
 
   return (
-    <Pressable
-      onPress={() => item.type === 'movie' && onPress(item.tmdb_id)}
-      onPressIn={pressIn}
-      onPressOut={pressOut}
-    >
+    <Pressable onPress={handlePress} onPressIn={pressIn} onPressOut={pressOut}>
       <Animated.View style={[s.searchItem, { transform: [{ scale }] }]}>
         {content}
       </Animated.View>
     </Pressable>
+  );
+}
+
+// ─────────────────────────────────────────
+// SearchResults — résultats séparés par catégorie
+// ─────────────────────────────────────────
+function SearchResults({ movies, users, lists, query, loading, onMoviePress }) {
+  if (loading) {
+    return <ActivityIndicator color={C.red} style={{ marginTop: 32 }} />;
+  }
+
+  const total = movies.length + users.length + lists.length;
+
+  if (total === 0) {
+    return (
+      <View style={{ alignItems: 'center', paddingTop: 40 }}>
+        <Text style={{ fontSize: 32, marginBottom: 10 }}>🔍</Text>
+        <Text style={{ color: C.gray400, fontSize: 14, textAlign: 'center' }}>
+          Aucun résultat pour "{query}"
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      {/* ── 🎬 Films ── */}
+      {movies.length > 0 && (
+        <View style={{ marginBottom: 8 }}>
+          <SearchCategoryHeader label="🎬  Films" count={movies.length} />
+          {movies.map((item, i) => (
+            <SearchItem key={`movie-${i}`} item={{ ...item, type: 'movie' }} onPress={onMoviePress} />
+          ))}
+        </View>
+      )}
+
+      {/* ── 👤 Utilisateurs ── */}
+      {users.length > 0 && (
+        <View style={{ marginBottom: 8 }}>
+          <SearchCategoryHeader label="👤  Utilisateurs" count={users.length} />
+          {users.map((item, i) => (
+            <SearchItem key={`user-${i}`} item={{ ...item, type: 'user' }} onPress={onMoviePress} />
+          ))}
+        </View>
+      )}
+
+      {/* ── 📋 Listes publiques (BDD locale) ── */}
+      {lists.length > 0 && (
+        <View style={{ marginBottom: 8 }}>
+          <SearchCategoryHeader label="📋  Listes publiques" count={lists.length} />
+          {lists.map((item, i) => (
+            <SearchItem key={`list-${i}`} item={{ ...item, type: 'list' }} onPress={onMoviePress} />
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -403,12 +460,17 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
     { label: '<1990',   min: 1900, max: 1989 },
   ];
   const SORTS = [
-    { value: 'popularity.desc',           label: 'Populaires' },
+    { value: 'popularity.desc',           label: 'Populaires'  },
     { value: 'vote_average.desc',         label: 'Mieux notés' },
-    { value: 'primary_release_date.desc', label: 'Récents' },
-    { value: 'primary_release_date.asc',  label: 'Anciens' },
+    { value: 'primary_release_date.desc', label: 'Récents'     },
+    { value: 'primary_release_date.asc',  label: 'Anciens'     },
   ];
-  const RATES = [{ label: '9+', value: 9 }, { label: '8+', value: 8 }, { label: '7+', value: 7 }, { label: '6+', value: 6 }];
+  const RATES = [
+    { label: '9+', value: 9 },
+    { label: '8+', value: 8 },
+    { label: '7+', value: 7 },
+    { label: '6+', value: 6 },
+  ];
 
   if (!visible) return null;
 
@@ -436,12 +498,7 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
       <Text style={s.filterLbl}>GENRES (multi-sélection)</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
         {genres.map((g) => (
-          <GenrePill
-            key={g.id}
-            genre={g}
-            selected={genreIds.includes(String(g.id))}
-            onToggle={onToggleGenre}
-          />
+          <GenrePill key={g.id} genre={g} selected={genreIds.includes(String(g.id))} onToggle={onToggleGenre} />
         ))}
       </View>
 
@@ -474,44 +531,47 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
 }
 
 // ─────────────────────────────────────────
-// Discover (main)
+// Discover — composant principal
 // ─────────────────────────────────────────
 export default function Discover() {
   const router       = useRouter();
   const searchParams = useLocalSearchParams();
 
-  const [query, setQuery]                   = useState(searchParams.q || '');
-  const [searchResults, setResults]         = useState([]);
-  const [searchLoading, setSearchLoading]   = useState(false);
-  const [isSearching, setIsSearching]       = useState(!!searchParams.q);
+  // ── Search state ──
+  const [inlineQuery, setInlineQuery]     = useState(searchParams.q || '');
+  const [isSearching, setIsSearching]     = useState(!!searchParams.q);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchMovies, setSearchMovies]   = useState([]);
+  const [searchUsers, setSearchUsers]     = useState([]);
+  const [searchLists, setSearchLists]     = useState([]);
 
-  const [genreIds, setGenreIds]             = useState([]);
-  const [yearRange, setYearRange]           = useState(null);
-  const [minRating, setMinRating]           = useState('');
-  const [sortBy, setSortBy]                 = useState('popularity.desc');
-  const [filterOpen, setFilterOpen]         = useState(false);
-  const [isFiltering, setIsFiltering]       = useState(false);
+  // ── Filter state ──
+  const [genreIds, setGenreIds]     = useState([]);
+  const [yearRange, setYearRange]   = useState(null);
+  const [minRating, setMinRating]   = useState('');
+  const [sortBy, setSortBy]         = useState('popularity.desc');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false);
 
-  const [genres, setGenres]                 = useState([]);
-  const [trending, setTrending]             = useState([]);
-  const [topRated, setTopRated]             = useState([]);
-  const [nowPlaying, setNowPlaying]         = useState([]);
-  const [filtered, setFiltered]             = useState([]);
+  // ── Discovery sections ──
+  const [genres, setGenres]           = useState([]);
+  const [trending, setTrending]       = useState([]);
+  const [topRated, setTopRated]       = useState([]);
+  const [nowPlaying, setNowPlaying]   = useState([]);
+  const [filtered, setFiltered]       = useState([]);
   const [sectionsLoading, setSectionsLoading] = useState(true);
-  const [filterLoading, setFilterLoading]   = useState(false);
+  const [filterLoading, setFilterLoading]     = useState(false);
 
-  const debounceRef  = useRef(null);
-  const resultsAnim  = useRef(new Animated.Value(0)).current;
+  const debounceRef = useRef(null);
+  const resultsAnim = useRef(new Animated.Value(0)).current;
 
-  // Barre de recherche inline dans discover (séparée de TopNavbar)
-  const [inlineQuery, setInlineQuery] = useState(searchParams.q || '');
-
+  // ── Chargement initial ──
   useEffect(() => {
     getGenres().then(setGenres).catch(() => {});
     setSectionsLoading(true);
     Promise.all([getTrending(), getTopRated(), getNowPlaying()])
       .then(([t, top, now]) => {
-        setTrending(t.results || []);
+        setTrending(t.results   || []);
         setTopRated(top.results || []);
         setNowPlaying(now.results || []);
       })
@@ -519,29 +579,45 @@ export default function Discover() {
       .finally(() => setSectionsLoading(false));
   }, []);
 
-  // Animation résultats
   const animateResults = () => {
     resultsAnim.setValue(0);
     Animated.spring(resultsAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 10 }).start();
   };
 
+  // ── Recherche unifiée (films TMDB + users BDD + listes BDD) ──
   const runSearch = useCallback(async (q) => {
-    if (!q.trim()) { setIsSearching(false); setResults([]); return; }
+    if (!q.trim()) {
+      setIsSearching(false);
+      setSearchMovies([]);
+      setSearchUsers([]);
+      setSearchLists([]);
+      return;
+    }
     setIsSearching(true);
     setSearchLoading(true);
     try {
-      const res = await searchMovies({ query: q });
-      setResults((res.results || []).slice(0, 10).map((m) => ({ ...m, type: 'movie' })));
+      const { movies, users, lists } = await searchAll(q);
+      setSearchMovies(movies);
+      setSearchUsers(users);
+      setSearchLists(lists);
       animateResults();
-    } catch { setResults([]); }
-    finally { setSearchLoading(false); }
+    } catch {
+      setSearchMovies([]);
+      setSearchUsers([]);
+      setSearchLists([]);
+    } finally {
+      setSearchLoading(false);
+    }
   }, []);
 
+  // Debounce 400ms
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => runSearch(inlineQuery), 400);
-  }, [inlineQuery]);
+    return () => clearTimeout(debounceRef.current);
+  }, [inlineQuery, runSearch]);
 
+  // ── Filtres ──
   const loadFiltered = useCallback(async () => {
     setFilterLoading(true);
     try {
@@ -564,39 +640,34 @@ export default function Discover() {
     if (active) loadFiltered();
   }, [genreIds, yearRange, minRating, sortBy]);
 
-  const handlePress  = (id) => router.push(`/movie/${id}`);
-  const toggleGenre  = (id) => setGenreIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
-  const resetFilters = () => { setGenreIds([]); setYearRange(null); setMinRating(''); setSortBy('popularity.desc'); };
-  const activeCount  = [genreIds.length > 0 ? 1 : null, yearRange, minRating].filter(Boolean).length;
+  const handlePress   = (id) => router.push(`/movie/${id}`);
+  const toggleGenre   = (id) => setGenreIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+  const resetFilters  = () => { setGenreIds([]); setYearRange(null); setMinRating(''); setSortBy('popularity.desc'); };
+  const activeCount   = [genreIds.length > 0 ? 1 : null, yearRange, minRating].filter(Boolean).length;
 
-  // Callback pour TopNavbar
-  const handleTopSearch = useCallback((text) => {
-    setInlineQuery(text);
-  }, []);
+  // Callback TopNavbar → synchronise la barre inline
+  const handleTopSearch = useCallback((text) => setInlineQuery(text), []);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle="dark-content" backgroundColor={C.white} />
       <TopNavbar username="User" onSearch={handleTopSearch} />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 80 }}
         >
-          {/* Hero */}
+          {/* Hero carousel — masqué en mode recherche/filtre */}
           {!isSearching && !isFiltering && trending.length > 0 && (
             <HeroCarousel movies={trending} onPress={handlePress} />
           )}
 
-          {/* Search bar inline */}
+          {/* Barre de recherche inline */}
           <View style={s.searchBarInline}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
+            <Text style={{ fontSize: 16, marginRight: 8, color: C.gray400 }}>⌕</Text>
             <TextInput
               style={{ flex: 1, fontSize: 15, color: C.black, paddingVertical: 0 }}
               placeholder="Films, utilisateurs, listes..."
@@ -617,7 +688,7 @@ export default function Discover() {
               hitSlop={6}
               style={[s.filterBtn, (filterOpen || activeCount > 0) && s.filterBtnActive]}
             >
-              <Text style={{ fontSize: 16 }}>⚙</Text>
+              <Text style={{ fontSize: 15 }}>⚙</Text>
               {activeCount > 0 && (
                 <View style={s.filterBadge}>
                   <Text style={s.filterBadgeTxt}>{activeCount}</Text>
@@ -626,7 +697,7 @@ export default function Discover() {
             </Pressable>
           </View>
 
-          {/* Filter panel */}
+          {/* FilterPanel */}
           <View style={{ paddingHorizontal: 16 }}>
             <FilterPanel
               visible={filterOpen}
@@ -644,7 +715,7 @@ export default function Discover() {
             />
           </View>
 
-          {/* Search results */}
+          {/* ── Résultats de recherche — 3 catégories ── */}
           {isSearching && (
             <Animated.View style={{
               paddingHorizontal: 16,
@@ -652,23 +723,18 @@ export default function Discover() {
               opacity: resultsAnim,
               transform: [{ translateY: resultsAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
             }}>
-              <Text style={s.sectionTitle}>
-                {searchLoading ? 'Recherche...' : `${searchResults.length} résultat(s)`}
-              </Text>
-              {searchLoading
-                ? <ActivityIndicator color={C.red} style={{ marginTop: 24 }} />
-                : searchResults.length === 0
-                  ? <Text style={{ color: C.gray400, fontSize: 14, textAlign: 'center', marginTop: 24 }}>
-                      Aucun résultat pour "{inlineQuery}"
-                    </Text>
-                  : searchResults.map((item, i) => (
-                      <SearchItem key={i} item={item} onPress={handlePress} />
-                    ))
-              }
+              <SearchResults
+                movies={searchMovies}
+                users={searchUsers}
+                lists={searchLists}
+                query={inlineQuery}
+                loading={searchLoading}
+                onMoviePress={handlePress}
+              />
             </Animated.View>
           )}
 
-          {/* Filtered */}
+          {/* ── Résultats filtrés ── */}
           {!isSearching && isFiltering && (
             <Animated.View style={{
               paddingHorizontal: 16,
@@ -695,7 +761,7 @@ export default function Discover() {
             </Animated.View>
           )}
 
-          {/* Discover */}
+          {/* ── Discovery — sections par défaut ── */}
           {!isSearching && !isFiltering && (
             <>
               <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
@@ -717,6 +783,9 @@ export default function Discover() {
   );
 }
 
+// ─────────────────────────────────────────
+// Styles
+// ─────────────────────────────────────────
 const s = StyleSheet.create({
   arrowLeft: {
     position: 'absolute', left: 10, top: '50%', marginTop: -20,
@@ -730,25 +799,16 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.52)',
     alignItems: 'center', justifyContent: 'center', zIndex: 10,
   },
-  arrowTxt: {
-    color: '#fff', fontSize: 26, fontWeight: '700', lineHeight: 30, marginTop: -2,
-  },
+  arrowTxt: { color: C.white, fontSize: 26, fontWeight: '700', lineHeight: 30, marginTop: -2 },
+
   searchBarInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingHorizontal: 14,
-    height: 48,
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 16, marginVertical: 12,
+    paddingHorizontal: 14, height: 48,
     backgroundColor: C.white,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: C.gray200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: 14, borderWidth: 1, borderColor: C.gray200,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   filterBtn: {
     width: 36, height: 36, borderRadius: 10,
@@ -762,47 +822,46 @@ const s = StyleSheet.create({
     backgroundColor: C.red, alignItems: 'center', justifyContent: 'center',
   },
   filterBadgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
+
   filterPanel: {
     backgroundColor: C.white, borderRadius: 16, padding: 16,
     marginBottom: 8, borderWidth: 1, borderColor: C.gray200,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.10, shadowRadius: 12, elevation: 6,
   },
-  filterLbl: {
-    fontSize: 10, fontWeight: '800', color: C.gray400,
-    letterSpacing: 0.8, marginBottom: 8,
-  },
+  filterLbl: { fontSize: 10, fontWeight: '800', color: C.gray400, letterSpacing: 0.8, marginBottom: 8 },
+
   pill: {
-    paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: 24,
-    backgroundColor: '#f0f0f5',
-    borderWidth: 1.5,
-    borderColor: C.gray200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 24,
+    backgroundColor: '#f0f0f5', borderWidth: 1.5, borderColor: C.gray200,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08, shadowRadius: 3, elevation: 2,
   },
-  pillActive: {
-    backgroundColor: C.red,
-    borderColor: C.red,
-    shadowColor: C.red,
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  pillTxt: {
-    fontSize: 12, fontWeight: '700', color: C.gray700,
-  },
+  pillActive: { backgroundColor: C.red, borderColor: C.red, shadowColor: C.red, shadowOpacity: 0.35, shadowRadius: 6, elevation: 4 },
+  pillTxt:    { fontSize: 12, fontWeight: '700', color: C.gray700 },
   pillTxtActive: { color: C.white },
-  sectionTitle: {
-    fontSize: 15, fontWeight: '800', color: C.black, marginBottom: 10,
-  },
+
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: C.black, marginBottom: 10 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+
+  // Catégories de recherche
+  categoryHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: C.gray100,
+    marginBottom: 4,
+  },
+  categoryLabel: { fontSize: 13, fontWeight: '800', color: C.black, flex: 1, letterSpacing: 0.2 },
+  categoryCountBadge: {
+    backgroundColor: C.gray100, paddingHorizontal: 8, paddingVertical: 2,
+    borderRadius: 10,
+  },
+  categoryCountTxt: { fontSize: 11, fontWeight: '700', color: C.gray500 },
+
+  // Items de recherche
   searchItem: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.gray100,
+    paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.gray100,
     backgroundColor: C.white,
   },
   searchPoster: {
@@ -815,4 +874,5 @@ const s = StyleSheet.create({
   },
   searchTitle: { fontSize: 14, fontWeight: '700', color: C.black },
   searchSub:   { fontSize: 12, color: C.gray400, marginTop: 2 },
+  chevron:     { color: C.gray400, fontSize: 20, paddingLeft: 8 },
 });
