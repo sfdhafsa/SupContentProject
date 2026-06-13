@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Animated,
   Pressable,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import LogoMark from './LogoMark';
 import useAuthSession from '../hooks/useAuthSession';
-import { clearAuthSession } from '../services/authStorage';
+import useNotificationBadge from '../hooks/useNotificationBadge';
 
 const C = {
   red:    '#ef0d1a',
@@ -19,22 +19,40 @@ const C = {
   gray100:'#f3f4f6',
   gray200:'#e5e7eb',
   gray400:'#9ca3af',
-  gray700:'#374151',
 };
 
 function SearchIcon({ color = C.black }) {
   return (
-    <View style={{ width: 18, height: 18, position: 'relative' }}>
+    <View style={{ width: 20, height: 20, position: 'relative' }}>
       <View style={{
-        position: 'absolute', top: 2, left: 2,
-        width: 10, height: 10, borderRadius: 5,
-        borderWidth: 1.6, borderColor: color,
+        position: 'absolute',
+        top: 2,
+        left: 2,
+        width: 12,
+        height: 12,
+        borderRadius: 7,
+        borderWidth: 1.8,
+        borderColor: color,
       }} />
       <View style={{
-        position: 'absolute', top: 10, left: 10,
-        width: 6, height: 1.6, borderRadius: 1,
+        position: 'absolute',
+        top: 13,
+        left: 13,
+        width: 6,
+        height: 1.8,
+        borderRadius: 2,
         backgroundColor: color,
         transform: [{ rotate: '45deg' }],
+      }} />
+      <View style={{
+        position: 'absolute',
+        top: 5,
+        left: 5,
+        width: 3,
+        height: 3,
+        borderRadius: 2,
+        backgroundColor: color,
+        opacity: 0.18,
       }} />
     </View>
   );
@@ -42,16 +60,60 @@ function SearchIcon({ color = C.black }) {
 
 function BellIcon({ color = C.black }) {
   return (
+    <View style={{ width: 20, height: 20, position: 'relative' }}>
+      <View style={{
+        position: 'absolute',
+        top: 3,
+        left: 4,
+        width: 12,
+        height: 12,
+        borderTopLeftRadius: 7,
+        borderTopRightRadius: 7,
+        borderBottomLeftRadius: 3,
+        borderBottomRightRadius: 3,
+        borderWidth: 1.6,
+        borderColor: color,
+        borderBottomWidth: 0,
+      }} />
+      <View style={{
+        position: 'absolute',
+        top: 14,
+        left: 3,
+        width: 14,
+        height: 1.6,
+        borderRadius: 1,
+        backgroundColor: color,
+      }} />
+      <View style={{
+        position: 'absolute',
+        top: 16,
+        left: 8,
+        width: 4,
+        height: 2,
+        borderBottomLeftRadius: 3,
+        borderBottomRightRadius: 3,
+        borderBottomWidth: 1.6,
+        borderColor: color,
+      }} />
+    </View>
+  );
+}
+
+function ChatIcon({ color = C.black }) {
+  return (
     <View style={{ width: 18, height: 18, position: 'relative' }}>
       <View style={{
-        position: 'absolute', top: 2, left: 3,
-        width: 11, height: 11, borderRadius: 6,
+        position: 'absolute', top: 3, left: 2,
+        width: 14, height: 11, borderRadius: 5,
         borderWidth: 1.5, borderColor: color,
       }} />
       <View style={{
-        position: 'absolute', top: 13, left: 6,
-        width: 5, height: 5, borderRadius: 2.5,
-        backgroundColor: color,
+        position: 'absolute', top: 13, left: 5,
+        width: 0, height: 0,
+        borderTopWidth: 4,
+        borderTopColor: color,
+        borderRightWidth: 4,
+        borderRightColor: 'transparent',
       }} />
     </View>
   );
@@ -59,17 +121,16 @@ function BellIcon({ color = C.black }) {
 
 export default function TopNavbar({ username = 'User', onSearch }) {
   const router                        = useRouter();
-  const { isAuthenticated }           = useAuthSession();
-  const [sessionOverride, setSessionOverride] = useState(null);
-  const authed                        = sessionOverride ?? isAuthenticated;
-  const initial                       = username.slice(0, 1).toUpperCase();
+  const { isAuthenticated, user }     = useAuthSession();
+  const { unreadCount }                = useNotificationBadge();
+  const authed                        = isAuthenticated;
+  const displayUsername               = user?.username || username || 'User';
+  const initial                       = displayUsername.slice(0, 1).toUpperCase();
 
   const [searchOpen, setSearchOpen]   = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const slideAnim                     = useRef(new Animated.Value(0)).current;
   const inputRef                      = useRef(null);
-
-  useEffect(() => { setSessionOverride(null); }, [isAuthenticated]);
 
   const openSearch = () => {
     setSearchOpen(true);
@@ -106,16 +167,6 @@ export default function TopNavbar({ username = 'User', onSearch }) {
     }
   };
 
-  const handleAuthPress = async () => {
-    if (authed) {
-      await clearAuthSession();
-      setSessionOverride(false);
-      router.replace('/discover');
-      return;
-    }
-    router.push('/login');
-  };
-
   const searchTranslateY = slideAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [-56, 0],
@@ -149,22 +200,39 @@ export default function TopNavbar({ username = 'User', onSearch }) {
           {authed && (
             <Pressable
               style={styles.iconBtn}
+              onPress={() => router.push('/messages')}
+              hitSlop={8}
+            >
+              <ChatIcon />
+            </Pressable>
+          )}
+
+          {authed && (
+            <Pressable
+              style={styles.iconBtn}
               onPress={() => router.push('/notifications')}
               hitSlop={8}
             >
               <BellIcon />
+              {unreadCount > 0 ? (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              ) : null}
             </Pressable>
           )}
 
-          <Pressable
-            style={authed ? styles.outBtn : styles.signInBtn}
-            onPress={handleAuthPress}
-            hitSlop={4}
-          >
-            <Text style={authed ? styles.outTxt : styles.signInTxt}>
-              {authed ? 'Sortir' : 'Sign in'}
-            </Text>
-          </Pressable>
+          {!authed && (
+            <Pressable
+              style={styles.signInBtn}
+              onPress={() => router.push('/login')}
+              hitSlop={4}
+            >
+              <Text style={styles.signInTxt}>Sign in</Text>
+            </Pressable>
+          )}
 
           {authed && (
             <Pressable style={styles.avatar} onPress={() => router.push('/profile')}>
@@ -256,19 +324,25 @@ const styles = StyleSheet.create({
   iconBtnActive: {
     backgroundColor: '#fff0f0',
   },
-  outBtn: {
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: C.gray200,
+  notificationBadge: {
     alignItems: 'center',
+    backgroundColor: C.red,
+    borderColor: C.white,
+    borderRadius: 9,
+    borderWidth: 1.5,
     justifyContent: 'center',
+    minHeight: 18,
+    minWidth: 18,
+    paddingHorizontal: 3,
+    position: 'absolute',
+    right: -4,
+    top: -4,
   },
-  outTxt: {
-    color: C.gray700,
-    fontSize: 11,
-    fontWeight: '700',
+  notificationBadgeText: {
+    color: C.white,
+    fontSize: 9,
+    fontWeight: '900',
+    lineHeight: 12,
   },
   signInBtn: {
     height: 34,

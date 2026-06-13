@@ -10,9 +10,30 @@ import { getAuthToken } from '../services/authStorage';
  * @param {function} options.onReceiveMessage  - called with a message object when a new message arrives
  * @param {function} options.onMessageSent     - called with a message object when your own send is confirmed
  * @param {function} options.onError           - called with an error payload on send failure
+ * @param {function} options.onNotificationsChanged - called when notifications are updated
  */
-export function useSocket({ onReceiveMessage, onMessageSent, onError } = {}) {
+export function useSocket({
+  onReceiveMessage,
+  onMessageSent,
+  onError,
+  onNotificationsChanged,
+} = {}) {
   const socketRef = useRef(null);
+  const handlersRef = useRef({
+    onReceiveMessage,
+    onMessageSent,
+    onError,
+    onNotificationsChanged,
+  });
+
+  useEffect(() => {
+    handlersRef.current = {
+      onReceiveMessage,
+      onMessageSent,
+      onError,
+      onNotificationsChanged,
+    };
+  }, [onError, onMessageSent, onNotificationsChanged, onReceiveMessage]);
 
   useEffect(() => {
     let socket;
@@ -35,15 +56,19 @@ export function useSocket({ onReceiveMessage, onMessageSent, onError } = {}) {
       socketRef.current = socket;
 
       socket.on('receive_message', (message) => {
-        onReceiveMessage?.(message);
+        handlersRef.current.onReceiveMessage?.(message);
       });
 
       socket.on('message_sent', (message) => {
-        onMessageSent?.(message);
+        handlersRef.current.onMessageSent?.(message);
       });
 
       socket.on('message_error', (err) => {
-        onError?.(err);
+        handlersRef.current.onError?.(err);
+      });
+
+      socket.on('notifications_changed', (payload) => {
+        handlersRef.current.onNotificationsChanged?.(payload);
       });
     };
 

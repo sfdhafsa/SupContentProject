@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Dimensions,
   Image,
   Modal,
   Pressable,
@@ -15,6 +14,7 @@ import {
 import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
+import TopNavbar from '../src/components/TopNavbar';
 import { useAuth } from '../src/services/authApi.js';
 import api from '../src/config/api.js';
 
@@ -58,8 +58,6 @@ function formatCount(n) {
 
 /* ── Constantes ── */
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = (315 - 24 - 8) / 2;
 const TABS = ['Overview', 'Reviews', 'Lists', 'Stats'];
 const RED = '#ef0d1a';
 const BG = '#f3f4f6';
@@ -81,6 +79,12 @@ const formatReview = (review) => ({
   review: review.text || 'A noté ce film.',
 });
 
+const formatActivity = (activity) => ({
+  ...activity,
+  date: formatShortDate(activity.created_at),
+  review: activity.review ? formatReview(activity.review) : null,
+});
+
 /* ── Composants UI ── */
 
 function Banner() {
@@ -89,7 +93,10 @@ function Banner() {
       {Array.from({ length: 18 }).map((_, i) => (
         <View key={i} style={styles.bannerCell} />
       ))}
+      <View style={styles.bannerGlow} />
       <View style={styles.bannerReel} />
+      <View style={styles.bannerReelCenter} />
+      <Text style={styles.bannerLabel}>MY CINEMA</Text>
     </View>
   );
 }
@@ -203,6 +210,31 @@ function ReviewCard({ item }) {
   );
 }
 
+function ActivityCard({ item }) {
+  if (item.type === 'REVIEW_CREATED') return <ReviewCard item={item.review} />;
+  if (item.type === 'LIST_CREATED') {
+    return (
+      <View style={styles.activityCard}>
+        <Text style={styles.activityTitle}>Nouvelle liste créée</Text>
+        <Text style={styles.activityMovie}>{item.list?.name}</Text>
+        {!!item.list?.description && <Text style={styles.activityBody}>{item.list.description}</Text>}
+        <Text style={styles.reviewDate}>{item.list?.movie_count || 0} films · {item.date}</Text>
+      </View>
+    );
+  }
+  const label = item.type === 'REVIEW_LIKED'
+    ? 'A aimé une critique de'
+    : 'A commenté une critique de';
+  return (
+    <View style={styles.activityCard}>
+      <Text style={styles.activityTitle}>{label}</Text>
+      <Text style={styles.activityMovie}>{item.review?.movie}</Text>
+      {!!item.comment?.text && <Text style={styles.activityBody}>“{item.comment.text}”</Text>}
+      <Text style={styles.reviewDate}>{item.date}</Text>
+    </View>
+  );
+}
+
 function ListCard({ list }) {
   const count = list.movie_count ?? list.movies?.length ?? 0;
   return (
@@ -289,12 +321,12 @@ function ProfileContent() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
-  const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('Overview');
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
   const [reviews, setReviews] = useState([]);
   const [lists, setLists] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [stats, setStats] = useState({
@@ -324,9 +356,10 @@ function ProfileContent() {
       setProfileLoading(true);
       setProfileError('');
 
-      const [exportResult, libraryResult, followersResult, followingResult] =
+      const [exportResult, activityResult, libraryResult, followersResult, followingResult] =
         await Promise.allSettled([
           api.get('/users/me/export'),
+          api.get(`/users/${user.id}/activity`),
           api.get('/library/stats'),
           api.get(`/social/follow/${user.id}/followers`),
           api.get(`/social/follow/${user.id}/following`),
@@ -346,6 +379,9 @@ function ProfileContent() {
 
         setReviews(activeReviews.map(formatReview));
         setLists(customLists);
+        const activityData =
+          activityResult.status === 'fulfilled' ? activityResult.value.data || {} : {};
+        setActivities((activityData.activities || []).map(formatActivity));
         setFollowersList(followersData.followers || []);
         setFollowingList(followingData.following || []);
         setStats({
@@ -355,7 +391,7 @@ function ProfileContent() {
           reviews: activeReviews.length,
         });
 
-        if ([exportResult, libraryResult, followersResult, followingResult]
+        if ([exportResult, activityResult, libraryResult, followersResult, followingResult]
           .some((result) => result.status === 'rejected')) {
           setProfileError('Certaines statistiques ne sont pas disponibles.');
         }
@@ -415,13 +451,13 @@ function ProfileContent() {
             </View>
 
             <Text style={styles.sectionTitle}>Activité récente</Text>
-            {reviews.length === 0 ? (
+            {activities.length === 0 ? (
               <EmptyTab
                 label="Aucune activité récente."
-                sub="Commencez à noter des films pour les voir ici."
+                sub="Vos critiques, likes, commentaires et listes apparaîtront ici."
               />
             ) : (
-              reviews.slice(0, 3).map((item) => <ReviewCard key={item.id} item={item} />)
+              activities.slice(0, 5).map((item) => <ActivityCard key={item.id} item={item} />)
             )}
           </View>
         );
@@ -456,10 +492,7 @@ function ProfileContent() {
   return (
     <ScreenContainer>
       <View style={styles.phone}>
-        {/* Barre de recherche */}
-        <View style={styles.searchWrapper}>
-          <SearchBar value={search} onChange={setSearch} />
-        </View>
+        <TopNavbar username={username || 'User'} />
 
         <ScrollView
           style={styles.scroll}
@@ -473,6 +506,11 @@ function ProfileContent() {
               <Avatar uri={avatar} initials={initials} />
             </View>
             <View style={styles.actionButtons}>
+              {isAdmin && (
+                <Pressable style={styles.adminViewBtn} onPress={() => router.push('/admin-view')}>
+                  <Text style={styles.adminViewBtnText}>Admin view</Text>
+                </Pressable>
+              )}
               <Pressable style={styles.editBtn} onPress={() => router.push('/settings')}>
                 <View style={styles.gearOuter}>
                   <View style={styles.gearInner} />
@@ -586,7 +624,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   phone: {
-    backgroundColor: CARD,
+    backgroundColor: '#f8fafc',
     flex: 1,
     overflow: 'hidden',
     width: '100%',
@@ -599,18 +637,19 @@ const styles = StyleSheet.create({
 
   // Recherche
   searchWrapper: {
-    borderBottomColor: BORDER,
-    borderBottomWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    backgroundColor: CARD,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   searchBar: {
     alignItems: 'center',
-    backgroundColor: BG,
-    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    borderWidth: 1,
     flexDirection: 'row',
-    height: 28,
-    paddingHorizontal: 8,
+    height: 42,
+    paddingHorizontal: 12,
   },
   searchIconWrap: { height: 14, marginRight: 5, position: 'relative', width: 14 },
   searchCircle: {
@@ -633,7 +672,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-45deg' }],
     width: 1.2,
   },
-  searchInput: { color: TEXT, flex: 1, fontSize: 11, padding: 0 },
+  searchInput: { color: TEXT, flex: 1, fontSize: 13, padding: 0 },
   clearBtn: { padding: 2 },
   clearText: { color: MUTED, fontSize: 10 },
 
@@ -642,40 +681,73 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 82 },
 
   // Bannière
-  bannerWrapper: { height: 100, position: 'relative' },
+  bannerWrapper: { height: 154, position: 'relative' },
   banner: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#111827',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    height: 100,
+    height: 132,
     overflow: 'hidden',
   },
   bannerCell: {
     borderColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    height: 50,
+    height: 66,
     width: '16.6667%',
   },
-  bannerReel: {
-    borderColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 50,
-    borderWidth: 10,
-    height: 80,
-    left: '50%',
-    marginLeft: -40,
+  bannerGlow: {
+    backgroundColor: 'rgba(239,13,26,0.42)',
+    borderRadius: 90,
+    height: 180,
     position: 'absolute',
-    top: 10,
-    width: 80,
+    right: -45,
+    top: -70,
+    width: 180,
+  },
+  bannerReel: {
+    borderColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 50,
+    borderWidth: 9,
+    height: 76,
+    position: 'absolute',
+    right: 24,
+    top: 26,
+    width: 76,
+  },
+  bannerReelCenter: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8,
+    height: 16,
+    position: 'absolute',
+    right: 54,
+    top: 56,
+    width: 16,
+  },
+  bannerLabel: {
+    bottom: 42,
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 11,
+    fontWeight: '800',
+    left: 18,
+    letterSpacing: 2.4,
+    position: 'absolute',
   },
 
   // Avatar
-  avatarContainer: { bottom: -22, left: 12, position: 'absolute' },
+  avatarContainer: { bottom: -2, left: 16, position: 'absolute' },
   avatarRing: {
     borderColor: CARD,
-    borderRadius: 30,
-    borderWidth: 2.5,
-    height: 52,
-    width: 52,
+    borderRadius: 40,
+    borderWidth: 4,
+    height: 76,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    width: 76,
+    elevation: 5,
   },
   avatar: {
     alignItems: 'center',
@@ -686,26 +758,26 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarImage: { height: '100%', width: '100%' },
-  avatarInitials: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  avatarInitials: { color: '#fff', fontSize: 22, fontWeight: '800' },
 
   // Boutons d'action
   actionButtons: {
-    bottom: -14,
+    bottom: 4,
     flexDirection: 'row',
     gap: 6,
     position: 'absolute',
-    right: 10,
+    right: 16,
   },
   editBtn: {
     alignItems: 'center',
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: 7,
+    borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   gearOuter: {
     alignItems: 'center',
@@ -717,16 +789,25 @@ const styles = StyleSheet.create({
     width: 10,
   },
   gearInner: { backgroundColor: TEXT, borderRadius: 2, height: 4, width: 4 },
-  editBtnText: { color: TEXT, fontSize: 10, fontWeight: '600' },
+  editBtnText: { color: TEXT, fontSize: 12, fontWeight: '700' },
+  adminViewBtn: {
+    alignItems: 'center',
+    backgroundColor: TEXT,
+    borderRadius: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  adminViewBtnText: { color: CARD, fontSize: 12, fontWeight: '800' },
   shareBtn: {
     alignItems: 'center',
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: 7,
+    borderRadius: 12,
     borderWidth: 1,
-    height: 26,
+    height: 34,
     justifyContent: 'center',
-    width: 26,
+    width: 34,
   },
   shareIcon: { height: 18, position: 'relative', width: 14 },
   shareDot: {
@@ -760,9 +841,9 @@ const styles = StyleSheet.create({
   },
 
   // Infos utilisateur
-  userInfo: { marginTop: 28, paddingBottom: 10, paddingHorizontal: 12 },
+  userInfo: { paddingBottom: 14, paddingHorizontal: 16, paddingTop: 8 },
   nameRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-  userName: { color: TEXT, fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
+  userName: { color: TEXT, fontSize: 22, fontWeight: '900', letterSpacing: -0.6 },
   adminBadge: {
     backgroundColor: 'rgba(208, 2, 27, 0.1)',
     borderRadius: 10,
@@ -770,24 +851,30 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   adminBadgeText: { color: RED, fontSize: 9, fontWeight: '600' },
-  userHandle: { color: MUTED, fontSize: 11, marginTop: 1 },
-  userBio: { color: MUTED, fontSize: 10, lineHeight: 15, marginTop: 4 },
-  userWebsite: { color: RED, fontSize: 10, marginTop: 4 },
-  joinDate: { color: MUTED, fontSize: 9, marginTop: 4 },
+  userHandle: { color: '#64748b', fontSize: 13, marginTop: 2 },
+  userBio: { color: '#475569', fontSize: 13, lineHeight: 19, marginTop: 10 },
+  userWebsite: { color: RED, fontSize: 12, fontWeight: '600', marginTop: 8 },
+  joinDate: { color: '#94a3b8', fontSize: 11, marginTop: 6 },
 
   // Compteurs
   countersRow: {
-    borderBottomColor: BORDER,
-    borderBottomWidth: 1,
-    borderTopColor: BORDER,
-    borderTopWidth: 1,
+    backgroundColor: CARD,
+    borderColor: '#e2e8f0',
+    borderRadius: 18,
+    borderWidth: 1,
     flexDirection: 'row',
-    paddingVertical: 8,
+    marginHorizontal: 14,
+    paddingVertical: 14,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   counterItem: { alignItems: 'center', flex: 1 },
   counterBorder: { borderLeftColor: BORDER, borderLeftWidth: 1 },
-  counterValue: { color: TEXT, fontSize: 13, fontWeight: '700' },
-  counterLabel: { color: MUTED, fontSize: 9, marginTop: 1 },
+  counterValue: { color: TEXT, fontSize: 16, fontWeight: '800' },
+  counterLabel: { color: MUTED, fontSize: 10, marginTop: 3 },
   counterLabelClickable: { color: '#374151' },
   profileError: {
     color: '#b45309',
@@ -798,20 +885,33 @@ const styles = StyleSheet.create({
   },
 
   // Onglets
-  tabBar: { borderBottomColor: BORDER, borderBottomWidth: 1, flexDirection: 'row' },
+  tabBar: {
+    backgroundColor: '#e9eef5',
+    borderRadius: 14,
+    flexDirection: 'row',
+    marginHorizontal: 14,
+    marginTop: 14,
+    padding: 4,
+  },
   tabItem: {
     alignItems: 'center',
-    borderBottomColor: 'transparent',
-    borderBottomWidth: 2,
+    borderRadius: 11,
     flex: 1,
     paddingVertical: 9,
   },
-  tabItemActive: { borderBottomColor: RED },
+  tabItemActive: {
+    backgroundColor: CARD,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
+  },
   tabText: { color: MUTED, fontSize: 10, fontWeight: '500' },
   tabTextActive: { color: TEXT, fontWeight: '700' },
 
   // Contenu onglet
-  tabContent: { padding: 10 },
+  tabContent: { paddingHorizontal: 14, paddingTop: 16 },
   sectionTitle: {
     color: TEXT,
     fontSize: 13,
@@ -821,25 +921,42 @@ const styles = StyleSheet.create({
   },
 
   // État vide
-  emptyTab: { alignItems: 'center', paddingVertical: 24 },
+  emptyTab: {
+    alignItems: 'center',
+    backgroundColor: CARD,
+    borderColor: '#e2e8f0',
+    borderRadius: 18,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 34,
+  },
   emptyIcon: {
     alignItems: 'center',
     backgroundColor: BG,
-    borderRadius: 10,
-    height: 36,
+    borderRadius: 16,
+    height: 52,
     justifyContent: 'center',
     marginBottom: 8,
-    width: 36,
+    width: 52,
   },
   filmIconRect: { backgroundColor: MUTED, borderRadius: 3, height: 14, width: 18 },
-  emptyTabText: { color: MUTED, fontSize: 11, fontWeight: '500' },
-  emptyTabSub: { color: '#d1d5db', fontSize: 9, marginTop: 2 },
+  emptyTabText: { color: TEXT, fontSize: 13, fontWeight: '700' },
+  emptyTabSub: { color: '#94a3b8', fontSize: 11, lineHeight: 16, marginTop: 5, textAlign: 'center' },
 
   // Grille stats
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statCard: { backgroundColor: BG, borderRadius: 10, flexBasis: '47%', flexGrow: 1, padding: 12 },
-  statCardLabel: { color: MUTED, fontSize: 9, letterSpacing: 0.2, marginBottom: 4 },
-  statCardValue: { color: TEXT, fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
+  statCard: {
+    backgroundColor: CARD,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexBasis: '47%',
+    flexGrow: 1,
+    padding: 16,
+  },
+  statCardLabel: { color: MUTED, fontSize: 11, letterSpacing: 0.2, marginBottom: 7 },
+  statCardValue: { color: TEXT, fontSize: 24, fontWeight: '900', letterSpacing: -0.7 },
 
   // Skeleton
   skeleton: { backgroundColor: '#e5e7eb', borderRadius: 10 },
@@ -862,54 +979,65 @@ const styles = StyleSheet.create({
   reviewCard: {
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     marginBottom: 8,
-    padding: 10,
+    padding: 14,
   },
   reviewMovieRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
   reviewPoster: {
     backgroundColor: '#e5e7eb',
-    borderRadius: 6,
-    height: 48,
+    borderRadius: 9,
+    height: 62,
     overflow: 'hidden',
-    width: 36,
+    width: 46,
   },
   reviewPosterImage: { height: '100%', width: '100%' },
   reviewPosterPlaceholder: { backgroundColor: '#d1d5db', flex: 1 },
   reviewMovieInfo: { flex: 1, justifyContent: 'center' },
-  reviewMovieTitle: { color: TEXT, fontSize: 11, fontWeight: '600' },
-  reviewMovieYear: { color: MUTED, fontSize: 9, marginTop: 2 },
+  reviewMovieTitle: { color: TEXT, fontSize: 13, fontWeight: '700' },
+  reviewMovieYear: { color: MUTED, fontSize: 11, marginTop: 3 },
   reviewRatingRow: { alignItems: 'center', flexDirection: 'row', gap: 6, marginBottom: 4 },
   starsRow: { flexDirection: 'row', gap: 2 },
   starText: { color: '#d1d5db', fontSize: 12 },
   starTextFilled: { color: '#F59E0B' },
   reviewDate: { color: MUTED, fontSize: 9 },
-  reviewText: { color: MUTED, fontSize: 10, lineHeight: 14 },
+  reviewText: { color: '#475569', fontSize: 12, lineHeight: 18 },
+  activityCard: {
+    backgroundColor: CARD,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    marginBottom: 8,
+  },
+  activityTitle: { color: TEXT, fontSize: 13, fontWeight: '700' },
+  activityMovie: { color: RED, fontSize: 14, fontWeight: '800', marginTop: 5 },
+  activityBody: { color: MUTED, fontSize: 12, lineHeight: 18, marginVertical: 8 },
 
   // Carte liste
   listCard: {
     alignItems: 'center',
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 10,
     marginBottom: 8,
-    padding: 10,
+    padding: 13,
   },
   listIconWrap: {
     alignItems: 'center',
     backgroundColor: BG,
-    borderRadius: 8,
-    height: 32,
+    borderRadius: 12,
+    height: 42,
     justifyContent: 'center',
-    width: 32,
+    width: 42,
   },
   listInfo: { flex: 1 },
-  listName: { color: TEXT, fontSize: 11, fontWeight: '600' },
-  listCount: { color: MUTED, fontSize: 9, marginTop: 2 },
+  listName: { color: TEXT, fontSize: 13, fontWeight: '700' },
+  listCount: { color: MUTED, fontSize: 11, marginTop: 3 },
   listBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
   listBadgePublic: { backgroundColor: 'rgba(34, 197, 94, 0.1)' },
   listBadgePrivate: { backgroundColor: BG },

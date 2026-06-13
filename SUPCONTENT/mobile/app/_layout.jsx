@@ -3,9 +3,10 @@ import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import useAuthSession, { AuthSessionProvider } from '../src/hooks/useAuthSession';
+import { NotificationBadgeProvider } from '../src/hooks/useNotificationBadge';
 
 const authOnlyPrefixes = ['/login', '/register', '/forgot-password', '/reset-password'];
-const protectedPrefixes = ['/home', '/profile', '/settings', '/notifications', '/messages', '/conversation'];
+const protectedPrefixes = ['/home', '/profile', '/settings', '/notifications', '/messages', '/conversation', '/admin-view'];
 
 function hasRoutePrefix(pathname, prefixes) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -54,8 +55,10 @@ function RootNavigator() {
       <Stack.Screen name="library" />
       <Stack.Screen name="messages" />
       <Stack.Screen name="conversation/[userId]" />
+      <Stack.Screen name="list/[id]" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="admin-view" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="auth/callback" />
       <Stack.Screen name="publicProfile" />
@@ -68,7 +71,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthSessionProvider>
-        <RootNavigator />
+        <NotificationBadgeProvider>
+          <RootNavigator />
+        </NotificationBadgeProvider>
       </AuthSessionProvider>
     </SafeAreaProvider>
   );

@@ -1,123 +1,20 @@
-import net from 'net';
-import tls from 'tls';
-import { Buffer } from 'buffer';
 import db from '../../../config/db.js';
 import { UserModel } from '../../../models/user.model.js';
 import { notificationTypes } from '../../../utils/notificationTypes.js';
 
 const env = globalThis.process?.env || {};
-const SMTP_TIMEOUT_MS = 10000;
 
 const getSmtpConfig = () => ({
   host: env.SMTP_HOST,
   port: parseInt(env.SMTP_PORT || '587', 10),
   user: env.SMTP_USER,
-  pass: env.SMTP_PASSWORD,
-  from: env.SMTP_FROM || env.SMTP_USER,
+  pass: env.SMTP_PASS || env.SMTP_PASSWORD,
+  from: env.EMAIL_FROM || env.SMTP_FROM || env.SMTP_USER,
   secure: env.SMTP_SECURE === 'true',
 });
 
 const isConfigured = (config) =>
-  config.host && config.port && config.from;
-
-const extractEmailAddress = (value) => {
-  const match = String(value).match(/<([^>]+)>/);
-  return match ? match[1] : String(value);
-};
-
-const readResponse = (socket) => new Promise((resolve, reject) => {
-  let buffer = '';
-  const timer = globalThis.setTimeout(() => {
-    cleanup();
-    reject(new Error('SMTP response timeout'));
-  }, SMTP_TIMEOUT_MS);
-
-  const cleanup = () => {
-    globalThis.clearTimeout(timer);
-    socket.off('data', onData);
-    socket.off('error', onError);
-  };
-
-  const onError = (err) => {
-    cleanup();
-    reject(err);
-  };
-
-  const onData = (chunk) => {
-    buffer += chunk.toString('utf8');
-    const lines = buffer.split(/\r?\n/).filter(Boolean);
-    const lastLine = lines[lines.length - 1];
-
-    if (/^\d{3} /.test(lastLine)) {
-      cleanup();
-      resolve(buffer);
-    }
-  };
-
-  socket.on('data', onData);
-  socket.on('error', onError);
-});
-
-const sendCommand = async (socket, command, expectedCodes, { sensitive = false } = {}) => {
-  socket.write(`${command}\r\n`);
-  const response = await readResponse(socket);
-  const code = parseInt(response.slice(0, 3), 10);
-
-  if (!expectedCodes.includes(code)) {
-    const label = sensitive ? '[sensitive]' : command;
-    throw new Error(`SMTP command failed (${label}): ${response.trim()}`);
-  }
-
-  return response;
-};
-
-const connectSmtp = async (config) => new Promise((resolve, reject) => {
-  const socket = config.secure
-    ? tls.connect(config.port, config.host, { servername: config.host })
-    : net.createConnection(config.port, config.host);
-
-  const timer = globalThis.setTimeout(() => {
-    socket.destroy();
-    reject(new Error('SMTP connection timeout'));
-  }, SMTP_TIMEOUT_MS);
-
-  socket.once('error', (err) => {
-    globalThis.clearTimeout(timer);
-    reject(err);
-  });
-
-  socket.once('connect', async () => {
-    try {
-      await readResponse(socket);
-      globalThis.clearTimeout(timer);
-      resolve(socket);
-    } catch (err) {
-      globalThis.clearTimeout(timer);
-      reject(err);
-    }
-  });
-});
-
-const upgradeToTls = async (socket, config) => new Promise((resolve, reject) => {
-  const secureSocket = tls.connect({
-    socket,
-    servername: config.host,
-  }, () => resolve(secureSocket));
-
-  secureSocket.once('error', reject);
-});
-
-const encodeHeader = (value) => String(value).replace(/\r?\n/g, ' ');
-
-const buildEmail = ({ from, to, subject, text }) => [
-  `From: ${encodeHeader(from)}`,
-  `To: ${encodeHeader(to)}`,
-  `Subject: ${encodeHeader(subject)}`,
-  'MIME-Version: 1.0',
-  'Content-Type: text/plain; charset=UTF-8',
-  '',
-  text,
-].join('\r\n');
+  config.host && config.port && config.from && config.user && config.pass;
 
 const sendEmail = async ({ to, subject, text }) => {
   const config = getSmtpConfig();
@@ -127,40 +24,30 @@ const sendEmail = async ({ to, subject, text }) => {
     return false;
   }
 
-  let socket = await connectSmtp(config);
+  const { default: nodemailer } = await import('nodemailer');
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    requireTLS: !config.secure && env.SMTP_STARTTLS !== 'false',
+    ignoreTLS: !config.secure && env.SMTP_STARTTLS === 'false',
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
 
-  try {
-    await sendCommand(socket, `EHLO ${env.SMTP_EHLO_DOMAIN || 'localhost'}`, [250]);
+  await transporter.sendMail({
+    from: config.from,
+    to,
+    subject,
+    text,
+  });
 
-    if (!config.secure && env.SMTP_STARTTLS !== 'false') {
-      await sendCommand(socket, 'STARTTLS', [220]);
-      socket = await upgradeToTls(socket, config);
-      await sendCommand(socket, `EHLO ${env.SMTP_EHLO_DOMAIN || 'localhost'}`, [250]);
-    }
-
-    if (config.user && config.pass) {
-      await sendCommand(socket, 'AUTH LOGIN', [334]);
-      await sendCommand(socket, Buffer.from(config.user).toString('base64'), [334], { sensitive: true });
-      await sendCommand(socket, Buffer.from(config.pass).toString('base64'), [235], { sensitive: true });
-    }
-
-    await sendCommand(socket, `MAIL FROM:<${extractEmailAddress(config.from)}>`, [250]);
-    await sendCommand(socket, `RCPT TO:<${to}>`, [250, 251]);
-    await sendCommand(socket, 'DATA', [354]);
-
-    const message = buildEmail({
-      from: config.from,
-      to,
-      subject,
-      text,
-    }).replace(/^\./gm, '..');
-
-    await sendCommand(socket, `${message}\r\n.`, [250]);
-    await sendCommand(socket, 'QUIT', [221]);
-    return true;
-  } finally {
-    socket.end();
-  }
+  return true;
 };
 
 const findMovieById = async (movieId) => {

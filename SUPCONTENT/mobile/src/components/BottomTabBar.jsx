@@ -13,7 +13,6 @@ const publicTabs = [
 const privateTabs = [
   { label: 'Home', route: '/home', icon: 'home' },
   { label: 'Explore', route: '/discover', icon: 'search' },
-  { label: 'Messages', route: '/messages', icon: 'chat' },
   { label: 'Library', route: '/library', icon: 'library' },
   { label: 'Profile', route: '/profile', icon: 'profile' },
   { label: 'Out', action: 'logout', icon: 'logout' },
@@ -39,18 +38,6 @@ function TabIcon({ type, active }) {
           <View style={[styles.libraryLine, { backgroundColor: color }]} />
         </View>
       )}
-      {type === 'bell' && <View style={[styles.bellIcon, { borderColor: color }]} />}
-      {type === 'chat' && (
-        <View style={styles.chatWrap}>
-          <View style={[styles.chatBubble, { borderColor: color }]} />
-          <View style={[styles.chatTail, { borderTopColor: color }]} />
-          <View style={styles.chatDots}>
-            <View style={[styles.chatDot, { backgroundColor: color }]} />
-            <View style={[styles.chatDot, { backgroundColor: color }]} />
-            <View style={[styles.chatDot, { backgroundColor: color }]} />
-          </View>
-        </View>
-      )}
       {type === 'signin' && (
         <View style={styles.authIcon}>
           <View style={[styles.authDoor, { borderColor: color }]} />
@@ -58,9 +45,10 @@ function TabIcon({ type, active }) {
         </View>
       )}
       {type === 'logout' && (
-        <View style={styles.authIcon}>
-          <View style={[styles.authDoor, { borderColor: color }]} />
-          <View style={[styles.logoutArrow, { borderColor: color }]} />
+        <View style={styles.logoutIcon}>
+          <View style={[styles.logoutDoor, { borderColor: color }]} />
+          <View style={[styles.logoutShaft, { backgroundColor: color }]} />
+          <View style={[styles.logoutChevron, { borderColor: color }]} />
         </View>
       )}
       {type === 'profile' && (
@@ -99,11 +87,7 @@ export default function BottomTabBar() {
   return (
     <View style={styles.container}>
       {tabs.map((tab) => {
-        // Only highlight chat tab for conversation routes
-        const isActive =
-          tab.route === '/messages'
-            ? pathname === '/messages' || pathname.startsWith('/conversation')
-            : pathname === tab.route;
+        const isActive = pathname === tab.route;
 
         return (
           <Pressable key={tab.route || tab.action} onPress={() => handlePress(tab)} style={styles.tab}>
@@ -198,50 +182,6 @@ const styles = StyleSheet.create({
     height: 14,
     width: 2,
   },
-
-  // Chat bubble icon
-  chatWrap: {
-    height: 20,
-    marginLeft: 2,
-    marginTop: 2,
-    position: 'relative',
-    width: 20,
-  },
-  chatBubble: {
-    borderRadius: 8,
-    borderWidth: 1.5,
-    height: 13,
-    left: 1,
-    position: 'absolute',
-    top: 1,
-    width: 18,
-  },
-  chatTail: {
-    borderLeftColor: 'transparent',
-    borderLeftWidth: 3,
-    borderRightColor: 'transparent',
-    borderRightWidth: 0,
-    borderTopWidth: 4,
-    bottom: 2,
-    height: 0,
-    left: 4,
-    position: 'absolute',
-    width: 0,
-  },
-  chatDots: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 2,
-    left: 5,
-    position: 'absolute',
-    top: 5,
-  },
-  chatDot: {
-    borderRadius: 1.5,
-    height: 3,
-    width: 3,
-  },
-
   authIcon: {
     height: 20,
     marginLeft: 3,
@@ -268,14 +208,41 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     width: 7,
   },
-  logoutArrow: {
-    borderLeftWidth: 1.6,
+  logoutIcon: {
+    height: 20,
+    marginLeft: 2,
+    marginTop: 2,
+    position: 'relative',
+    width: 22,
+  },
+  logoutDoor: {
+    borderBottomLeftRadius: 3,
+    borderLeftWidth: 1.5,
+    borderTopLeftRadius: 3,
+    borderTopWidth: 1.5,
+    borderBottomWidth: 1.5,
+    height: 16,
+    left: 0,
+    position: 'absolute',
+    top: 2,
+    width: 9,
+  },
+  logoutShaft: {
+    borderRadius: 1,
+    height: 1.6,
+    left: 7,
+    position: 'absolute',
+    top: 9,
+    width: 12,
+  },
+  logoutChevron: {
+    borderRightWidth: 1.6,
     borderTopWidth: 1.6,
     height: 7,
     position: 'absolute',
     right: 1,
     top: 6,
-    transform: [{ rotate: '-45deg' }],
+    transform: [{ rotate: '45deg' }],
     width: 7,
   },
   profileWrap: {
