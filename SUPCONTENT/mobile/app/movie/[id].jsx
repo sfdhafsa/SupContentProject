@@ -179,6 +179,7 @@ function ReviewCard({
   onLiked,
   onCommentCountChange,
   onRequireAuth,
+  router,
   shouldFocus,
   targetCommentId,
   onFocusedLayout,
@@ -197,6 +198,14 @@ function ReviewCard({
   const initials = review.username ? review.username.slice(0, 2).toUpperCase() : 'U';
   const hasText = typeof review.text === 'string' && review.text.trim().length > 0;
   const commentsCount = Number(review.comments_count || comments.length || 0);
+  const openReviewOwnerProfile = () => {
+    if (!review.user_id) return;
+
+    router.push({
+      pathname: '/publicProfile',
+      params: { id: String(review.user_id) },
+    });
+  };
 
   const isJsonParseError = (err) =>
     err instanceof SyntaxError ||
@@ -325,13 +334,20 @@ function ReviewCard({
       ]}
     >
       <View style={s.reviewCardHeader}>
-        <View style={s.reviewAvatar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`View ${review.username || 'user'} public profile`}
+          disabled={!review.user_id}
+          hitSlop={8}
+          onPress={openReviewOwnerProfile}
+          style={s.reviewAvatar}
+        >
           {review.avatar_url ? (
             <Image source={{ uri: review.avatar_url }} style={s.reviewAvatarImage} />
           ) : (
             <Text style={s.reviewAvatarText}>{initials}</Text>
           )}
-        </View>
+        </Pressable>
 
         <View style={{ flex: 1 }}>
           <View style={s.reviewNameRow}>
@@ -602,6 +618,7 @@ function ReviewsSection({
               onLiked={updateLikes}
               onCommentCountChange={updateCommentCount}
               onRequireAuth={() => router.push('/login')}
+              router={router}
               shouldFocus={String(review.id) === String(targetReviewId)}
               targetCommentId={String(review.id) === String(targetReviewId) ? targetCommentId : null}
               onFocusedLayout={(reviewY) => {
