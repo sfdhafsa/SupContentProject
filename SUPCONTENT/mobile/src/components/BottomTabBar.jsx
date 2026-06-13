@@ -45,9 +45,10 @@ function TabIcon({ type, active }) {
         </View>
       )}
       {type === 'logout' && (
-        <View style={styles.authIcon}>
-          <View style={[styles.authDoor, { borderColor: color }]} />
-          <View style={[styles.logoutArrow, { borderColor: color }]} />
+        <View style={styles.logoutIcon}>
+          <View style={[styles.logoutDoor, { borderColor: color }]} />
+          <View style={[styles.logoutShaft, { backgroundColor: color }]} />
+          <View style={[styles.logoutChevron, { borderColor: color }]} />
         </View>
       )}
       {type === 'profile' && (
@@ -207,14 +208,41 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     width: 7,
   },
-  logoutArrow: {
-    borderLeftWidth: 1.6,
+  logoutIcon: {
+    height: 20,
+    marginLeft: 2,
+    marginTop: 2,
+    position: 'relative',
+    width: 22,
+  },
+  logoutDoor: {
+    borderBottomLeftRadius: 3,
+    borderLeftWidth: 1.5,
+    borderTopLeftRadius: 3,
+    borderTopWidth: 1.5,
+    borderBottomWidth: 1.5,
+    height: 16,
+    left: 0,
+    position: 'absolute',
+    top: 2,
+    width: 9,
+  },
+  logoutShaft: {
+    borderRadius: 1,
+    height: 1.6,
+    left: 7,
+    position: 'absolute',
+    top: 9,
+    width: 12,
+  },
+  logoutChevron: {
+    borderRightWidth: 1.6,
     borderTopWidth: 1.6,
     height: 7,
     position: 'absolute',
     right: 1,
     top: 6,
-    transform: [{ rotate: '-45deg' }],
+    transform: [{ rotate: '45deg' }],
     width: 7,
   },
   profileWrap: {
