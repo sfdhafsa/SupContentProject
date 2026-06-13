@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import LogoMark from './LogoMark';
+import { useTheme } from '../context/ThemeContext';
 import useAuthSession from '../hooks/useAuthSession';
 import useNotificationBadge from '../hooks/useNotificationBadge';
 import useUnreadChatBadge from '../hooks/useUnreadChatBadge';
@@ -120,9 +121,58 @@ function ChatIcon({ color = C.black }) {
   );
 }
 
+function MoonIcon({ color = C.black }) {
+  return (
+    <View style={{ width: 20, height: 20, position: 'relative' }}>
+      <View style={{
+        position: 'absolute',
+        top: 3,
+        left: 4,
+        width: 13,
+        height: 13,
+        borderRadius: 8,
+        borderWidth: 1.7,
+        borderColor: color,
+      }} />
+      <View style={{
+        position: 'absolute',
+        top: 1,
+        left: 10,
+        width: 8,
+        height: 15,
+        borderRadius: 8,
+        backgroundColor: color,
+        opacity: 0.18,
+      }} />
+    </View>
+  );
+}
+
+function SunIcon({ color = C.black }) {
+  return (
+    <View style={{ width: 20, height: 20, position: 'relative' }}>
+      <View style={{
+        position: 'absolute',
+        top: 6,
+        left: 6,
+        width: 8,
+        height: 8,
+        borderRadius: 5,
+        borderWidth: 1.6,
+        borderColor: color,
+      }} />
+      <View style={{ position: 'absolute', top: 0, left: 9, width: 2, height: 4, borderRadius: 2, backgroundColor: color }} />
+      <View style={{ position: 'absolute', bottom: 0, left: 9, width: 2, height: 4, borderRadius: 2, backgroundColor: color }} />
+      <View style={{ position: 'absolute', top: 9, left: 0, width: 4, height: 2, borderRadius: 2, backgroundColor: color }} />
+      <View style={{ position: 'absolute', top: 9, right: 0, width: 4, height: 2, borderRadius: 2, backgroundColor: color }} />
+    </View>
+  );
+}
+
 export default function TopNavbar({ username = 'User', onSearch }) {
   const router                        = useRouter();
   const { isAuthenticated, user }     = useAuthSession();
+  const { colors, darkMode, toggleTheme } = useTheme();
   const { unreadCount }                = useNotificationBadge();
   const { unreadChatCount }            = useUnreadChatBadge();
   const authed                        = isAuthenticated;
@@ -180,33 +230,54 @@ export default function TopNavbar({ username = 'User', onSearch }) {
   });
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[
+      styles.wrapper,
+      {
+        backgroundColor: colors.surface,
+        borderBottomColor: colors.navBorder,
+        shadowColor: colors.shadow,
+      },
+    ]}>
       {/* Main bar */}
       <View style={styles.container}>
         <Pressable onPress={() => router.push(brandRoute)} style={styles.brand}>
           <LogoMark size={22} radius={7} />
-          <Text style={styles.brandText}>SUPMOVIES</Text>
+          <Text style={[styles.brandText, { color: colors.text }]}>SUPMOVIES</Text>
         </Pressable>
 
         <View style={styles.actions}>
           <Pressable
             onPress={searchOpen ? closeSearch : openSearch}
-            style={[styles.iconBtn, searchOpen && styles.iconBtnActive]}
+            style={[
+              styles.iconBtn,
+              { backgroundColor: colors.iconButton },
+              searchOpen && { backgroundColor: colors.activeSoft },
+            ]}
             hitSlop={8}
           >
             {searchOpen
               ? <Text style={{ color: C.red, fontSize: 18, fontWeight: '700', lineHeight: 22 }}>✕</Text>
-              : <SearchIcon />
+              : <SearchIcon color={colors.text} />
             }
+          </Pressable>
+
+          <Pressable
+            onPress={toggleTheme}
+            style={[styles.iconBtn, { backgroundColor: colors.iconButton }]}
+            accessibilityRole="button"
+            accessibilityLabel={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            hitSlop={8}
+          >
+            {darkMode ? <SunIcon color={colors.text} /> : <MoonIcon color={colors.text} />}
           </Pressable>
 
           {authed && (
             <Pressable
-              style={styles.iconBtn}
+              style={[styles.iconBtn, { backgroundColor: colors.iconButton }]}
               onPress={() => router.push('/messages')}
               hitSlop={8}
             >
-              <ChatIcon />
+              <ChatIcon color={colors.text} />
               {unreadChatCount > 0 ? (
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationBadgeText}>
@@ -219,11 +290,11 @@ export default function TopNavbar({ username = 'User', onSearch }) {
 
           {authed && (
             <Pressable
-              style={styles.iconBtn}
+              style={[styles.iconBtn, { backgroundColor: colors.iconButton }]}
               onPress={() => router.push('/notifications')}
               hitSlop={8}
             >
-              <BellIcon />
+              <BellIcon color={colors.text} />
               {unreadCount > 0 ? (
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationBadgeText}>
@@ -245,8 +316,8 @@ export default function TopNavbar({ username = 'User', onSearch }) {
           )}
 
           {authed && (
-            <Pressable style={styles.avatar} onPress={() => router.push('/profile')}>
-              <Text style={styles.avatarTxt}>{initial}</Text>
+            <Pressable style={[styles.avatar, { backgroundColor: colors.iconButton }]} onPress={() => router.push('/profile')}>
+              <Text style={[styles.avatarTxt, { color: colors.text }]}>{initial}</Text>
             </Pressable>
           )}
         </View>
@@ -256,16 +327,21 @@ export default function TopNavbar({ username = 'User', onSearch }) {
       {searchOpen && (
         <Animated.View style={[
           styles.searchBar,
-          { opacity: searchOpacity, transform: [{ translateY: searchTranslateY }] },
+          {
+            backgroundColor: colors.input,
+            borderColor: colors.border,
+            opacity: searchOpacity,
+            transform: [{ translateY: searchTranslateY }],
+          },
         ]}>
           <View style={styles.searchIcon}>
-            <SearchIcon color={C.gray400} />
+            <SearchIcon color={colors.subtle} />
           </View>
           <TextInput
             ref={inputRef}
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Films, utilisateurs, listes..."
-            placeholderTextColor={C.gray400}
+            placeholderTextColor={colors.subtle}
             value={searchQuery}
             onChangeText={handleSearchChange}
             onSubmitEditing={handleSearchSubmit}
@@ -279,7 +355,7 @@ export default function TopNavbar({ username = 'User', onSearch }) {
               hitSlop={8}
               style={{ paddingLeft: 8 }}
             >
-              <Text style={{ color: C.gray400, fontSize: 16 }}>✕</Text>
+              <Text style={{ color: colors.subtle, fontSize: 16 }}>✕</Text>
             </Pressable>
           )}
         </Animated.View>

@@ -1,14 +1,18 @@
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ScreenContainer({
   children,
-  backgroundColor = '#ffffff',
+  backgroundColor,
   contentStyle,
   edges = ['top', 'right', 'bottom', 'left'],
 }) {
+  const { colors } = useTheme();
+  const resolvedBackground = backgroundColor || colors.page;
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]} edges={edges}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: resolvedBackground }]} edges={edges}>
       <View style={[styles.content, contentStyle]}>{children}</View>
     </SafeAreaView>
   );

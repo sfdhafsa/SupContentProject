@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
 import ScreenContainer from '../src/components/ScreenContainer';
+import { useTheme } from '../src/context/ThemeContext';
 import { getAuthToken } from '../src/services/authStorage';
 import api, { API_BASE_URL } from '../src/config/api';
 
@@ -158,20 +159,22 @@ function StarRating({ rating }) {
 }
 
 function EmptyTab({ label, sub }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.emptyTab}>
-      <View style={styles.emptyIcon}>
+    <View style={[styles.emptyTab, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.cardMuted }]}>
         <View style={styles.filmIconRect} />
       </View>
-      <Text style={styles.emptyTabText}>{label}</Text>
-      {sub && <Text style={styles.emptyTabSub}>{sub}</Text>}
+      <Text style={[styles.emptyTabText, { color: colors.text }]}>{label}</Text>
+      {sub && <Text style={[styles.emptyTabSub, { color: colors.subtle }]}>{sub}</Text>}
     </View>
   );
 }
 
 function ReviewCard({ item }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.reviewCard}>
+    <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.reviewMovieRow}>
         <View style={styles.reviewPoster}>
           {item.poster ? (
@@ -181,28 +184,29 @@ function ReviewCard({ item }) {
           )}
         </View>
         <View style={styles.reviewMovieInfo}>
-          <Text style={styles.reviewMovieTitle} numberOfLines={1}>{item.movie}</Text>
-          {item.year && <Text style={styles.reviewMovieYear}>{item.year}</Text>}
+          <Text style={[styles.reviewMovieTitle, { color: colors.text }]} numberOfLines={1}>{item.movie}</Text>
+          {item.year && <Text style={[styles.reviewMovieYear, { color: colors.muted }]}>{item.year}</Text>}
         </View>
       </View>
       <View style={styles.reviewRatingRow}>
         <StarRating rating={item.rating} />
-        {item.date && <Text style={styles.reviewDate}>{item.date}</Text>}
+        {item.date && <Text style={[styles.reviewDate, { color: colors.subtle }]}>{item.date}</Text>}
       </View>
-      <Text style={styles.reviewText} numberOfLines={3}>{item.review}</Text>
+      <Text style={[styles.reviewText, { color: colors.muted }]} numberOfLines={3}>{item.review}</Text>
     </View>
   );
 }
 
 function ActivityCard({ item }) {
+  const { colors } = useTheme();
   if (item.type === 'REVIEW_CREATED') return <ReviewCard item={item.review} />;
   if (item.type === 'LIST_CREATED') {
     return (
-      <View style={styles.activityCard}>
-        <Text style={styles.activityTitle}>A créé une liste publique</Text>
+      <View style={[styles.activityCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.activityTitle, { color: colors.text }]}>A créé une liste publique</Text>
         <Text style={styles.activityMovie}>{item.list?.name}</Text>
-        {!!item.list?.description && <Text style={styles.activityBody}>{item.list.description}</Text>}
-        <Text style={styles.reviewDate}>{item.list?.movie_count || 0} films · {item.date}</Text>
+        {!!item.list?.description && <Text style={[styles.activityBody, { color: colors.muted }]}>{item.list.description}</Text>}
+        <Text style={[styles.reviewDate, { color: colors.subtle }]}>{item.list?.movie_count || 0} films · {item.date}</Text>
       </View>
     );
   }
@@ -210,25 +214,26 @@ function ActivityCard({ item }) {
     ? 'A aimé une critique de'
     : 'A commenté une critique de';
   return (
-    <View style={styles.activityCard}>
-      <Text style={styles.activityTitle}>{label}</Text>
+    <View style={[styles.activityCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.activityTitle, { color: colors.text }]}>{label}</Text>
       <Text style={styles.activityMovie}>{item.review?.movie}</Text>
-      {!!item.comment?.text && <Text style={styles.activityBody}>“{item.comment.text}”</Text>}
-      <Text style={styles.reviewDate}>{item.date}</Text>
+      {!!item.comment?.text && <Text style={[styles.activityBody, { color: colors.muted }]}>“{item.comment.text}”</Text>}
+      <Text style={[styles.reviewDate, { color: colors.subtle }]}>{item.date}</Text>
     </View>
   );
 }
 
 function ListCard({ list }) {
+  const { colors } = useTheme();
   const count = list.movie_count ?? list.movies?.length ?? 0;
   return (
-    <View style={styles.listCard}>
-      <View style={styles.listIconWrap}>
+    <View style={[styles.listCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.listIconWrap, { backgroundColor: colors.cardMuted }]}>
         <View style={styles.filmIconRect} />
       </View>
       <View style={styles.listInfo}>
-        <Text style={styles.listName}>{list.name}</Text>
-        <Text style={styles.listCount}>{count} film{count !== 1 ? 's' : ''}</Text>
+        <Text style={[styles.listName, { color: colors.text }]}>{list.name}</Text>
+        <Text style={[styles.listCount, { color: colors.muted }]}>{count} film{count !== 1 ? 's' : ''}</Text>
       </View>
       <View style={[styles.listBadge, list.is_public ? styles.listBadgePublic : styles.listBadgePrivate]}>
         <Text style={[styles.listBadgeText, list.is_public && styles.listBadgeTextPublic]}>
@@ -240,6 +245,7 @@ function ListCard({ list }) {
 }
 
 function StatsTab({ stats, listsCount }) {
+  const { colors } = useTheme();
   const hoursWatched = Math.round((stats.movies_watched || 0) * 1.83);
   const cards = [
     { label: 'Films vus',     value: String(stats.movies_watched || 0) },
@@ -250,9 +256,9 @@ function StatsTab({ stats, listsCount }) {
   return (
     <View style={styles.statsGrid}>
       {cards.map((c) => (
-        <View key={c.label} style={styles.statCard}>
-          <Text style={styles.statCardLabel}>{c.label}</Text>
-          <Text style={styles.statCardValue}>{c.value}</Text>
+        <View key={c.label} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.statCardLabel, { color: colors.muted }]}>{c.label}</Text>
+          <Text style={[styles.statCardValue, { color: colors.text }]}>{c.value}</Text>
         </View>
       ))}
     </View>
@@ -260,6 +266,7 @@ function StatsTab({ stats, listsCount }) {
 }
 
 function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) {
+  const { colors } = useTheme();
   const [query, setQuery] = useState('');
   const filtered = users.filter((u) =>
     (u.username || '').toLowerCase().includes(query.trim().toLowerCase())
@@ -267,18 +274,18 @@ function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{title}</Text>
+        <Pressable style={[styles.modalContent, { backgroundColor: colors.card }]} onPress={(e) => e.stopPropagation()}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{title}</Text>
             <Pressable onPress={onClose} style={styles.modalClose}>
-              <Text style={styles.modalCloseText}>×</Text>
+              <Text style={[styles.modalCloseText, { color: colors.text }]}>×</Text>
             </Pressable>
           </View>
-          <View style={styles.modalSearchWrap}>
+          <View style={[styles.modalSearchWrap, { borderBottomColor: colors.border }]}>
             <TextInput
-              style={styles.modalSearchInput}
+              style={[styles.modalSearchInput, { backgroundColor: colors.input, color: colors.text }]}
               placeholder="Rechercher"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.subtle}
               value={query}
               onChangeText={setQuery}
             />
@@ -291,7 +298,7 @@ function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) 
                 <Skeleton style={{ height: 50 }} />
               </>
             ) : filtered.length === 0 ? (
-              <Text style={styles.modalEmpty}>{query ? 'Aucun résultat.' : emptyMessage}</Text>
+              <Text style={[styles.modalEmpty, { color: colors.muted }]}>{query ? 'Aucun résultat.' : emptyMessage}</Text>
             ) : (
               filtered.map((u) => (
                 <View key={u.id} style={styles.followRow}>
@@ -305,8 +312,8 @@ function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) 
                     )}
                   </View>
                   <View>
-                    <Text style={styles.followUsername}>{u.username}</Text>
-                    <Text style={styles.followHandle}>@{u.username}</Text>
+                    <Text style={[styles.followUsername, { color: colors.text }]}>{u.username}</Text>
+                    <Text style={[styles.followHandle, { color: colors.muted }]}>@{u.username}</Text>
                   </View>
                 </View>
               ))
@@ -321,6 +328,7 @@ function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) 
 /* ── Composant principal ── */
 
 export default function PublicProfileScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams(); // /public-profile?id=123
 
@@ -501,7 +509,7 @@ export default function PublicProfileScreen() {
                 <View style={styles.sectionIcon}>
                   <View style={[styles.starSmall, { borderColor: '#F59E0B' }]} />
                 </View>
-                <Text style={styles.sectionTitle}>Activité récente</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Activité récente</Text>
               </View>
             </View>
 
@@ -539,8 +547,8 @@ export default function PublicProfileScreen() {
 
   if (loading) {
     return (
-      <ScreenContainer>
-        <View style={styles.phone}>
+      <ScreenContainer backgroundColor={colors.bg}>
+        <View style={[styles.phone, { backgroundColor: colors.bg }]}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={RED} />
           </View>
@@ -551,8 +559,8 @@ export default function PublicProfileScreen() {
   }
 
   return (
-    <ScreenContainer>
-      <View style={styles.phone}>
+    <ScreenContainer backgroundColor={colors.bg}>
+      <View style={[styles.phone, { backgroundColor: colors.bg }]}>
         {/* Header navigation */}
         {false && <View style={styles.navBar}>
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -640,25 +648,25 @@ export default function PublicProfileScreen() {
           {/* Infos utilisateur */}
           <View style={styles.userInfo}>
             <View style={styles.nameRow}>
-              <Text style={styles.userName}>{username}</Text>
+              <Text style={[styles.userName, { color: colors.text }]}>{username}</Text>
               {isAdmin && (
                 <View style={styles.adminBadge}>
                   <Text style={styles.adminBadgeText}>Admin</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.userHandle}>@{username}</Text>
-            {bio ? <Text style={styles.userBio}>{bio}</Text> : null}
+            <Text style={[styles.userHandle, { color: colors.muted }]}>@{username}</Text>
+            {bio ? <Text style={[styles.userBio, { color: colors.muted }]}>{bio}</Text> : null}
             {websiteUrl ? (
               <Text style={styles.userWebsite} numberOfLines={1}>
                 🌐 {websiteUrl.replace(/^https?:\/\//, '')}
               </Text>
             ) : null}
-            {joinDate ? <Text style={styles.joinDate}>Membre depuis {joinDate}</Text> : null}
+            {joinDate ? <Text style={[styles.joinDate, { color: colors.subtle }]}>Membre depuis {joinDate}</Text> : null}
           </View>
 
           {/* Compteurs */}
-          <View style={styles.countersRow}>
+          <View style={[styles.countersRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {[
               { value: stats.movies_watched,          label: 'Vus',          onPress: null },
               { value: stats.reviews,                  label: 'Critiques',    onPress: null },
@@ -667,12 +675,12 @@ export default function PublicProfileScreen() {
             ].map((item, i) => (
               <Pressable
                 key={item.label}
-                style={[styles.counterItem, i > 0 && styles.counterBorder]}
+                style={[styles.counterItem, i > 0 && { borderLeftColor: colors.border, borderLeftWidth: 1 }]}
                 onPress={item.onPress}
                 disabled={!item.onPress}
               >
-                <Text style={styles.counterValue}>{item.value}</Text>
-                <Text style={[styles.counterLabel, item.onPress && styles.counterLabelClickable]}>
+                <Text style={[styles.counterValue, { color: colors.text }]}>{item.value}</Text>
+                <Text style={[styles.counterLabel, { color: colors.muted }, item.onPress && { color: colors.text }]}>
                   {item.label}
                 </Text>
               </Pressable>
@@ -680,16 +688,16 @@ export default function PublicProfileScreen() {
           </View>
 
           {/* Onglets */}
-          <View style={styles.tabBar}>
+          <View style={[styles.tabBar, { backgroundColor: colors.cardMuted }]}>
             {TABS.map((tab) => {
               const active = tab === activeTab;
               return (
                 <Pressable
                   key={tab}
-                  style={[styles.tabItem, active && styles.tabItemActive]}
+                  style={[styles.tabItem, active && { backgroundColor: colors.card }]}
                   onPress={() => setActiveTab(tab)}
                 >
-                  <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab}</Text>
+                  <Text style={[styles.tabText, { color: colors.muted }, active && { color: colors.text, fontWeight: '700' }]}>{tab}</Text>
                 </Pressable>
               );
             })}

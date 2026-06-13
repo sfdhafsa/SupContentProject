@@ -16,6 +16,7 @@ import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
+import { useTheme } from '../src/context/ThemeContext';
 import api from '../src/config/api';
 import { useAuth } from '../src/services/authApi';
 
@@ -63,25 +64,27 @@ function initialsFor(value) {
 }
 
 function Pill({ label, tone = 'neutral' }) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.pill, styles[`${tone}Pill`]]}>
+    <View style={[styles.pill, { backgroundColor: tone === 'neutral' ? colors.cardMuted : undefined }, styles[`${tone}Pill`]]}>
       <Text style={[styles.pillText, styles[`${tone}PillText`]]}>{label}</Text>
     </View>
   );
 }
 
 function Segmented({ items, value, onChange }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.segmented}>
+    <View style={[styles.segmented, { backgroundColor: colors.cardMuted }]}>
       {items.map((item) => {
         const active = item === value;
         return (
           <Pressable
             key={item}
             onPress={() => onChange(item)}
-            style={[styles.segmentItem, active && styles.segmentItemActive]}
+            style={[styles.segmentItem, active && { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{item}</Text>
+            <Text style={[styles.segmentText, { color: colors.muted }, active && { color: colors.text }]}>{item}</Text>
           </Pressable>
         );
       })}
@@ -90,15 +93,16 @@ function Segmented({ items, value, onChange }) {
 }
 
 function SearchBox({ value, onChange, placeholder }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.searchBox}>
+    <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <Search size={16} color="#94a3b8" />
       <TextInput
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor="#94a3b8"
-        style={styles.searchInput}
+        placeholderTextColor={colors.subtle}
+        style={[styles.searchInput, { color: colors.text }]}
         autoCapitalize="none"
         autoCorrect={false}
       />
@@ -112,12 +116,13 @@ function SearchBox({ value, onChange, placeholder }) {
 }
 
 function StatStrip({ items }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.statStrip}>
+    <View style={[styles.statStrip, { borderBottomColor: colors.border }]}>
       {items.map((item, index) => (
-        <View key={item.label} style={[styles.statCell, index > 0 && styles.statDivider]}>
-          <Text style={styles.statValue}>{item.value}</Text>
-          <Text style={styles.statLabel}>{item.label}</Text>
+        <View key={item.label} style={[styles.statCell, index > 0 && { borderLeftColor: colors.border, borderLeftWidth: 1 }]}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{item.value}</Text>
+          <Text style={[styles.statLabel, { color: colors.subtle }]}>{item.label}</Text>
         </View>
       ))}
     </View>
@@ -125,10 +130,11 @@ function StatStrip({ items }) {
 }
 
 function EmptyState({ icon, message }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIcon}>{icon}</View>
-      <Text style={styles.emptyText}>{message}</Text>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.cardMuted }]}>{icon}</View>
+      <Text style={[styles.emptyText, { color: colors.muted }]}>{message}</Text>
     </View>
   );
 }
@@ -169,6 +175,7 @@ function StarRating({ rating }) {
 }
 
 function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, onUpdatePromotion, users }) {
+  const { colors } = useTheme();
   const stats = [
     { label: 'Total users', value: users.length },
     { label: 'Active', value: users.filter((item) => !item.is_banned).length },
@@ -176,7 +183,7 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
   ];
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <StatStrip items={stats} />
       {loading ? (
         <LoadingState />
@@ -196,16 +203,16 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
           const banDisabled = Boolean(busyId) || isCurrentUser;
 
           return (
-            <View key={user.id} style={styles.userRow}>
+            <View key={user.id} style={[styles.userRow, { borderBottomColor: colors.border }]}>
               <View style={styles.userTop}>
                 <UserAvatar user={user} />
                 <View style={styles.userIdentity}>
                   <View style={styles.nameLine}>
-                    <Text style={styles.primaryName} numberOfLines={1}>{user.username}</Text>
+                    <Text style={[styles.primaryName, { color: colors.text }]} numberOfLines={1}>{user.username}</Text>
                     {isAdmin ? <Pill label="Admin" tone="admin" /> : null}
                     <Pill label={user.is_banned ? 'Banned' : 'Active'} tone={user.is_banned ? 'danger' : 'success'} />
                   </View>
-                  <Text style={styles.emailText} numberOfLines={1}>{user.email}</Text>
+                  <Text style={[styles.emailText, { color: colors.subtle }]} numberOfLines={1}>{user.email}</Text>
                 </View>
               </View>
 
@@ -258,6 +265,7 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
 }
 
 function ReviewsPanel({ busyId, filteredReviews, loading, onUpdateFeatured, reviews }) {
+  const { colors } = useTheme();
   const stats = [
     { label: 'Total reviews', value: reviews.length },
     { label: 'Featured', value: reviews.filter((item) => item.is_featured).length },
@@ -265,7 +273,7 @@ function ReviewsPanel({ busyId, filteredReviews, loading, onUpdateFeatured, revi
   ];
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <StatStrip items={stats} />
       {loading ? (
         <LoadingState />
@@ -275,7 +283,7 @@ function ReviewsPanel({ busyId, filteredReviews, loading, onUpdateFeatured, revi
         filteredReviews.map((review) => {
           const isBusy = busyId === `review-${review.id}`;
           return (
-            <View key={review.id} style={styles.reviewRow}>
+            <View key={review.id} style={[styles.reviewRow, { borderBottomColor: colors.border }]}>
               <View style={styles.reviewBody}>
                 <View style={styles.poster}>
                   {review.poster_url ? (
@@ -287,19 +295,19 @@ function ReviewsPanel({ busyId, filteredReviews, loading, onUpdateFeatured, revi
 
                 <View style={styles.reviewContent}>
                   <View style={styles.nameLine}>
-                    <Text style={styles.primaryName} numberOfLines={1}>{review.movie_title || 'Untitled movie'}</Text>
+                    <Text style={[styles.primaryName, { color: colors.text }]} numberOfLines={1}>{review.movie_title || 'Untitled movie'}</Text>
                     {review.is_featured ? <Pill label="Featured" tone="warning" /> : null}
                     {review.contains_spoiler ? <Pill label="Spoiler" tone="neutral" /> : null}
                   </View>
-                  <Text style={styles.emailText} numberOfLines={1}>
+                  <Text style={[styles.emailText, { color: colors.subtle }]} numberOfLines={1}>
                     {review.username || 'Unknown user'} - {formatDate(review.created_at)} - {review.likes_count || 0} likes
                   </Text>
                   <StarRating rating={review.rating} />
-                  <Text style={styles.reviewText} numberOfLines={3}>{review.text || 'Rated this movie.'}</Text>
+                  <Text style={[styles.reviewText, { color: colors.muted }]} numberOfLines={3}>{review.text || 'Rated this movie.'}</Text>
                 </View>
               </View>
 
-              <Text style={styles.statusNote}>
+              <Text style={[styles.statusNote, { color: colors.subtle }]}>
                 {review.is_featured
                   ? `Featured ${formatDate(review.featured_at)}${review.featured_by_username ? ` by ${review.featured_by_username}` : ''}`
                   : 'Not featured'}
@@ -322,6 +330,7 @@ function ReviewsPanel({ busyId, filteredReviews, loading, onUpdateFeatured, revi
 }
 
 function ReportsPanel({ busyId, filteredReports, loading, onDeleteTarget, onDismiss, reports }) {
+  const { colors } = useTheme();
   const stats = [
     { label: 'Total reports', value: reports.length },
     { label: 'Pending', value: reports.filter((item) => item.status === 'PENDING').length },
@@ -330,7 +339,7 @@ function ReportsPanel({ busyId, filteredReports, loading, onDeleteTarget, onDism
   ];
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <StatStrip items={stats} />
       {loading ? (
         <LoadingState />
@@ -341,13 +350,13 @@ function ReportsPanel({ busyId, filteredReports, loading, onDeleteTarget, onDism
           const isPending = report.status === 'PENDING';
           const isBusy = busyId === `report-${report.id}`;
           return (
-            <View key={report.id} style={styles.reportRow}>
+            <View key={report.id} style={[styles.reportRow, { borderBottomColor: colors.border }]}>
               <View style={styles.nameLine}>
-                <Text style={styles.primaryName}>{report.target_type === 'REVIEW' ? 'Review' : 'Comment'} report</Text>
+                <Text style={[styles.primaryName, { color: colors.text }]}>{report.target_type === 'REVIEW' ? 'Review' : 'Comment'} report</Text>
                 <Pill label={report.status} tone={report.status === 'PENDING' ? 'warning' : report.status === 'RESOLVED' ? 'success' : 'neutral'} />
                 <Pill label={REPORT_REASON_LABELS[report.reason] || report.reason || 'Other'} tone="admin" />
               </View>
-              <Text style={styles.reportText} numberOfLines={4}>
+              <Text style={[styles.reportText, { color: colors.muted }]} numberOfLines={4}>
                 {report.target_text || 'Reported content is unavailable or has no text.'}
               </Text>
 
@@ -356,7 +365,7 @@ function ReportsPanel({ busyId, filteredReports, loading, onDeleteTarget, onDism
                 <Meta label="Target author" value={report.target_author_username || 'Unknown user'} />
                 <Meta label="Reported at" value={formatDate(report.created_at)} />
               </View>
-              <Text style={styles.statusNote}>
+              <Text style={[styles.statusNote, { color: colors.subtle }]}>
                 {report.handled_at
                   ? `Handled ${formatDate(report.handled_at)}${report.handler_username ? ` by ${report.handler_username}` : ''}`
                   : 'Not handled'}
@@ -387,15 +396,17 @@ function ReportsPanel({ busyId, filteredReports, loading, onDeleteTarget, onDism
 }
 
 function Meta({ label, value }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.metaItem}>
-      <Text style={styles.metaLabel}>{label}</Text>
-      <Text style={styles.metaValue} numberOfLines={1}>{value}</Text>
+      <Text style={[styles.metaLabel, { color: colors.subtle }]}>{label}</Text>
+      <Text style={[styles.metaValue, { color: colors.text }]} numberOfLines={1}>{value}</Text>
     </View>
   );
 }
 
 function AdminViewContent() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { tab } = useLocalSearchParams();
   const { user: currentUser, loading: authLoading } = useAuth();
@@ -620,8 +631,8 @@ function AdminViewContent() {
 
   if (authLoading || !currentUser || !isAdmin) {
     return (
-      <ScreenContainer backgroundColor={BG}>
-        <View style={styles.phone}>
+      <ScreenContainer backgroundColor={colors.bg}>
+        <View style={[styles.phone, { backgroundColor: colors.bg }]}>
           <LoadingState />
           <BottomTabBar />
         </View>
@@ -638,8 +649,8 @@ function AdminViewContent() {
   const setCurrentFilter = isUsersTab ? setUserFilter : isReviewsTab ? setReviewFilter : setReportFilter;
 
   return (
-    <ScreenContainer backgroundColor={BG}>
-      <View style={styles.phone}>
+    <ScreenContainer backgroundColor={colors.bg}>
+      <View style={[styles.phone, { backgroundColor: colors.bg }]}>
         <TopNavbar username={currentUser?.username || 'Admin'} />
         <ScrollView
           style={styles.scroll}
@@ -652,8 +663,8 @@ function AdminViewContent() {
                 <ShieldCheck size={18} color={RED} />
               </View>
               <View>
-                <Text style={styles.title}>Admin view</Text>
-                <Text style={styles.subtitle}>Manage users, bans, featured reviews, and ban history.</Text>
+                <Text style={[styles.title, { color: colors.text }]}>Admin view</Text>
+                <Text style={[styles.subtitle, { color: colors.muted }]}>Manage users, bans, featured reviews, and ban history.</Text>
               </View>
             </View>
           </View>
@@ -661,7 +672,7 @@ function AdminViewContent() {
           <SearchBox value={query} onChange={setQuery} placeholder={placeholder} />
           <Segmented items={currentFilters} value={currentFilter} onChange={setCurrentFilter} />
 
-          <View style={styles.tabBar}>
+          <View style={[styles.tabBar, { backgroundColor: colors.cardMuted }]}>
             {TABS.map((tab) => {
               const active = tab.id === activeTab;
               return (
@@ -672,9 +683,9 @@ function AdminViewContent() {
                     setQuery('');
                     setError('');
                   }}
-                  style={[styles.tabButton, active && styles.tabButtonActive]}
+                  style={[styles.tabButton, active && { backgroundColor: colors.card }]}
                 >
-                  <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab.label}</Text>
+                  <Text style={[styles.tabText, { color: colors.muted }, active && { color: colors.text }]}>{tab.label}</Text>
                 </Pressable>
               );
             })}

@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
+import { useTheme } from '../src/context/ThemeContext';
 import { getAuthUser } from '../src/services/authStorage';
 import { getLibraryStats } from '../src/services/libraryApi';
 
@@ -18,6 +19,7 @@ const BAR_DATA = [
 
 export default function Dashboard() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [user, setUser]       = useState(null);
   const [stats, setStats]     = useState(null);
   const [loading, setLoading] = useState(false);
@@ -47,15 +49,15 @@ export default function Dashboard() {
   ];
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={[s.safe, { backgroundColor: colors.bg }]}>
       <TopNavbar username={user?.username || 'User'} />
 
-      <View style={s.subNav}>
+      <View style={[s.subNav, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable style={s.subNavBtn} onPress={() => router.push('/library')}>
-          <Text style={s.subNavText}>Biblio</Text>
+          <Text style={[s.subNavText, { color: colors.subtle }]}>Biblio</Text>
         </Pressable>
         <Pressable style={s.subNavBtn} onPress={() => router.push('/lists')}>
-          <Text style={s.subNavText}>Listes</Text>
+          <Text style={[s.subNavText, { color: colors.subtle }]}>Listes</Text>
         </Pressable>
         <Pressable style={[s.subNavBtn, s.subNavBtnActive]}>
           <Text style={[s.subNavText, s.subNavTextActive]}>Stats</Text>
@@ -68,24 +70,24 @@ export default function Dashboard() {
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
           <View style={s.header}>
-            <Text style={s.headerTitle}>Mes statistiques</Text>
-            <Text style={s.headerSub}>Votre activite cinema en un coup d'oeil</Text>
+            <Text style={[s.headerTitle, { color: colors.text }]}>Mes statistiques</Text>
+            <Text style={[s.headerSub, { color: colors.muted }]}>Votre activite cinema en un coup d'oeil</Text>
           </View>
 
           <View style={s.statGrid}>
             {STAT_CARDS.map(({ label, value, color }) => (
-              <View key={label} style={s.statCard}>
+              <View key={label} style={[s.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={[s.statIconBox, { backgroundColor: color + '18' }]} />
                 <Text style={[s.statValue, { color }]}>{value}</Text>
-                <Text style={s.statLabel}>{label}</Text>
+                <Text style={[s.statLabel, { color: colors.muted }]}>{label}</Text>
               </View>
             ))}
           </View>
 
           {totalMovies > 0 && (
             <>
-              <Text style={s.sectionTitle}>Repartition</Text>
-              <View style={s.barCard}>
+              <Text style={[s.sectionTitle, { color: colors.text }]}>Repartition</Text>
+              <View style={[s.barCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={s.barTrack}>
                   {BAR_DATA.map(({ key, color }) => {
                     const val = counts[key] || 0;
@@ -101,7 +103,7 @@ export default function Dashboard() {
                     return (
                       <View key={key} style={s.legendItem}>
                         <View style={[s.legendDot, { backgroundColor: color }]} />
-                        <Text style={s.legendText}>{label}</Text>
+                        <Text style={[s.legendText, { color: colors.muted }]}>{label}</Text>
                         <Text style={[s.legendPct, { color }]}>{pct}%</Text>
                       </View>
                     );
@@ -113,10 +115,10 @@ export default function Dashboard() {
 
           {hoursWatched > 0 && (
             <>
-              <Text style={s.sectionTitle}>Temps de visionnage</Text>
-              <View style={s.durationCard}>
+              <Text style={[s.sectionTitle, { color: colors.text }]}>Temps de visionnage</Text>
+              <View style={[s.durationCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text style={s.durationValue}>{hoursWatched}h {minsWatched}m</Text>
-                <Text style={s.durationLabel}>de films regardes au total</Text>
+                <Text style={[s.durationLabel, { color: colors.subtle }]}>de films regardes au total</Text>
               </View>
             </>
           )}
@@ -128,8 +130,8 @@ export default function Dashboard() {
 
           {totalMovies === 0 && (
             <View style={s.emptyBox}>
-              <Text style={s.emptyTitle}>Aucune statistique</Text>
-              <Text style={s.emptySub}>Ajoutez des films a votre bibliotheque pour voir vos stats ici.</Text>
+              <Text style={[s.emptyTitle, { color: colors.text }]}>Aucune statistique</Text>
+              <Text style={[s.emptySub, { color: colors.subtle }]}>Ajoutez des films a votre bibliotheque pour voir vos stats ici.</Text>
               <Pressable style={s.goBtn} onPress={() => router.push('/library')}>
                 <Text style={s.goBtnText}>Voir ma bibliotheque</Text>
               </Pressable>

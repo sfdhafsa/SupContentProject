@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
+import { useTheme } from '../src/context/ThemeContext';
 import { getAuthUser } from '../src/services/authStorage';
 import { getLibrary, upsertLibraryEntry, removeLibraryEntry } from '../src/services/libraryApi';
 
@@ -31,6 +32,7 @@ const STATUS_COLORS = {
 
 export default function Library() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [user, setUser]                   = useState(null);
   const [activeStatus, setActiveStatus]   = useState(null);
   const [movies, setMovies]               = useState([]);
@@ -76,25 +78,25 @@ export default function Library() {
   const filtered   = activeStatus ? movies.filter(m => m.status === activeStatus) : movies;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={[s.safe, { backgroundColor: colors.bg }]}>
       <TopNavbar username={user?.username || 'User'} />
 
-      <View style={s.subNav}>
+      <View style={[s.subNav, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable style={[s.subNavBtn, s.subNavBtnActive]}>
           <Text style={[s.subNavText, s.subNavTextActive]}>Biblio</Text>
         </Pressable>
         <Pressable style={s.subNavBtn} onPress={() => router.push('/lists')}>
-          <Text style={s.subNavText}>Listes</Text>
+          <Text style={[s.subNavText, { color: colors.subtle }]}>Listes</Text>
         </Pressable>
         <Pressable style={s.subNavBtn} onPress={() => router.push('/dashboard')}>
-          <Text style={s.subNavText}>Stats</Text>
+          <Text style={[s.subNavText, { color: colors.subtle }]}>Stats</Text>
         </Pressable>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
         <View style={s.header}>
-          <Text style={s.headerTitle}>Ma bibliotheque</Text>
-          <Text style={s.headerSub}>Vos films sauvegardes</Text>
+          <Text style={[s.headerTitle, { color: colors.text }]}>Ma bibliotheque</Text>
+          <Text style={[s.headerSub, { color: colors.muted }]}>Vos films sauvegardes</Text>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
@@ -103,30 +105,30 @@ export default function Library() {
             const active = activeStatus === st.key;
             return (
               <Pressable key={String(st.key)} onPress={() => setActiveStatus(st.key)}
-                style={[s.chip, active && s.chipActive]}>
-                <Text style={[s.chipText, active && s.chipTextActive]}>{st.label}</Text>
-                <View style={[s.chipBadge, active && s.chipBadgeActive]}>
-                  <Text style={[s.chipBadgeText, active && s.chipBadgeTextActive]}>{count}</Text>
+                style={[s.chip, { backgroundColor: colors.card, borderColor: colors.border }, active && s.chipActive]}>
+                <Text style={[s.chipText, { color: colors.muted }, active && s.chipTextActive]}>{st.label}</Text>
+                <View style={[s.chipBadge, { backgroundColor: colors.cardMuted }, active && s.chipBadgeActive]}>
+                  <Text style={[s.chipBadgeText, { color: colors.muted }, active && s.chipBadgeTextActive]}>{count}</Text>
                 </View>
               </Pressable>
             );
           })}
         </ScrollView>
 
-        <View style={s.statsRow}>
+        <View style={[s.statsRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={s.statBox}>
-            <Text style={s.statValue}>{totalCount}</Text>
-            <Text style={s.statLabel}>Sauvegardes</Text>
+            <Text style={[s.statValue, { color: colors.text }]}>{totalCount}</Text>
+            <Text style={[s.statLabel, { color: colors.subtle }]}>Sauvegardes</Text>
           </View>
           <View style={s.statDivider} />
           <View style={s.statBox}>
-            <Text style={s.statValue}>{vuCount}</Text>
-            <Text style={s.statLabel}>Vus</Text>
+            <Text style={[s.statValue, { color: colors.text }]}>{vuCount}</Text>
+            <Text style={[s.statLabel, { color: colors.subtle }]}>Vus</Text>
           </View>
           <View style={s.statDivider} />
           <View style={s.statBox}>
-            <Text style={s.statValue}>{aVoirCount}</Text>
-            <Text style={s.statLabel}>A voir</Text>
+            <Text style={[s.statValue, { color: colors.text }]}>{aVoirCount}</Text>
+            <Text style={[s.statLabel, { color: colors.subtle }]}>A voir</Text>
           </View>
         </View>
 

@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
+import { useTheme } from '../src/context/ThemeContext';
 import useAuthSession from '../src/hooks/useAuthSession';
 import {
   discoverMovies,
@@ -566,6 +567,7 @@ export default function Discover() {
   const router       = useRouter();
   const searchParams = useLocalSearchParams();
   const { isAuthenticated } = useAuthSession();
+  const { colors, darkMode } = useTheme();
 
   // ── Search state ──
   const [inlineQuery, setInlineQuery]     = useState(searchParams.q || '');
@@ -686,8 +688,8 @@ export default function Discover() {
   const handleTopSearch = useCallback((text) => setInlineQuery(text), []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.white} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.surface} />
       <TopNavbar username="User" onSearch={handleTopSearch} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -703,12 +705,12 @@ export default function Discover() {
           )}
 
           {/* Barre de recherche inline */}
-          <View style={s.searchBarInline}>
+          <View style={[s.searchBarInline, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={{ fontSize: 16, marginRight: 8, color: C.gray400 }}>⌕</Text>
             <TextInput
-              style={{ flex: 1, fontSize: 15, color: C.black, paddingVertical: 0 }}
+              style={{ flex: 1, fontSize: 15, color: colors.text, paddingVertical: 0 }}
               placeholder="Films, utilisateurs, listes..."
-              placeholderTextColor={C.gray400}
+              placeholderTextColor={colors.subtle}
               value={inlineQuery}
               onChangeText={setInlineQuery}
               returnKeyType="search"

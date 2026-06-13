@@ -15,6 +15,7 @@ import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
+import { useTheme } from '../src/context/ThemeContext';
 import FeedList from '../src/components/feed/FeedList';
 import { useFeed } from '../src/hooks/useFeed';
 import { getAuthUser } from '../src/services/authStorage';
@@ -151,6 +152,7 @@ function SectionHeader({ icon, title, onSeeAll }) {
 // ── HomeContent ──
 function HomeContent() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [username, setUsername]               = useState('');
   const [currentUserId, setCurrentUserId]     = useState(null);
   const [trending, setTrending]               = useState([]);
@@ -176,8 +178,8 @@ function HomeContent() {
   const handleMoviePress = useCallback((tmdbId) => router.push(`/movie/${tmdbId}`), [router]);
 
   return (
-    <ScreenContainer>
-      <View style={s.page}>
+    <ScreenContainer backgroundColor={colors.page}>
+      <View style={[s.page, { backgroundColor: colors.page }]}>
         <TopNavbar username={username || 'User'} />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
@@ -188,8 +190,8 @@ function HomeContent() {
             transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
           }]}>
             <Text style={s.greetingLabel}>{getGreeting()},</Text>
-            <Text style={s.greetingName}>{username || '…'}</Text>
-            <Text style={s.greetingSub}>Découvrez les films du moment</Text>
+            <Text style={[s.greetingName, { color: colors.text }]}>{username || '…'}</Text>
+            <Text style={[s.greetingSub, { color: colors.muted }]}>Découvrez les films du moment</Text>
           </Animated.View>
 
           {/* ── Tendances — icône Lucide Flame ── */}

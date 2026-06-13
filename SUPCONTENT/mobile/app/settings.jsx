@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
+import { useTheme } from '../src/context/ThemeContext';
 import api, { API_BASE_URL } from '../src/config/api';
 import { clearAuthSession, getAuthToken, saveAuthSession } from '../src/services/authStorage';
 import { useAuth } from '../src/services/authApi';
@@ -42,25 +43,32 @@ const isStrongPassword = (value) =>
   value.length >= 8 && /[A-Z]/.test(value) && /[0-9]/.test(value);
 
 function Card({ title, danger = false, children }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.card}>
-      {title ? <Text style={[styles.cardTitle, danger && styles.dangerText]}>{title}</Text> : null}
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {title ? <Text style={[styles.cardTitle, { color: colors.text }, danger && styles.dangerText]}>{title}</Text> : null}
       {children}
     </View>
   );
 }
 
 function Field({ label, error, multiline = false, disabled = false, ...props }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.field}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={[styles.label, { color: colors.muted }]}>{label}</Text> : null}
       <TextInput
         {...props}
         editable={!disabled}
         multiline={multiline}
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={colors.subtle}
         style={[
           styles.input,
+          {
+            backgroundColor: colors.input,
+            borderColor: colors.border,
+            color: colors.text,
+          },
           multiline && styles.textarea,
           disabled && styles.inputDisabled,
           error && styles.inputError,
@@ -105,11 +113,12 @@ function Notice({ children }) {
 }
 
 function SettingToggle({ label, description, value, onChange }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.toggleRow}>
+    <View style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
       <View style={styles.toggleCopy}>
-        <Text style={styles.toggleLabel}>{label}</Text>
-        <Text style={styles.toggleDescription}>{description}</Text>
+        <Text style={[styles.toggleLabel, { color: colors.text }]}>{label}</Text>
+        <Text style={[styles.toggleDescription, { color: colors.muted }]}>{description}</Text>
       </View>
       <Switch
         value={value}
@@ -125,6 +134,7 @@ function SettingToggle({ label, description, value, onChange }) {
 function SettingsContent() {
   const router = useRouter();
   const { user, token, loading } = useAuth();
+  const { colors, darkMode, toggleTheme } = useTheme();
   const [tab, setTab] = useState('Profil');
   const [localUser, setLocalUser] = useState(user);
   const [profile, setProfile] = useState({ username: '', bio: '', website_url: '' });
@@ -381,31 +391,31 @@ function SettingsContent() {
   };
 
   if (loading || !localUser) {
-    return <View style={styles.loading}><ActivityIndicator size="large" color={RED} /></View>;
+    return <View style={[styles.loading, { backgroundColor: colors.bg }]}><ActivityIndicator size="large" color={RED} /></View>;
   }
 
   const avatarUri = avatarAsset?.uri || localUser.avatar_url;
 
   return (
-    <ScreenContainer backgroundColor={BG}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>‹</Text>
+    <ScreenContainer backgroundColor={colors.bg}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <Pressable onPress={() => router.back()} style={[styles.backButton, { borderColor: colors.border }]}>
+          <Text style={[styles.backText, { color: colors.text }]}>‹</Text>
         </Pressable>
         <View>
-          <Text style={styles.title}>Paramètres</Text>
-          <Text style={styles.subtitle}>Gérez votre compte et vos préférences</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Paramètres</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>Gérez votre compte et vos préférences</Text>
         </View>
       </View>
 
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         {TABS.map((item) => (
           <Pressable
             key={item}
             onPress={() => setTab(item)}
-            style={[styles.tab, tab === item && styles.tabActive]}
+            style={[styles.tab, tab === item && { borderBottomColor: colors.text }]}
           >
-            <Text style={[styles.tabText, tab === item && styles.tabTextActive]}>{item}</Text>
+            <Text style={[styles.tabText, { color: colors.muted }, tab === item && { color: colors.text }]}>{item}</Text>
           </Pressable>
         ))}
       </View>
@@ -473,6 +483,13 @@ function SettingsContent() {
         {tab === 'Compte' ? (
           <>
             <Card title="Paramètres du compte">
+              <SettingToggle
+                label="Mode sombre"
+                description={darkMode ? 'Revenir au theme clair' : 'Passer au theme sombre'}
+                value={darkMode}
+                onChange={toggleTheme}
+              />
+              <View style={styles.divider} />
               <Field label="Email" value={localUser.email || ''} disabled />
               <View style={styles.divider} />
               <Text style={styles.label}>Langue</Text>

@@ -1,5 +1,6 @@
 import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 import useAuthSession from '../hooks/useAuthSession';
 
 const publicTabs = [
@@ -40,8 +41,8 @@ function ShieldIcon({ color }) {
   );
 }
 
-function TabIcon({ type, active }) {
-  const color = active ? '#ef0d1a' : '#9ca3af';
+function TabIcon({ type, active, inactiveColor }) {
+  const color = active ? '#ef0d1a' : inactiveColor;
   return (
     <View>
       {type === 'home' && <View style={[styles.homeIcon, { borderColor: color }]} />}
@@ -81,6 +82,7 @@ export default function BottomTabBar() {
   const router   = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, user } = useAuthSession();
+  const { colors } = useTheme();
   const tabs = isAuthenticated ? getPrivateTabs(user) : publicTabs;
 
   const handlePress = async (tab) => {
@@ -88,16 +90,22 @@ export default function BottomTabBar() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: colors.surface,
+        borderTopColor: colors.border,
+      },
+    ]}>
       {tabs.map((tab) => {
         const isActive = isActiveRoute(pathname, tab.route);
 
         return (
           <Pressable key={tab.route} onPress={() => handlePress(tab)} style={styles.tab}>
             <View style={styles.iconSlot}>
-              <TabIcon type={tab.icon} active={isActive} />
+              <TabIcon type={tab.icon} active={isActive} inactiveColor={colors.subtle} />
             </View>
-            <Text style={[styles.label, isActive && styles.activeLabel]}>{tab.label}</Text>
+            <Text style={[styles.label, { color: colors.subtle }, isActive && styles.activeLabel]}>{tab.label}</Text>
           </Pressable>
         );
       })}

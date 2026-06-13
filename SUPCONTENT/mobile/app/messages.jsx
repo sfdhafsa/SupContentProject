@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
+import { useTheme } from '../src/context/ThemeContext';
 import ConversationList from '../src/components/messages/ConversationList';
 import { useMessages } from '../src/hooks/useMessages';
 import { searchUsers } from '../src/services/messagesApi';
@@ -61,6 +62,7 @@ function getOtherUser(conversation) {
 
 export default function Messages() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { conversations, loading, refreshing, error, refresh } = useMessages();
   const [search, setSearch] = useState('');
   const [userResults, setUserResults] = useState([]);
@@ -110,15 +112,15 @@ export default function Messages() {
   );
 
   return (
-    <ScreenContainer>
-      <View style={styles.phone}>
+    <ScreenContainer backgroundColor={colors.bg}>
+      <View style={[styles.phone, { backgroundColor: colors.bg }]}>
         <TopNavbar />
 
         <View style={styles.content}>
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Conversations</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: colors.text }]}>Conversations</Text>
+              <Text style={[styles.subtitle, { color: colors.muted }]}>
                 Vous pouvez seulement envoyer des messages aux abonnements mutuels
               </Text>
             </View>
@@ -127,13 +129,13 @@ export default function Messages() {
             </View>
           </View>
 
-          <View style={styles.panel}>
-            <View style={styles.searchWrap}>
+          <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.searchWrap, { backgroundColor: colors.input, borderColor: colors.border }]}>
               <SearchIcon />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.text }]}
                 placeholder="Rechercher un utilisateur"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.subtle}
                 value={search}
                 onChangeText={setSearch}
                 autoCapitalize="none"

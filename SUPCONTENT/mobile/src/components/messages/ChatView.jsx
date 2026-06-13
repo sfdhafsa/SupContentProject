@@ -12,9 +12,11 @@ import {
 } from 'react-native';
 import { useConversation } from '../../hooks/useConversation';
 import { useSocket } from '../../hooks/useSocket';
+import { useTheme } from '../../context/ThemeContext';
 import ChatBubble from './ChatBubble';
 
 export default function ChatView({ userId, username, currentUserId }) {
+  const { colors } = useTheme();
   const flatListRef = useRef(null);
   const [inputText, setInputText] = useState('');
   const { messages, loading, sending, error, send, appendMessage } = useConversation(userId, currentUserId);
@@ -62,7 +64,7 @@ export default function ChatView({ userId, username, currentUserId }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={58}
     >
@@ -79,18 +81,18 @@ export default function ChatView({ userId, username, currentUserId }) {
         contentContainerStyle={styles.messageList}
         ListEmptyComponent={
           <View style={styles.center}>
-            <Text style={styles.emptyText}>Commencez la conversation !</Text>
+            <Text style={[styles.emptyText, { color: colors.subtle }]}>Commencez la conversation !</Text>
           </View>
         }
       />
 
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: colors.input, color: colors.text }]}
           value={inputText}
           onChangeText={setInputText}
           placeholder="Message..."
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={colors.subtle}
           multiline
           maxLength={1000}
           returnKeyType="send"

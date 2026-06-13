@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import TopNavbar from '../src/components/TopNavbar';
+import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import useAuthSession, { AuthSessionProvider } from '../src/hooks/useAuthSession';
 import { NotificationBadgeProvider } from '../src/hooks/useNotificationBadge';
 import { UnreadChatBadgeProvider } from '../src/hooks/useUnreadChatBadge';
@@ -29,6 +30,7 @@ function RootNavigator() {
   const pathname = usePathname();
   const router = useRouter();
   const { loading, isAuthenticated } = useAuthSession();
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (loading) return;
@@ -63,9 +65,9 @@ function RootNavigator() {
     !hasRoutePrefix(pathname, routesWithOwnTopNavbar);
 
   return (
-    <View style={styles.navigator}>
+    <View style={[styles.navigator, { backgroundColor: colors.page }]}>
       {showLayoutTopNavbar ? <TopNavbar /> : null}
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#ffffff' } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.page } }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
@@ -93,11 +95,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthSessionProvider>
-        <NotificationBadgeProvider>
-          <UnreadChatBadgeProvider>
-            <RootNavigator />
-          </UnreadChatBadgeProvider>
-        </NotificationBadgeProvider>
+        <ThemeProvider>
+          <NotificationBadgeProvider>
+            <UnreadChatBadgeProvider>
+              <RootNavigator />
+            </UnreadChatBadgeProvider>
+          </NotificationBadgeProvider>
+        </ThemeProvider>
       </AuthSessionProvider>
     </SafeAreaProvider>
   );

@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Bookmark, Heart, MessageCircle, Star } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 import useAuthSession from '../../hooks/useAuthSession';
 import {
   createReviewComment,
@@ -107,6 +108,7 @@ function FeedAvatar({ avatarUrl, username }) {
 }
 
 function CommentRow({ comment }) {
+  const { colors } = useTheme();
   const initials = comment.username ? comment.username.slice(0, 2).toUpperCase() : 'U';
 
   return (
@@ -119,8 +121,8 @@ function CommentRow({ comment }) {
         )}
       </View>
       <View style={styles.commentBubble}>
-        <Text style={styles.commentUsername} numberOfLines={1}>{comment.username || 'User'}</Text>
-        <Text style={styles.commentText}>{comment.text}</Text>
+        <Text style={[styles.commentUsername, { color: colors.text }]} numberOfLines={1}>{comment.username || 'User'}</Text>
+        <Text style={[styles.commentText, { color: colors.muted }]}>{comment.text}</Text>
       </View>
     </View>
   );
@@ -129,6 +131,7 @@ function CommentRow({ comment }) {
 export default function FeedCard({ item, currentUserId }) {
   const router = useRouter();
   const { token, isAuthenticated } = useAuthSession();
+  const { colors } = useTheme();
   const { activity, author, movie, review, comment, collection } = item;
   const [liked, setLiked] = useState(Boolean(review?.has_liked));
   const [likesCount, setLikesCount] = useState(Number(review?.likes_count || 0));
@@ -324,7 +327,11 @@ export default function FeedCard({ item, currentUserId }) {
   };
 
   return (
-    <View style={styles.feedItem}>
+    <View style={[styles.feedItem, {
+      backgroundColor: colors.card,
+      borderColor: colors.border,
+      shadowColor: colors.shadow,
+    }]}>
       <View style={styles.feedHeader}>
         <Pressable
           accessibilityRole="button"
@@ -341,14 +348,14 @@ export default function FeedCard({ item, currentUserId }) {
 
         <View style={styles.feedHeaderContent}>
           <Text
-            style={styles.feedItemHeadline}
+            style={[styles.feedItemHeadline, { color: colors.text }]}
             numberOfLines={2}
           >
             {username ? (
               <Text
                 accessibilityRole="link"
                 onPress={openAuthorProfile}
-                style={styles.feedAuthorName}
+                style={[styles.feedAuthorName, { color: colors.text }]}
               >
                 {username}
               </Text>
@@ -357,7 +364,7 @@ export default function FeedCard({ item, currentUserId }) {
           </Text>
 
           {activityDate ? (
-            <Text style={styles.feedDate}>
+            <Text style={[styles.feedDate, { color: colors.subtle }]}>
               {activityDate}
             </Text>
           ) : null}
@@ -380,7 +387,7 @@ export default function FeedCard({ item, currentUserId }) {
       </View>
 
       {hasMoviePanel ? (
-        <View style={styles.moviePanel}>
+        <View style={[styles.moviePanel, { backgroundColor: colors.cardMuted }]}>
           {movie?.poster_url ? (
             <Pressable
               accessibilityRole="button"
@@ -404,7 +411,7 @@ export default function FeedCard({ item, currentUserId }) {
               <Text
                 accessibilityRole="button"
                 onPress={openMovie}
-                style={styles.feedMovieTitle}
+                style={[styles.feedMovieTitle, { color: colors.text }]}
                 numberOfLines={1}
               >
                 {movie.title}
@@ -412,7 +419,7 @@ export default function FeedCard({ item, currentUserId }) {
             ) : null}
 
             {movieYear ? (
-              <Text style={styles.movieYear}>
+              <Text style={[styles.movieYear, { color: colors.subtle }]}>
                 {movieYear}
               </Text>
             ) : null}
@@ -432,7 +439,7 @@ export default function FeedCard({ item, currentUserId }) {
                     fill={YELLOW}
                     strokeWidth={2}
                   />
-                  <Text style={styles.feedRatingText}>
+                  <Text style={[styles.feedRatingText, { color: colors.text }]}>
                     {review.rating}
                   </Text>
                 </Pressable>
@@ -472,7 +479,8 @@ export default function FeedCard({ item, currentUserId }) {
           <Text
             style={[
               styles.feedItemBody,
-              (canOpenReviewTarget || canOpenCollection) && styles.feedItemBodyLink,
+              { color: colors.muted },
+              (canOpenReviewTarget || canOpenCollection) && { color: colors.text },
             ]}
             numberOfLines={3}
           >
@@ -493,7 +501,7 @@ export default function FeedCard({ item, currentUserId }) {
             >
               <Heart
                 size={12}
-                color={liked ? RED : MUTED}
+                color={liked ? RED : colors.muted}
                 fill={liked ? RED : 'transparent'}
                 strokeWidth={2}
               />
@@ -508,8 +516,8 @@ export default function FeedCard({ item, currentUserId }) {
               onPress={toggleComments}
               style={styles.feedFooterAction}
             >
-              <MessageCircle size={12} color={commentsOpen ? TEXT : MUTED} strokeWidth={2} />
-              <Text style={[styles.feedFooterText, commentsOpen && styles.feedFooterTextOpen]}>
+              <MessageCircle size={12} color={commentsOpen ? colors.text : colors.muted} strokeWidth={2} />
+              <Text style={[styles.feedFooterText, { color: colors.muted }, commentsOpen && { color: colors.text, fontWeight: '700' }]}>
                 Reply
               </Text>
             </Pressable>
@@ -518,7 +526,7 @@ export default function FeedCard({ item, currentUserId }) {
           {(likesCount > 0 || commentsCount > 0) ? (
             <View style={styles.feedCounts}>
               {likesCount > 0 ? (
-                <Text style={styles.feedCountText}>
+                  <Text style={[styles.feedCountText, { color: colors.text }]}>
                   {likesCount} {likesCount === 1 ? 'like' : 'likes'}
                 </Text>
               ) : null}
@@ -527,7 +535,7 @@ export default function FeedCard({ item, currentUserId }) {
                   setCommentsOpen(true);
                   if (comments.length === 0) loadComments();
                 }}>
-                  <Text style={styles.feedCountLink}>
+                  <Text style={[styles.feedCountLink, { color: colors.muted }]}>
                     View {commentsCount === 1 ? '1 reply' : `all ${commentsCount} replies`}
                   </Text>
                 </Pressable>
@@ -538,7 +546,7 @@ export default function FeedCard({ item, currentUserId }) {
           {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
 
           {commentsOpen ? (
-            <View style={styles.commentsPanel}>
+            <View style={[styles.commentsPanel, { backgroundColor: colors.cardMuted, borderColor: colors.border }]}>
               {commentsLoading ? (
                 <ActivityIndicator color={RED} size="small" />
               ) : comments.length > 0 ? (
@@ -548,7 +556,7 @@ export default function FeedCard({ item, currentUserId }) {
                   ))}
                 </View>
               ) : (
-                <Text style={styles.noCommentsText}>No replies yet.</Text>
+                <Text style={[styles.noCommentsText, { color: colors.muted }]}>No replies yet.</Text>
               )}
 
               {isAuthenticated ? (
@@ -557,8 +565,12 @@ export default function FeedCard({ item, currentUserId }) {
                     value={commentText}
                     onChangeText={setCommentText}
                     placeholder="Write a reply..."
-                    placeholderTextColor="#9ca3af"
-                    style={styles.commentInput}
+                    placeholderTextColor={colors.subtle}
+                    style={[styles.commentInput, {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    }]}
                   />
                   <Pressable
                     accessibilityRole="button"

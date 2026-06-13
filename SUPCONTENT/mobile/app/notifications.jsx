@@ -24,6 +24,7 @@ import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
+import { useTheme } from '../src/context/ThemeContext';
 import useNotificationBadge from '../src/hooks/useNotificationBadge';
 import { useSocket } from '../src/hooks/useSocket';
 import {
@@ -93,6 +94,7 @@ function getActorId(notification) {
 }
 
 function NotificationAvatar({ notification, onPress }) {
+  const { colors } = useTheme();
   const meta = TYPE_META[notification.type] || { Icon: Bell, color: '#6b7280' };
   const initials = notification.username?.slice(0, 2).toUpperCase() || '?';
 
@@ -103,14 +105,14 @@ function NotificationAvatar({ notification, onPress }) {
       style={styles.avatarWrap}
       hitSlop={6}
     >
-      <View style={styles.avatar}>
+      <View style={[styles.avatar, { backgroundColor: colors.cardMuted, borderColor: colors.border }]}>
         {notification.avatar_url ? (
           <Image source={{ uri: notification.avatar_url }} style={styles.avatarImage} />
         ) : (
-          <Text style={styles.avatarInitials}>{initials}</Text>
+          <Text style={[styles.avatarInitials, { color: colors.muted }]}>{initials}</Text>
         )}
       </View>
-      <View style={styles.typeIcon}>
+      <View style={[styles.typeIcon, { backgroundColor: colors.card, borderColor: colors.card }]}>
         <meta.Icon color={meta.color} size={14} strokeWidth={2.2} />
       </View>
     </Pressable>
@@ -118,15 +120,16 @@ function NotificationAvatar({ notification, onPress }) {
 }
 
 function EmptyState({ unreadOnly }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.empty}>
-      <View style={styles.emptyIcon}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.cardMuted }]}>
         <Bell color="#9ca3af" size={26} />
       </View>
-      <Text style={styles.emptyTitle}>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>
         {unreadOnly ? 'Aucune notification non lue' : 'Aucune notification'}
       </Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyText, { color: colors.subtle }]}>
         {unreadOnly
           ? 'Vous êtes à jour.'
           : 'Les mentions J’aime, commentaires, abonnements, messages et recommandations apparaîtront ici.'}
@@ -145,6 +148,7 @@ function LoadingState() {
 
 function NotificationsContent() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { refreshUnreadCount } = useNotificationBadge();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -323,7 +327,10 @@ function NotificationsContent() {
         onPress={() => openNotification(item)}
         style={({ pressed }) => [
           styles.card,
-          !item.is_read && styles.unreadCard,
+          {
+            backgroundColor: item.is_read ? colors.card : colors.activeSoft,
+            borderColor: item.is_read ? colors.border : RED,
+          },
           pressed && styles.cardPressed,
         ]}
       >
@@ -333,8 +340,8 @@ function NotificationsContent() {
         />
 
         <View style={styles.cardContent}>
-          <Text style={styles.message}>{buildMessage(item)}</Text>
-          <Text style={styles.date}>{formatDate(item.created_at)}</Text>
+          <Text style={[styles.message, { color: colors.text }]}>{buildMessage(item)}</Text>
+          <Text style={[styles.date, { color: colors.subtle }]}>{formatDate(item.created_at)}</Text>
 
           {item.type === 'FOLLOW' && getActorId(item) ? (
             <Pressable
@@ -370,32 +377,33 @@ function NotificationsContent() {
   ]);
 
   return (
-    <ScreenContainer>
-      <View style={styles.screen}>
+    <ScreenContainer backgroundColor={colors.bg}>
+      <View style={[styles.screen, { backgroundColor: colors.bg }]}>
         <TopNavbar />
 
         <View style={styles.header}>
           <View style={styles.headerText}>
-            <Text style={styles.title}>Notifications</Text>
-            <Text style={styles.subtitle}>Restez informé de votre communauté cinéma</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
+            <Text style={[styles.subtitle, { color: colors.muted }]}>Restez informé de votre communauté cinéma</Text>
           </View>
           <Pressable
             disabled={markingAll || unreadCount === 0}
             onPress={handleMarkAll}
             style={[
               styles.markAllButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
               unreadCount === 0 && styles.markAllButtonDisabled,
             ]}
           >
             {markingAll ? (
-              <ActivityIndicator color="#374151" size="small" />
+              <ActivityIndicator color={colors.text} size="small" />
             ) : (
-              <CheckCheck color="#374151" size={18} />
+              <CheckCheck color={colors.text} size={18} />
             )}
           </Pressable>
         </View>
 
-        <View style={styles.filters}>
+        <View style={[styles.filters, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {[
             { key: 'all', label: 'Toutes', count: notifications.length },
             { key: 'unread', label: 'Non lues', count: unreadCount },
@@ -405,9 +413,9 @@ function NotificationsContent() {
               <Pressable
                 key={item.key}
                 onPress={() => setFilter(item.key)}
-                style={[styles.filterButton, active && styles.filterButtonActive]}
+                style={[styles.filterButton, active && { backgroundColor: colors.cardMuted }]}
               >
-                <Text style={[styles.filterText, active && styles.filterTextActive]}>
+                <Text style={[styles.filterText, { color: colors.muted }, active && { color: colors.text }]}>
                   {item.label} ({item.count})
                 </Text>
               </Pressable>

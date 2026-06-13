@@ -15,6 +15,7 @@ import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
+import { useTheme } from '../src/context/ThemeContext';
 import { useAuth } from '../src/services/authApi.js';
 import api from '../src/config/api.js';
 import { clearAuthSession } from '../src/services/authStorage.js';
@@ -144,6 +145,7 @@ function Skeleton({ style }) {
 }
 
 function StatsTab({ stats, listsCount }) {
+  const { colors } = useTheme();
   // Estimation grossière: durée moyenne film ~1h50
   const hoursWatched = Math.round(stats.movies_watched * 1.83);
   const cards = [
@@ -155,9 +157,9 @@ function StatsTab({ stats, listsCount }) {
   return (
     <View style={styles.statsGrid}>
       {cards.map((c) => (
-        <View key={c.label} style={styles.statCard}>
-          <Text style={styles.statCardLabel}>{c.label}</Text>
-          <Text style={styles.statCardValue}>{c.value}</Text>
+        <View key={c.label} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.statCardLabel, { color: colors.muted }]}>{c.label}</Text>
+          <Text style={[styles.statCardValue, { color: colors.text }]}>{c.value}</Text>
         </View>
       ))}
     </View>
@@ -165,13 +167,14 @@ function StatsTab({ stats, listsCount }) {
 }
 
 function EmptyTab({ label, sub }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.emptyTab}>
-      <View style={styles.emptyIcon}>
+    <View style={[styles.emptyTab, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.cardMuted }]}>
         <View style={styles.filmIconRect} />
       </View>
-      <Text style={styles.emptyTabText}>{label}</Text>
-      {sub && <Text style={styles.emptyTabSub}>{sub}</Text>}
+      <Text style={[styles.emptyTabText, { color: colors.text }]}>{label}</Text>
+      {sub && <Text style={[styles.emptyTabSub, { color: colors.subtle }]}>{sub}</Text>}
     </View>
   );
 }
@@ -187,8 +190,9 @@ function StarRating({ rating }) {
 }
 
 function ReviewCard({ item }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.reviewCard}>
+    <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.reviewMovieRow}>
         <View style={styles.reviewPoster}>
           {item.poster ? (
@@ -198,27 +202,28 @@ function ReviewCard({ item }) {
           )}
         </View>
         <View style={styles.reviewMovieInfo}>
-          <Text style={styles.reviewMovieTitle} numberOfLines={1}>{item.movie}</Text>
-          {item.year && <Text style={styles.reviewMovieYear}>{item.year}</Text>}
+          <Text style={[styles.reviewMovieTitle, { color: colors.text }]} numberOfLines={1}>{item.movie}</Text>
+          {item.year && <Text style={[styles.reviewMovieYear, { color: colors.muted }]}>{item.year}</Text>}
         </View>
       </View>
       <View style={styles.reviewRatingRow}>
         <StarRating rating={item.rating} />
-        {item.date && <Text style={styles.reviewDate}>{item.date}</Text>}
+        {item.date && <Text style={[styles.reviewDate, { color: colors.subtle }]}>{item.date}</Text>}
       </View>
-      <Text style={styles.reviewText} numberOfLines={3}>{item.review}</Text>
+      <Text style={[styles.reviewText, { color: colors.muted }]} numberOfLines={3}>{item.review}</Text>
     </View>
   );
 }
 
 function ActivityCard({ item }) {
+  const { colors } = useTheme();
   if (item.type === 'REVIEW_CREATED') return <ReviewCard item={item.review} />;
   if (item.type === 'LIST_CREATED') {
     return (
-      <View style={styles.activityCard}>
-        <Text style={styles.activityTitle}>Nouvelle liste créée</Text>
+      <View style={[styles.activityCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.activityTitle, { color: colors.text }]}>Nouvelle liste créée</Text>
         <Text style={styles.activityMovie}>{item.list?.name}</Text>
-        {!!item.list?.description && <Text style={styles.activityBody}>{item.list.description}</Text>}
+        {!!item.list?.description && <Text style={[styles.activityBody, { color: colors.muted }]}>{item.list.description}</Text>}
         <Text style={styles.reviewDate}>{item.list?.movie_count || 0} films · {item.date}</Text>
       </View>
     );
@@ -227,25 +232,26 @@ function ActivityCard({ item }) {
     ? 'A aimé une critique de'
     : 'A commenté une critique de';
   return (
-    <View style={styles.activityCard}>
-      <Text style={styles.activityTitle}>{label}</Text>
+    <View style={[styles.activityCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.activityTitle, { color: colors.text }]}>{label}</Text>
       <Text style={styles.activityMovie}>{item.review?.movie}</Text>
-      {!!item.comment?.text && <Text style={styles.activityBody}>“{item.comment.text}”</Text>}
+      {!!item.comment?.text && <Text style={[styles.activityBody, { color: colors.muted }]}>“{item.comment.text}”</Text>}
       <Text style={styles.reviewDate}>{item.date}</Text>
     </View>
   );
 }
 
 function ListCard({ list }) {
+  const { colors } = useTheme();
   const count = list.movie_count ?? list.movies?.length ?? 0;
   return (
-    <View style={styles.listCard}>
-      <View style={styles.listIconWrap}>
+    <View style={[styles.listCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.listIconWrap, { backgroundColor: colors.cardMuted }]}>
         <View style={styles.filmIconRect} />
       </View>
       <View style={styles.listInfo}>
-        <Text style={styles.listName}>{list.name}</Text>
-        <Text style={styles.listCount}>{count} film{count !== 1 ? 's' : ''}</Text>
+        <Text style={[styles.listName, { color: colors.text }]}>{list.name}</Text>
+        <Text style={[styles.listCount, { color: colors.muted }]}>{count} film{count !== 1 ? 's' : ''}</Text>
       </View>
       <View style={[styles.listBadge, list.is_public ? styles.listBadgePublic : styles.listBadgePrivate]}>
         <Text style={[styles.listBadgeText, list.is_public && styles.listBadgeTextPublic]}>
@@ -321,6 +327,7 @@ function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) 
 function ProfileContent() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { colors } = useTheme();
 
   const [activeTab, setActiveTab] = useState('Overview');
   const [profileLoading, setProfileLoading] = useState(true);
@@ -411,8 +418,8 @@ function ProfileContent() {
 
   if (authLoading || !user) {
     return (
-      <ScreenContainer>
-        <View style={styles.phone}>
+      <ScreenContainer backgroundColor={colors.bg}>
+        <View style={[styles.phone, { backgroundColor: colors.bg }]}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={RED} />
           </View>
@@ -440,8 +447,8 @@ function ProfileContent() {
       case 'Overview':
         return (
           <View>
-            <Text style={styles.sectionTitle}>Informations du compte</Text>
-            <View style={styles.infoCard}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Informations du compte</Text>
+            <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               {[
                 { label: 'Email', value: user?.email },
                 { label: 'Nom d\'utilisateur', value: `@${username}` },
@@ -450,13 +457,13 @@ function ProfileContent() {
                 { label: 'Membre depuis', value: joinDate || '—' },
               ].map(({ label, value }) => (
                 <View key={label} style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>{label}</Text>
-                  <Text style={styles.infoValue} numberOfLines={1}>{value}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.muted }]}>{label}</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={1}>{value}</Text>
                 </View>
               ))}
             </View>
 
-            <Text style={styles.sectionTitle}>Activité récente</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Activité récente</Text>
             {activities.length === 0 ? (
               <EmptyTab
                 label="Aucune activité récente."
@@ -496,8 +503,8 @@ function ProfileContent() {
   }
 
   return (
-    <ScreenContainer>
-      <View style={styles.phone}>
+    <ScreenContainer backgroundColor={colors.bg}>
+      <View style={[styles.phone, { backgroundColor: colors.bg }]}>
         <TopNavbar username={username || 'User'} />
 
         <ScrollView
@@ -533,25 +540,25 @@ function ProfileContent() {
           {/* Infos utilisateur */}
           <View style={styles.userInfo}>
             <View style={styles.nameRow}>
-              <Text style={styles.userName}>{username}</Text>
+              <Text style={[styles.userName, { color: colors.text }]}>{username}</Text>
               {isAdmin && (
                 <View style={styles.adminBadge}>
                   <Text style={styles.adminBadgeText}>Admin</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.userHandle}>@{username}</Text>
-            {bio ? <Text style={styles.userBio}>{bio}</Text> : null}
+            <Text style={[styles.userHandle, { color: colors.muted }]}>@{username}</Text>
+            {bio ? <Text style={[styles.userBio, { color: colors.muted }]}>{bio}</Text> : null}
             {websiteUrl ? (
               <Text style={styles.userWebsite} numberOfLines={1}>
                 🌐 {websiteUrl.replace(/^https?:\/\//, '')}
               </Text>
             ) : null}
-            {joinDate ? <Text style={styles.joinDate}>Membre depuis {joinDate}</Text> : null}
+            {joinDate ? <Text style={[styles.joinDate, { color: colors.subtle }]}>Membre depuis {joinDate}</Text> : null}
           </View>
 
           {/* Compteurs */}
-          <View style={styles.countersRow}>
+          <View style={[styles.countersRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {[
               { value: stats.movies_watched, label: 'Vus', onPress: null },
               { value: stats.reviews, label: 'Critiques', onPress: null },
@@ -560,12 +567,12 @@ function ProfileContent() {
             ].map((item, i) => (
               <Pressable
                 key={item.label}
-                style={[styles.counterItem, i > 0 && styles.counterBorder]}
+                style={[styles.counterItem, i > 0 && { borderLeftColor: colors.border, borderLeftWidth: 1 }]}
                 onPress={item.onPress}
                 disabled={!item.onPress}
               >
-                <Text style={styles.counterValue}>{item.value}</Text>
-                <Text style={[styles.counterLabel, item.onPress && styles.counterLabelClickable]}>
+                <Text style={[styles.counterValue, { color: colors.text }]}>{item.value}</Text>
+                <Text style={[styles.counterLabel, { color: colors.muted }, item.onPress && { color: colors.text }]}>
                   {item.label}
                 </Text>
               </Pressable>
@@ -573,16 +580,16 @@ function ProfileContent() {
           </View>
 
           {/* Onglets */}
-          <View style={styles.tabBar}>
+          <View style={[styles.tabBar, { backgroundColor: colors.cardMuted }]}>
             {TABS.map((tab) => {
               const active = tab === activeTab;
               return (
                 <Pressable
                   key={tab}
-                  style={[styles.tabItem, active && styles.tabItemActive]}
+                  style={[styles.tabItem, active && { backgroundColor: colors.card }]}
                   onPress={() => setActiveTab(tab)}
                 >
-                  <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab}</Text>
+                  <Text style={[styles.tabText, { color: colors.muted }, active && { color: colors.text, fontWeight: '700' }]}>{tab}</Text>
                 </Pressable>
               );
             })}
@@ -593,8 +600,8 @@ function ProfileContent() {
           <View style={styles.tabContent}>{renderTabContent()}</View>
 
           <View style={styles.actionsSection}>
-            <Text style={styles.sectionTitle}>Actions</Text>
-            <Pressable style={styles.profileLogoutBtn} onPress={handleLogout}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Actions</Text>
+            <Pressable style={[styles.profileLogoutBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleLogout}>
               <View style={styles.profileLogoutIcon}>
                 <View style={styles.profileLogoutDoor} />
                 <View style={styles.profileLogoutShaft} />

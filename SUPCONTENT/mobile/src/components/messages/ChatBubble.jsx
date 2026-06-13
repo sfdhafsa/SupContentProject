@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function ChatBubble({ message, isMine }) {
+  const { colors } = useTheme();
   const formatTime = (iso) => {
     if (!iso) return '';
     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -8,12 +10,18 @@ export default function ChatBubble({ message, isMine }) {
 
   return (
     <View style={[styles.row, isMine && styles.rowMine]}>
-      <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
-        <Text style={[styles.content, isMine ? styles.contentMine : styles.contentTheirs]}>
+      <View style={[
+        styles.bubble,
+        isMine ? styles.bubbleMine : [styles.bubbleTheirs, { backgroundColor: colors.cardMuted }],
+      ]}>
+        <Text style={[
+          styles.content,
+          isMine ? styles.contentMine : [styles.contentTheirs, { color: colors.text }],
+        ]}>
           {message.content}
         </Text>
         <View style={styles.metaRow}>
-          <Text style={[styles.time, isMine ? styles.timeMine : styles.timeTheirs]}>
+          <Text style={[styles.time, isMine ? styles.timeMine : [styles.timeTheirs, { color: colors.subtle }]]}>
             {formatTime(message.created_at)}
           </Text>
           {isMine && (

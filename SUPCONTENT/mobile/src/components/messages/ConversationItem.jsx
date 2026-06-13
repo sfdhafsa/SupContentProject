@@ -1,4 +1,5 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 function Avatar({ avatarUrl, username, unreadCount }) {
   const initial = username ? username.charAt(0).toUpperCase() : '?';
@@ -22,6 +23,7 @@ function Avatar({ avatarUrl, username, unreadCount }) {
 }
 
 export default function ConversationItem({ conversation }) {
+  const { colors } = useTheme();
   const otherUser = conversation.other_user || {
     id: conversation.other_user_id,
     username: conversation.other_username,
@@ -47,7 +49,13 @@ export default function ConversationItem({ conversation }) {
   };
 
   return (
-    <View style={[styles.container, unreadCount > 0 && styles.containerUnread]}>
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: unreadCount > 0 ? colors.activeSoft : colors.card,
+        borderColor: colors.border,
+      },
+    ]}>
       <Avatar
         avatarUrl={otherUser?.avatar_url}
         username={otherUser?.username}
@@ -56,13 +64,13 @@ export default function ConversationItem({ conversation }) {
 
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <Text style={styles.username} numberOfLines={1}>
+          <Text style={[styles.username, { color: colors.text }]} numberOfLines={1}>
             {otherUser?.username || 'Utilisateur'}
           </Text>
-          <Text style={styles.date}>{formatDate(lastMessage?.created_at)}</Text>
+          <Text style={[styles.date, { color: colors.subtle }]}>{formatDate(lastMessage?.created_at)}</Text>
         </View>
         <Text
-          style={[styles.preview, unreadCount > 0 && styles.previewUnread]}
+          style={[styles.preview, { color: colors.muted }, unreadCount > 0 && { color: colors.text, fontWeight: '600' }]}
           numberOfLines={1}
         >
           {lastMessage?.content || 'Aucun message'}

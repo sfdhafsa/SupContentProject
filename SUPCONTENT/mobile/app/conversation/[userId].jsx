@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import ChatView from '../../src/components/messages/ChatView';
 import ScreenContainer from '../../src/components/ScreenContainer';
+import { useTheme } from '../../src/context/ThemeContext';
 import { getAuthUser } from '../../src/services/authStorage';
 
 function BackArrow() {
@@ -15,6 +16,7 @@ function BackArrow() {
 }
 
 export default function ConversationScreen() {
+  const { colors } = useTheme();
   const { userId, username } = useLocalSearchParams();
   const router = useRouter();
   const receiverId = Array.isArray(userId) ? userId[0] : userId;
@@ -36,10 +38,10 @@ export default function ConversationScreen() {
   };
 
   return (
-    <ScreenContainer>
-      <View style={styles.phone}>
+    <ScreenContainer backgroundColor={colors.bg}>
+      <View style={[styles.phone, { backgroundColor: colors.bg }]}>
         {/* Chat header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
             <BackArrow />
           </Pressable>
@@ -51,12 +53,12 @@ export default function ConversationScreen() {
             onPress={openReceiverProfile}
             style={({ pressed }) => [styles.userInfo, pressed && styles.userInfoPressed]}
           >
-            <View style={styles.avatarSmall}>
-              <Text style={styles.avatarInitial}>
+            <View style={[styles.avatarSmall, { backgroundColor: colors.cardMuted }]}>
+              <Text style={[styles.avatarInitial, { color: colors.text }]}>
                 {receiverName ? receiverName.charAt(0).toUpperCase() : '?'}
               </Text>
             </View>
-            <Text style={styles.username} numberOfLines={1}>
+            <Text style={[styles.username, { color: colors.text }]} numberOfLines={1}>
               {receiverName || 'Conversation'}
             </Text>
           </Pressable>

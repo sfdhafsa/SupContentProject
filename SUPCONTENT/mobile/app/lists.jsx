@@ -6,11 +6,13 @@ import {
 import { useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
+import { useTheme } from '../src/context/ThemeContext';
 import { getAuthUser } from '../src/services/authStorage';
 import { getMyLists, createList, updateList, deleteList } from '../src/services/libraryApi';
 
 export default function Lists() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [user, setUser]                   = useState(null);
   const [lists, setLists]                 = useState([]);
   const [loading, setLoading]             = useState(false);
@@ -99,28 +101,28 @@ export default function Lists() {
   const movieCount = parseInt(deleteTarget?.movie_count) || 0;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={[s.safe, { backgroundColor: colors.bg }]}>
       <TopNavbar username={user?.username || 'User'} />
 
-      <View style={s.subNav}>
+      <View style={[s.subNav, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable style={s.subNavBtn} onPress={() => router.push('/library')}>
-          <Text style={s.subNavText}>Biblio</Text>
+          <Text style={[s.subNavText, { color: colors.subtle }]}>Biblio</Text>
         </Pressable>
         <Pressable style={[s.subNavBtn, s.subNavBtnActive]}>
           <Text style={[s.subNavText, s.subNavTextActive]}>Listes</Text>
         </Pressable>
         <Pressable style={s.subNavBtn} onPress={() => router.push('/dashboard')}>
-          <Text style={s.subNavText}>Stats</Text>
+          <Text style={[s.subNavText, { color: colors.subtle }]}>Stats</Text>
         </Pressable>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
         <View style={s.header}>
-          <Text style={s.headerTitle}>Mes listes</Text>
-          <Text style={s.headerSub}>Organisez vos films par themes et coups de coeur.</Text>
+          <Text style={[s.headerTitle, { color: colors.text }]}>Mes listes</Text>
+          <Text style={[s.headerSub, { color: colors.muted }]}>Organisez vos films par themes et coups de coeur.</Text>
         </View>
 
-        <View style={s.formCard}>
+        <View style={[s.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={s.formCardAccent} />
           <View style={s.formCardHeader}>
             <View style={s.formCardIcon}>
@@ -130,7 +132,7 @@ export default function Lists() {
           </View>
           <Text style={s.formLabel}>NOM</Text>
           <TextInput
-            style={[s.input, nameFocused && s.inputFocused]}
+            style={[s.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }, nameFocused && s.inputFocused]}
             placeholder="Ex: Films a voir ce mois-ci"
             placeholderTextColor="#9ca3af"
             value={name}
@@ -140,7 +142,7 @@ export default function Lists() {
           />
           <Text style={s.formLabel}>DESCRIPTION</Text>
           <TextInput
-            style={[s.input, descFocused && s.inputFocused]}
+            style={[s.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }, descFocused && s.inputFocused]}
             placeholder="Optionnel"
             placeholderTextColor="#9ca3af"
             value={desc}
@@ -180,21 +182,21 @@ export default function Lists() {
         {loading ? (
           <View style={s.center}><ActivityIndicator color="#D0021B" /></View>
         ) : lists.length === 0 ? (
-          <View style={s.emptyCard}>
-            <Text style={s.emptyTitle}>Aucune liste pour le moment</Text>
-            <Text style={s.emptySub}>Creez une liste pour organiser vos films.</Text>
+          <View style={[s.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[s.emptyTitle, { color: colors.text }]}>Aucune liste pour le moment</Text>
+            <Text style={[s.emptySub, { color: colors.subtle }]}>Creez une liste pour organiser vos films.</Text>
           </View>
         ) : (
           <View style={s.listsContainer}>
             {lists.map((list) => {
               const count = parseInt(list.movie_count) || 0;
               return (
-                <View key={list.id} style={s.listCard}>
-                  <View style={s.listIconBox}>
+                <View key={list.id} style={[s.listCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[s.listIconBox, { backgroundColor: colors.cardMuted }]}>
                     <Text style={s.listIconText}>{list.is_public ? 'G' : 'P'}</Text>
                   </View>
                   <View style={s.listInfo}>
-                    <Text style={s.listName} numberOfLines={1}>{list.name}</Text>
+                    <Text style={[s.listName, { color: colors.text }]} numberOfLines={1}>{list.name}</Text>
                     <View style={s.listMetaRow}>
                       <Text style={s.listMeta}>{count} film{count !== 1 ? 's' : ''}</Text>
                       <Text style={s.listMetaDot}> • </Text>
@@ -204,7 +206,7 @@ export default function Lists() {
                         </Text>
                       </View>
                     </View>
-                    {list.description ? <Text style={s.listDesc} numberOfLines={1}>{list.description}</Text> : null}
+                    {list.description ? <Text style={[s.listDesc, { color: colors.subtle }]} numberOfLines={1}>{list.description}</Text> : null}
                   </View>
                   <View style={s.listActions}>
                     <Pressable style={s.iconBtnEdit} onPress={() => startEdit(list)}>
