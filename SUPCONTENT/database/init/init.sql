@@ -25,6 +25,8 @@ CREATE TABLE users (
   is_banned BOOLEAN NOT NULL DEFAULT FALSE,
   banned_by UUID,
   banned_at TIMESTAMP,
+  promoted_by UUID,
+  promoted_at TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -295,6 +297,9 @@ ALTER TABLE reports
 
 ALTER TABLE users
   ADD FOREIGN KEY (banned_by) REFERENCES users (id) ON DELETE SET NULL;
+
+ALTER TABLE users
+  ADD FOREIGN KEY (promoted_by) REFERENCES users (id) ON DELETE SET NULL;
 
 -- =========================
 -- SEED

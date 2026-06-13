@@ -15,6 +15,7 @@ import reviewsRoutes from "./routes/reviews/reviews.routes.js";
 import libraryRoutes from "./routes/library/library.routes.js";
 import notificationRoutes from "./routes/social/notifications.routes.js";
 import moderationRoutes from "./routes/moderation/moderation.routes.js";
+import adminRoutes from "./routes/admin/admin.routes.js";
 import reportRoutes from "./routes/reports/reports.routes.js";
 import "./config/passport.js";
 import "./config/google.strategy.js";
@@ -80,6 +81,7 @@ app.use("/api/movies", movieRoutes);
 app.use("/api/reviews", reviewsRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/moderation", moderationRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api", libraryRoutes);
 
 app.get("/api/health", (_, res) => res.json({ status: "ok" }));

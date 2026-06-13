@@ -198,6 +198,24 @@ export default function AdminView() {
     }
   };
 
+  const updatePromotion = async (targetUser, shouldPromote) => {
+    setBusyId(`promote-${targetUser.id}`);
+    setError("");
+
+    try {
+      const res = await api.patch(`/admin/users/${targetUser.id}/${shouldPromote ? "promote" : "unpromote"}`);
+      const updatedUser = res.data.user;
+
+      setUsers((currentUsers) =>
+        currentUsers.map((item) => (item.id === targetUser.id ? updatedUser : item))
+      );
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to update admin role.");
+    } finally {
+      setBusyId("");
+    }
+  };
+
   const updateFeatured = async (review, shouldFeature) => {
     setBusyId(`review-${review.id}`);
     setError("");
@@ -353,6 +371,7 @@ export default function AdminView() {
           filteredUsers={filteredUsers}
           loading={isLoading}
           onUpdateBan={updateBan}
+          onUpdatePromotion={updatePromotion}
           users={users}
         />
       ) : isReviewsTab ? (
@@ -377,7 +396,7 @@ export default function AdminView() {
   );
 }
 
-function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, users }) {
+function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, onUpdatePromotion, users }) {
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden">
       <div className="grid grid-cols-3 border-b border-gray-100 dark:border-gray-800">
@@ -440,24 +459,53 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 lg:w-[680px]">
-                  <div>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500">Joined</p>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{formatDate(user.created_at)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500">Banned by</p>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                      {user.is_banned ? user.banned_by_username || "Unknown admin" : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500">Banned at</p>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {user.is_banned ? formatDate(user.banned_at) : "-"}
-                    </p>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:w-[520px]">
+                    <div>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">Joined</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{formatDate(user.created_at)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">Banned by</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                        {user.is_banned ? user.banned_by_username || "Unknown admin" : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">Banned at</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {user.is_banned ? formatDate(user.banned_at) : "-"}
+                      </p>
+                    </div>
+                    <div className="hidden sm:block" aria-hidden="true" />
+                    <div>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">Promoted by</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                        {isAdmin ? user.promoted_by_username || (user.promoted_at ? "Unknown admin" : "-") : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">Promoted at</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {isAdmin ? formatDate(user.promoted_at) : "-"}
+                      </p>
+                    </div>
                   </div>
                   <div className="sm:text-right">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+                      <button
+                        type="button"
+                        disabled={Boolean(busyId) || isCurrentUser}
+                        onClick={() => onUpdatePromotion(user, !isAdmin)}
+                        title={
+                          isCurrentUser
+                            ? "You cannot promote your own account"
+                            : undefined
+                        }
+                        className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {busyId === `promote-${user.id}` ? "Updating..." : isAdmin ? "Unpromote" : "Promote"}
+                      </button>
                     <button
                       type="button"
                       disabled={Boolean(busyId) || isCurrentUser}
@@ -471,6 +519,7 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
                     >
                       {busyId === `user-${user.id}` ? "Updating..." : user.is_banned ? "Unban" : "Ban"}
                     </button>
+                    </div>
                   </div>
                 </div>
               </div>

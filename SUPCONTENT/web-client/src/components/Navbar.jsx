@@ -94,6 +94,8 @@ const navLinkClass = ({ isActive }) =>
   }`;
 
 function UserDropdown({ user, onLogout }) {
+  const isAdmin = (user?.roles || []).map((role) => String(role).toLowerCase()).includes("admin");
+
   return (
     <div className="absolute right-0 top-[calc(100%+10px)] w-48 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-lg py-1.5 z-50">
       <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 mb-1">
@@ -107,6 +109,15 @@ function UserDropdown({ user, onLogout }) {
         </svg>
         My profile
       </Link>
+      {isAdmin && (
+        <Link to="/admin-view" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-400">
+            <path d="M10 2.5l5.5 2.1v4.1c0 3.5-2.2 5.9-5.5 7.3-3.3-1.4-5.5-3.8-5.5-7.3V4.6L10 2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M7.5 9.5l1.6 1.6 3.4-3.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Admin view
+        </Link>
+      )}
       <Link to="/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
         <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-gray-400">
           <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />

@@ -210,15 +210,6 @@ export default function Profile() {
               </span>
             )}
 
-            {isAdmin && (
-              <button
-                onClick={() => navigate("/admin-view")}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-all"
-              >
-                Admin view
-              </button>
-            )}
-
             <button
               onClick={() => navigate("/settings")}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"

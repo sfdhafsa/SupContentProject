@@ -168,7 +168,7 @@ function StarRating({ rating }) {
   );
 }
 
-function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, users }) {
+function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, onUpdatePromotion, users }) {
   const stats = [
     { label: 'Total users', value: users.length },
     { label: 'Active', value: users.filter((item) => !item.is_banned).length },
@@ -186,7 +186,8 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
         filteredUsers.map((user) => {
           const isAdmin = (user.roles || []).map((role) => String(role).toLowerCase()).includes('admin');
           const isCurrentUser = user.id === currentUser?.id;
-          const isBusy = busyId === `user-${user.id}`;
+          const isBanBusy = busyId === `user-${user.id}`;
+          const isPromoteBusy = busyId === `promote-${user.id}`;
           const shouldBan = !user.is_banned;
 
           return (
@@ -207,21 +208,38 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
                 <Meta label="Joined" value={formatDate(user.created_at)} />
                 <Meta label="Banned by" value={user.is_banned ? user.banned_by_username || 'Unknown admin' : '-'} />
                 <Meta label="Banned at" value={user.is_banned ? formatDate(user.banned_at) : '-'} />
+                <Meta label="Promoted by" value={isAdmin ? user.promoted_by_username || (user.promoted_at ? 'Unknown admin' : '-') : '-'} />
+                <Meta label="Promoted at" value={isAdmin ? formatDate(user.promoted_at) : '-'} />
               </View>
 
-              <Pressable
-                disabled={Boolean(busyId) || isCurrentUser}
-                onPress={() => onUpdateBan(user, shouldBan)}
-                style={[
-                  styles.actionBtn,
-                  user.is_banned ? styles.unbanBtn : styles.banBtn,
-                  (Boolean(busyId) || isCurrentUser) && styles.disabledBtn,
-                ]}
-              >
-                <Text style={styles.actionBtnText}>
-                  {isBusy ? 'Updating...' : user.is_banned ? 'Unban' : 'Ban'}
-                </Text>
-              </Pressable>
+              <View style={styles.userActions}>
+                <Pressable
+                  disabled={Boolean(busyId) || isCurrentUser}
+                  onPress={() => onUpdatePromotion(user, !isAdmin)}
+                  style={[
+                    styles.actionBtn,
+                    styles.darkBtn,
+                    styles.userActionBtn,
+                    (Boolean(busyId) || isCurrentUser) && styles.disabledBtn,
+                  ]}
+                >
+                  <Text style={styles.actionBtnText}>{isPromoteBusy ? 'Updating...' : isAdmin ? 'Unpromote' : 'Promote'}</Text>
+                </Pressable>
+                <Pressable
+                  disabled={Boolean(busyId) || isCurrentUser}
+                  onPress={() => onUpdateBan(user, shouldBan)}
+                  style={[
+                    styles.actionBtn,
+                    styles.userActionBtn,
+                    user.is_banned ? styles.unbanBtn : styles.banBtn,
+                    (Boolean(busyId) || isCurrentUser) && styles.disabledBtn,
+                  ]}
+                >
+                  <Text style={styles.actionBtnText}>
+                    {isBanBusy ? 'Updating...' : user.is_banned ? 'Unban' : 'Ban'}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           );
         })
@@ -507,6 +525,20 @@ function AdminViewContent() {
     }
   };
 
+  const updatePromotion = async (targetUser, shouldPromote) => {
+    setBusyId(`promote-${targetUser.id}`);
+    setError('');
+    try {
+      const res = await api.patch(`/admin/users/${targetUser.id}/${shouldPromote ? 'promote' : 'unpromote'}`);
+      const updatedUser = res.data.user;
+      setUsers((current) => current.map((item) => (item.id === targetUser.id ? updatedUser : item)));
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to update admin role.'));
+    } finally {
+      setBusyId('');
+    }
+  };
+
   const updateFeatured = async (review, shouldFeature) => {
     const verb = shouldFeature ? 'feature' : 'unfeature';
     setBusyId(`review-${review.id}`);
@@ -640,6 +672,7 @@ function AdminViewContent() {
               filteredUsers={filteredUsers}
               loading={isLoading}
               onUpdateBan={updateBan}
+              onUpdatePromotion={updatePromotion}
               users={users}
             />
           ) : isReviewsTab ? (
@@ -958,11 +991,13 @@ const styles = StyleSheet.create({
   },
   metaGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 14,
   },
   metaItem: {
-    flex: 1,
+    flexBasis: '31%',
+    flexGrow: 1,
     minWidth: 0,
   },
   metaLabel: {
@@ -1000,6 +1035,15 @@ const styles = StyleSheet.create({
     color: CARD,
     fontSize: 13,
     fontWeight: '900',
+  },
+  userActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  userActionBtn: {
+    flex: 1,
+    marginTop: 0,
   },
   reviewRow: {
     borderBottomColor: BORDER,
