@@ -99,6 +99,10 @@ const buildNotificationMessage = async ({ actorUserId, type, entityType, entityI
     return `${actorName} sent you a message.`;
   }
 
+  if (type === notificationTypes.REPORT_CREATED) {
+    return 'A new report is waiting for review in the admin panel.';
+  }
+
   return 'You have a new notification on SUPCONTENT.';
 };
 

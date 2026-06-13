@@ -104,6 +104,7 @@ export const createSystemNotification = async ({
   type,
   entityType = null,
   entityId = null,
+  forcePush = false,
 }) => {
   if (!userId || !type) return;
 
@@ -120,7 +121,7 @@ export const createSystemNotification = async ({
     await sendEmailSafely(payload);
   }
 
-  if (!channels.push) return;
+  if (!forcePush && !channels.push) return;
 
   const notification = await NotificationModel.create({
     user_id: userId,

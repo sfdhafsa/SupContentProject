@@ -6,6 +6,7 @@ import {
   Heart,
   MessageCircle,
   Reply,
+  ShieldAlert,
   UserPlus,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -43,6 +44,7 @@ const TYPE_META = {
   COMMENT_REPLY: { Icon: Reply, color: '#3b82f6' },
   MESSAGE: { Icon: MessageCircle, color: '#8b5cf6' },
   MOVIE_RECOMMENDATION: { Icon: Film, color: '#f59e0b' },
+  REPORT_CREATED: { Icon: ShieldAlert, color: '#ef4444' },
 };
 
 function buildMessage(notification) {
@@ -67,6 +69,9 @@ function buildMessage(notification) {
       return `Une nouvelle recommandation est prête : « ${notification.movie_title} »`;
     }
     return 'Une nouvelle recommandation de film est prête pour vous';
+  }
+  if (notification.type === 'REPORT_CREATED') {
+    return 'Un nouveau signalement attend une résolution dans le panneau admin';
   }
 
   return 'Vous avez une nouvelle notification';
@@ -236,6 +241,11 @@ function NotificationsContent() {
 
     if (notification.type === 'FOLLOW' && actorId) {
       router.push({ pathname: '/publicProfile', params: { id: actorId } });
+      return;
+    }
+
+    if (notification.type === 'REPORT_CREATED') {
+      router.push({ pathname: '/admin-view', params: { tab: 'reports' } });
       return;
     }
 

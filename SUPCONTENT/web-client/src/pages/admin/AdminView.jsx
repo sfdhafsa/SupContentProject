@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { REPORT_REASON_LABELS } from "../../components/reports/ReportDialog.jsx";
 import api from "../../services/api/axios.js";
@@ -49,6 +49,7 @@ const formatDate = (value) => {
 
 export default function AdminView() {
   const { user: currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("users");
   const [users, setUsers] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -62,6 +63,13 @@ export default function AdminView() {
   const [loadingReports, setLoadingReports] = useState(false);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
+
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (["users", "reviews", "reports"].includes(requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
 
   const filteredUsers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();

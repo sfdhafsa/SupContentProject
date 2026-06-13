@@ -1,6 +1,9 @@
 import { CommentModel } from "../../models/comment.model.js";
 import { ReportModel } from "../../models/report.model.js";
 import { ReviewModel } from "../../models/review.model.js";
+import { UserModel } from "../../models/user.model.js";
+import { notificationTypes } from "../../utils/notificationTypes.js";
+import { createSystemNotification } from "../social/notifications/notifications.service.js";
 
 const REPORT_TARGET_TYPES = ["REVIEW", "COMMENT"];
 const REPORT_REASONS = ["UNMARKED_SPOILER", "INSULT", "OTHER"];
@@ -18,6 +21,26 @@ const assertTargetExists = async (targetType, targetId) => {
   }
 
   return null;
+};
+
+const notifyAdminsOfNewReport = async (report) => {
+  try {
+    const admins = await UserModel.findAdmins();
+
+    await Promise.all(
+      admins.map((admin) =>
+        createSystemNotification({
+          userId: admin.id,
+          type: notificationTypes.REPORT_CREATED,
+          entityType: "REPORT",
+          entityId: report.id,
+          forcePush: true,
+        })
+      )
+    );
+  } catch (err) {
+    globalThis.console.error("[REPORTS] Failed to notify admins of new report:", err);
+  }
 };
 
 export const createReport = async ({
@@ -64,12 +87,16 @@ export const createReport = async ({
     );
   }
 
-  return ReportModel.create({
+  const report = await ReportModel.create({
     reporter_user_id: reporterUserId,
     target_type: normalizedTargetType,
     target_id: Number(targetId),
     reason: normalizedReason,
   });
+
+  await notifyAdminsOfNewReport(report);
+
+  return report;
 };
 
 export const getReports = async ({ status } = {}) => {

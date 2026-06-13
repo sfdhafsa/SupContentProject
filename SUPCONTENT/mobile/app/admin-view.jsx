@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Search, ShieldCheck, Star, UserRound } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
@@ -397,6 +397,7 @@ function Meta({ label, value }) {
 
 function AdminViewContent() {
   const router = useRouter();
+  const { tab } = useLocalSearchParams();
   const { user: currentUser, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
@@ -413,6 +414,13 @@ function AdminViewContent() {
   const [busyId, setBusyId] = useState('');
 
   const isAdmin = (currentUser?.roles || []).map((role) => String(role).toLowerCase()).includes('admin');
+
+  useEffect(() => {
+    const requestedTab = Array.isArray(tab) ? tab[0] : tab;
+    if (TABS.some((item) => item.id === requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, [tab]);
 
   const filteredUsers = useMemo(() => {
     const normalized = query.trim().toLowerCase();

@@ -129,6 +129,26 @@ export const UserModel = {
     return rows;
   },
 
+  async findAdmins() {
+    await this.ensureNotificationPreferenceColumns();
+
+    const { rows } = await pool.query(
+      `SELECT DISTINCT
+          u.id,
+          u.email,
+          u.username,
+          COALESCE(u.notification_push_enabled, TRUE) AS notification_push_enabled,
+          COALESCE(u.notification_email_enabled, FALSE) AS notification_email_enabled
+       FROM users u
+       JOIN user_roles ur ON ur.user_id = u.id
+       JOIN roles r ON r.id = ur.role_id
+       WHERE LOWER(r.name) = 'admin'
+       AND u.is_banned = FALSE`
+    );
+
+    return rows;
+  },
+
   // =====================
   // GET USER BY USERNAME
   // =====================

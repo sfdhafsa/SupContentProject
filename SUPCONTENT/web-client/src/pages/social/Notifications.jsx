@@ -42,6 +42,13 @@ const MovieIcon = () => (
   </svg>
 );
 
+const ReportIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-rose-500">
+    <path d="M10 2.5l5.5 2.1v4.1c0 3.5-2.2 5.9-5.5 7.3-3.3-1.4-5.5-3.8-5.5-7.3V4.6L10 2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    <path d="M10 6.5v4M10 13.5h.01" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+);
+
 const BellIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-gray-400">
     <path d="M5 8a5 5 0 0110 0v3.4l1.4 2.1a.7.7 0 01-.58 1.1H4.18a.7.7 0 01-.58-1.1L5 11.4V8z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -56,6 +63,7 @@ const iconByType = {
   COMMENT_REPLY: <CommentIcon />,
   MESSAGE: <MessageIcon />,
   MOVIE_RECOMMENDATION: <MovieIcon />,
+  REPORT_CREATED: <ReportIcon />,
 };
 
 function formatDate(value) {
@@ -73,6 +81,7 @@ function buildMessage(notification) {
   if (notification.type === "COMMENT_REPLY") return `${actorName} replied to your comment`;
   if (notification.type === "MESSAGE") return `${actorName} sent you a message`;
   if (notification.type === "MOVIE_RECOMMENDATION") return "A new movie recommendation is ready for you";
+  if (notification.type === "REPORT_CREATED") return "A new report is waiting for review in the admin panel";
 
   return "You have a new notification";
 }
@@ -148,6 +157,10 @@ function buildNotificationTarget(notification) {
 
   if (notification.type === "FOLLOW" && actorId) {
     return `/profile/${actorId}`;
+  }
+
+  if (notification.type === "REPORT_CREATED") {
+    return "/admin-view?tab=reports";
   }
 
   if (
