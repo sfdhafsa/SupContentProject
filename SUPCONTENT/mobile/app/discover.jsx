@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
+import useAuthSession from '../src/hooks/useAuthSession';
 import {
   discoverMovies,
   getGenres,
@@ -297,14 +298,15 @@ function SearchCategoryHeader({ label, count }) {
 // ─────────────────────────────────────────
 // SearchItem — films / users / listes
 // ─────────────────────────────────────────
-function SearchItem({ item, onPress }) {
+function SearchItem({ item, onMoviePress, onUserPress, onListPress }) {
   const scale    = useRef(new Animated.Value(1)).current;
   const pressIn  = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 25 }).start();
   const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 25 }).start();
 
   const handlePress = () => {
-    if (item.type === 'movie') onPress(item.tmdb_id);
-    // user / list : navigation à brancher par les collègues concernés
+    if (item.type === 'movie') onMoviePress(item.tmdb_id);
+    if (item.type === 'user') onUserPress(item.id);
+    if (item.type === 'list') onListPress(item.id);
   };
 
   const content = (() => {
@@ -382,7 +384,16 @@ function SearchItem({ item, onPress }) {
 // ─────────────────────────────────────────
 // SearchResults — résultats séparés par catégorie
 // ─────────────────────────────────────────
-function SearchResults({ movies, users, lists, query, loading, onMoviePress }) {
+function SearchResults({
+  movies,
+  users,
+  lists,
+  query,
+  loading,
+  onMoviePress,
+  onUserPress,
+  onListPress,
+}) {
   if (loading) {
     return <ActivityIndicator color={C.red} style={{ marginTop: 32 }} />;
   }
@@ -407,7 +418,13 @@ function SearchResults({ movies, users, lists, query, loading, onMoviePress }) {
         <View style={{ marginBottom: 8 }}>
           <SearchCategoryHeader label="🎬  Films" count={movies.length} />
           {movies.map((item, i) => (
-            <SearchItem key={`movie-${i}`} item={{ ...item, type: 'movie' }} onPress={onMoviePress} />
+            <SearchItem
+              key={`movie-${item.tmdb_id || i}`}
+              item={{ ...item, type: 'movie' }}
+              onMoviePress={onMoviePress}
+              onUserPress={onUserPress}
+              onListPress={onListPress}
+            />
           ))}
         </View>
       )}
@@ -417,7 +434,13 @@ function SearchResults({ movies, users, lists, query, loading, onMoviePress }) {
         <View style={{ marginBottom: 8 }}>
           <SearchCategoryHeader label="👤  Utilisateurs" count={users.length} />
           {users.map((item, i) => (
-            <SearchItem key={`user-${i}`} item={{ ...item, type: 'user' }} onPress={onMoviePress} />
+            <SearchItem
+              key={`user-${item.id || i}`}
+              item={{ ...item, type: 'user' }}
+              onMoviePress={onMoviePress}
+              onUserPress={onUserPress}
+              onListPress={onListPress}
+            />
           ))}
         </View>
       )}
@@ -427,7 +450,13 @@ function SearchResults({ movies, users, lists, query, loading, onMoviePress }) {
         <View style={{ marginBottom: 8 }}>
           <SearchCategoryHeader label="📋  Listes publiques" count={lists.length} />
           {lists.map((item, i) => (
-            <SearchItem key={`list-${i}`} item={{ ...item, type: 'list' }} onPress={onMoviePress} />
+            <SearchItem
+              key={`list-${item.id || i}`}
+              item={{ ...item, type: 'list' }}
+              onMoviePress={onMoviePress}
+              onUserPress={onUserPress}
+              onListPress={onListPress}
+            />
           ))}
         </View>
       )}
@@ -536,6 +565,7 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
 export default function Discover() {
   const router       = useRouter();
   const searchParams = useLocalSearchParams();
+  const { isAuthenticated } = useAuthSession();
 
   // ── Search state ──
   const [inlineQuery, setInlineQuery]     = useState(searchParams.q || '');
@@ -596,7 +626,9 @@ export default function Discover() {
     setIsSearching(true);
     setSearchLoading(true);
     try {
-      const { movies, users, lists } = await searchAll(q);
+      const { movies, users, lists } = await searchAll(q, {
+        includeUsers: isAuthenticated,
+      });
       setSearchMovies(movies);
       setSearchUsers(users);
       setSearchLists(lists);
@@ -608,7 +640,7 @@ export default function Discover() {
     } finally {
       setSearchLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   // Debounce 400ms
   useEffect(() => {
@@ -641,6 +673,11 @@ export default function Discover() {
   }, [genreIds, yearRange, minRating, sortBy]);
 
   const handlePress   = (id) => router.push(`/movie/${id}`);
+  const handleUserPress = (id) => router.push({
+    pathname: '/publicProfile',
+    params: { id },
+  });
+  const handleListPress = (id) => router.push(`/list/${id}`);
   const toggleGenre   = (id) => setGenreIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
   const resetFilters  = () => { setGenreIds([]); setYearRange(null); setMinRating(''); setSortBy('popularity.desc'); };
   const activeCount   = [genreIds.length > 0 ? 1 : null, yearRange, minRating].filter(Boolean).length;
@@ -730,6 +767,8 @@ export default function Discover() {
                 query={inlineQuery}
                 loading={searchLoading}
                 onMoviePress={handlePress}
+                onUserPress={handleUserPress}
+                onListPress={handleListPress}
               />
             </Animated.View>
           )}
