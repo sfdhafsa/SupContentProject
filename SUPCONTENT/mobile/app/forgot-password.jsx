@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Linking,
   ScrollView,
   StatusBar,
 } from "react-native";
@@ -15,6 +14,11 @@ import { ArrowLeft, LockKeyhole } from "lucide-react-native";
 import api from "../src/config/api.js";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function getResetToken(resetUrl) {
+  const match = resetUrl.match(/[?&]token=([^&]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -50,12 +54,27 @@ export default function ForgotPasswordScreen() {
       const apiError =
         err?.response?.data?.message ||
         err?.response?.data?.errors?.[0]?.msg ||
+        err?.message ||
         "Impossible d'envoyer le lien de réinitialisation.";
 
       setError(apiError);
     } finally {
       setLoading(false);
     }
+  };
+
+  const openResetScreen = () => {
+    const token = getResetToken(resetUrl);
+
+    if (!token) {
+      setError("Le lien de réinitialisation est invalide.");
+      return;
+    }
+
+    router.push({
+      pathname: "/reset-password",
+      params: { token },
+    });
   };
 
   return (
@@ -225,14 +244,14 @@ export default function ForgotPasswordScreen() {
               </Text>
 
               <Text
-                onPress={() => Linking.openURL(resetUrl)}
+                onPress={openResetScreen}
                 style={{
                   color: "#D0021B",
                   fontWeight: "600",
                   fontSize: 14,
                 }}
               >
-                {resetUrl}
+                Réinitialiser le mot de passe
               </Text>
             </View>
           )}

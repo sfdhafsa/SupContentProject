@@ -14,7 +14,7 @@ import {
   searchUsers,
 } from '../../controllers/users/user.controllers.js';
 
-import { protect } from '../../middlewares/auth.middleware.js';
+import { optionalProtect, protect } from '../../middlewares/auth.middleware.js';
 import { uploadAvatarFile } from '../../middlewares/upload.middleware.js';
 
 const router = express.Router();
@@ -109,7 +109,7 @@ router.delete('/me',           protect, deleteMe);
 // 🌍 Routes publiques
 // =====================
 router.get('/search',          protect, searchUsers);
-router.get('/:id/activity',    getPublicUserActivity);
+router.get('/:id/activity',    optionalProtect, getPublicUserActivity);
 router.get('/:id',             getUserById);
 
 export default router;

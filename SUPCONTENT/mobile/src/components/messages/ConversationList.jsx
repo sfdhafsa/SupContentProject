@@ -11,6 +11,12 @@ export default function ConversationList({
 }) {
   const router = useRouter();
 
+  const getOtherUser = (conversation) => conversation.other_user || {
+    id: conversation.other_user_id,
+    username: conversation.other_username,
+    avatar_url: conversation.other_avatar_url,
+  };
+
   if (loading && conversations.length === 0) {
     return <ActivityIndicator size="small" color="#ef0d1a" style={styles.loader} />;
   }
@@ -26,23 +32,27 @@ export default function ConversationList({
   return (
     <FlatList
       data={conversations}
-      keyExtractor={(item, index) => String(item.other_user?.id || index)}
-      renderItem={({ item }) => (
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/conversation/[userId]',
-              params: {
-                userId: item.other_user?.id,
-                username: item.other_user?.username,
-              },
-            })
-          }
-          style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
-        >
-          <ConversationItem conversation={item} />
-        </Pressable>
-      )}
+      keyExtractor={(item, index) => String(getOtherUser(item)?.id || index)}
+      renderItem={({ item }) => {
+        const otherUser = getOtherUser(item);
+
+        return (
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/conversation/[userId]',
+                params: {
+                  userId: otherUser?.id,
+                  username: otherUser?.username,
+                },
+              })
+            }
+            style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
+          >
+            <ConversationItem conversation={item} />
+          </Pressable>
+        );
+      }}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
       refreshing={refreshing}
       onRefresh={onRefresh}

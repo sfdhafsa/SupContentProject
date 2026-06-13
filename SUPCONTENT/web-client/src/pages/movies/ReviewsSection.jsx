@@ -159,9 +159,18 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
     if (!shouldFocus) return;
 
     setCommentsOpen(true);
-    window.setTimeout(() => {
+    const scrollToCard = () => {
       cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 150);
+    };
+    const frameId = window.requestAnimationFrame(scrollToCard);
+    const timers = [150, 450, 900].map((delay) =>
+      window.setTimeout(scrollToCard, delay),
+    );
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
   }, [shouldFocus]);
 
   useEffect(() => {
@@ -191,7 +200,7 @@ function ReviewCard({ review, currentUserId, isAuthenticated, onEdit, onDelete, 
       id={`review-${review.id}`}
       className={`rounded-2xl border p-5 transition-colors ${
         shouldFocus
-          ? "border-[#D0021B] bg-[#D0021B]/15"
+          ? "border-[#D0021B]/50 bg-[#D0021B]/[0.08]"
           : isFeatured
             ? "border-[#D0021B]/40 bg-[#D0021B]/[0.08] shadow-[0_0_0_1px_rgba(208,2,27,0.08)]"
             : "border-white/10 bg-white/[0.04]"

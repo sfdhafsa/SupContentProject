@@ -63,6 +63,7 @@ export const FeedModel = {
           ON c.review_id = r.id
           AND c.deleted_at IS NULL
         WHERE r.deleted_at IS NULL
+        AND r.user_id <> $1
         GROUP BY r.id, u.id, m.id
       ),
       comment_activities AS (
@@ -124,6 +125,7 @@ export const FeedModel = {
           ON all_comments.review_id = r.id
           AND all_comments.deleted_at IS NULL
         WHERE c.deleted_at IS NULL
+        AND c.user_id <> $1
         AND (r.user_id = $1 OR f.follower_id IS NOT NULL)
         GROUP BY c.id, r.id, commenter.id, review_author.id, m.id
       ),
@@ -173,6 +175,7 @@ export const FeedModel = {
         JOIN movies m
           ON m.id = clm.movie_id
         WHERE cl.is_public = TRUE
+        AND cl.user_id <> $1
       )
       SELECT *
       FROM (

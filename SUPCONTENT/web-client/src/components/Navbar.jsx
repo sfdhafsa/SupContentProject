@@ -140,7 +140,7 @@ function SearchAvatar({ user }) {
   );
 }
 
-function SearchDropdown({ movies, users, lists, loading, query, onSelectMovie, onSelectUser, onSelectList, onSeeAll }) {
+function SearchDropdown({ movies, users, lists, loading, query, isAuthenticated, onSelectMovie, onSelectUser, onSelectList, onSeeAll }) {
   if (!query.trim()) return null;
 
   const hasMovies = movies.length > 0;
@@ -239,7 +239,7 @@ function SearchDropdown({ movies, users, lists, loading, query, onSelectMovie, o
             {hasLists && (
               <div className={`${hasMovies || hasUsers ? "border-t border-gray-100 dark:border-gray-700" : ""}`}>
                 <p className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                  Lists from people you follow
+                  {isAuthenticated ? "Lists from people you follow" : "Public lists"}
                 </p>
                 {lists.map((list) => (
                   <button
@@ -318,9 +318,13 @@ export default function Navbar() {
     const timer = setTimeout(() => {
       const requests = [moviesApi.search(search, 1)];
 
-      if (isAuthenticated && search.trim().length >= 2) {
+      if (search.trim().length >= 2) {
         requests.push(messagesApi.searchUsers(search));
-        requests.push(listsApi.searchFollowing(search));
+        requests.push(
+          isAuthenticated
+            ? listsApi.searchFollowing(search)
+            : listsApi.getPublic({ search, limit: 6 })
+        );
       }
 
       Promise.allSettled(requests)
@@ -504,6 +508,7 @@ export default function Navbar() {
               lists={listResults}
               loading={searchLoading}
               query={search}
+              isAuthenticated={isAuthenticated}
               onSelectMovie={handleSelectMovie}
               onSelectUser={handleSelectUser}
               onSelectList={handleSelectList}

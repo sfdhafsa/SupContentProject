@@ -31,8 +31,8 @@ export async function discoverMovies({ page = 1, genre_ids, year_min, year_max, 
   return data.data;
 }
 
-export async function getTrending() {
-  const res = await fetch(`${API_BASE_URL}/movies/trending`, {
+export async function getTrending(timeWindow = 'week') {
+  const res = await fetch(`${API_BASE_URL}/movies/trending?time_window=${timeWindow}`, {
     headers: getHeaders(),
   });
   const data = await res.json().catch(() => ({}));
