@@ -128,6 +128,7 @@ export default function TopNavbar({ username = 'User', onSearch }) {
   const authed                        = isAuthenticated;
   const displayUsername               = user?.username || username || 'User';
   const initial                       = displayUsername.slice(0, 1).toUpperCase();
+  const brandRoute                    = authed ? '/home' : '/discover';
 
   const [searchOpen, setSearchOpen]   = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -182,7 +183,7 @@ export default function TopNavbar({ username = 'User', onSearch }) {
     <View style={styles.wrapper}>
       {/* Main bar */}
       <View style={styles.container}>
-        <Pressable onPress={() => router.push('/discover')} style={styles.brand}>
+        <Pressable onPress={() => router.push(brandRoute)} style={styles.brand}>
           <LogoMark size={22} radius={7} />
           <Text style={styles.brandText}>SUPMOVIES</Text>
         </Pressable>

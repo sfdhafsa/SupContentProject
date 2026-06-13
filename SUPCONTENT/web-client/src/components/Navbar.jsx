@@ -316,6 +316,7 @@ export default function Navbar() {
 
   const navLinks = isAuthenticated ? NAV_LINKS_AUTH : NAV_LINKS_PUBLIC;
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "U";
+  const brandRoute = isAuthenticated ? "/home" : "/discover";
 
   // Debounced search
   useEffect(() => {
@@ -507,7 +508,7 @@ export default function Navbar() {
       <div className="max-w-screen-xl mx-auto px-3 sm:px-6 flex items-center h-16 gap-2 sm:gap-4">
 
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 flex-shrink-0 sm:mr-2">
+        <Link to={brandRoute} className="flex items-center gap-2 flex-shrink-0 sm:mr-2">
           <div className="w-9 h-9 bg-[#D0021B] rounded-lg flex items-center justify-center flex-shrink-0">
             <FilmIcon />
           </div>
