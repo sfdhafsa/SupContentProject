@@ -1,7 +1,7 @@
 import { CommentModel } from "../../models/comment.model.js";
 import { ReportModel } from "../../models/report.model.js";
 import { ReviewModel } from "../../models/review.model.js";
-import { UserModel } from "../../models/user.model.js";
+import { isSuperAdminUser, UserModel } from "../../models/user.model.js";
 import {
   getReports,
   updateReportStatus,
@@ -34,15 +34,21 @@ const updateUserBanStatus = async ({ userId, isBanned, handledBy }) => {
     throw Object.assign(new Error("You cannot update your own ban status."), { status: 400 });
   }
 
+  const targetUser = await UserModel.findById(userId);
+
+  if (!targetUser) {
+    throw Object.assign(new Error("User not found."), { status: 404 });
+  }
+
+  if (isBanned && isSuperAdminUser(targetUser)) {
+    throw Object.assign(new Error("The platform super admin cannot be banned."), { status: 403 });
+  }
+
   const user = await UserModel.updateBanStatus(
     userId,
     isBanned,
     isBanned ? handledBy : null
   );
-
-  if (!user) {
-    throw Object.assign(new Error("User not found."), { status: 404 });
-  }
 
   return user;
 };

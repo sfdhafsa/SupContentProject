@@ -186,9 +186,14 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
         filteredUsers.map((user) => {
           const isAdmin = (user.roles || []).map((role) => String(role).toLowerCase()).includes('admin');
           const isCurrentUser = user.id === currentUser?.id;
+          const isSuperAdmin = String(user.email || '').trim().toLowerCase() === 'supmoviesteam@gmail.com';
           const isBanBusy = busyId === `user-${user.id}`;
           const isPromoteBusy = busyId === `promote-${user.id}`;
           const shouldBan = !user.is_banned;
+          const hidePromotionAction = isSuperAdmin && isAdmin;
+          const hideBanAction = isSuperAdmin && shouldBan;
+          const promotionDisabled = Boolean(busyId) || isCurrentUser;
+          const banDisabled = Boolean(busyId) || isCurrentUser;
 
           return (
             <View key={user.id} style={styles.userRow}>
@@ -213,32 +218,36 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
               </View>
 
               <View style={styles.userActions}>
-                <Pressable
-                  disabled={Boolean(busyId) || isCurrentUser}
-                  onPress={() => onUpdatePromotion(user, !isAdmin)}
-                  style={[
-                    styles.actionBtn,
-                    styles.darkBtn,
-                    styles.userActionBtn,
-                    (Boolean(busyId) || isCurrentUser) && styles.disabledBtn,
-                  ]}
-                >
-                  <Text style={styles.actionBtnText}>{isPromoteBusy ? 'Updating...' : isAdmin ? 'Unpromote' : 'Promote'}</Text>
-                </Pressable>
-                <Pressable
-                  disabled={Boolean(busyId) || isCurrentUser}
-                  onPress={() => onUpdateBan(user, shouldBan)}
-                  style={[
-                    styles.actionBtn,
-                    styles.userActionBtn,
-                    user.is_banned ? styles.unbanBtn : styles.banBtn,
-                    (Boolean(busyId) || isCurrentUser) && styles.disabledBtn,
-                  ]}
-                >
-                  <Text style={styles.actionBtnText}>
-                    {isBanBusy ? 'Updating...' : user.is_banned ? 'Unban' : 'Ban'}
-                  </Text>
-                </Pressable>
+                {!hidePromotionAction ? (
+                  <Pressable
+                    disabled={promotionDisabled}
+                    onPress={() => onUpdatePromotion(user, !isAdmin)}
+                    style={[
+                      styles.actionBtn,
+                      styles.darkBtn,
+                      styles.userActionBtn,
+                      promotionDisabled && styles.disabledBtn,
+                    ]}
+                  >
+                    <Text style={styles.actionBtnText}>{isPromoteBusy ? 'Updating...' : isAdmin ? 'Unpromote' : 'Promote'}</Text>
+                  </Pressable>
+                ) : null}
+                {!hideBanAction ? (
+                  <Pressable
+                    disabled={banDisabled}
+                    onPress={() => onUpdateBan(user, shouldBan)}
+                    style={[
+                      styles.actionBtn,
+                      styles.userActionBtn,
+                      user.is_banned ? styles.unbanBtn : styles.banBtn,
+                      banDisabled && styles.disabledBtn,
+                    ]}
+                  >
+                    <Text style={styles.actionBtnText}>
+                      {isBanBusy ? 'Updating...' : user.is_banned ? 'Unban' : 'Ban'}
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
             </View>
           );

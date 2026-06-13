@@ -1,5 +1,10 @@
 import pool from '../config/db.js';
 
+export const SUPER_ADMIN_EMAIL = 'supmoviesteam@gmail.com';
+
+export const isSuperAdminUser = (user) =>
+  String(user?.email || '').trim().toLowerCase() === SUPER_ADMIN_EMAIL;
+
 export const UserModel = {
   async ensureBanAuditColumns() {
     await pool.query(

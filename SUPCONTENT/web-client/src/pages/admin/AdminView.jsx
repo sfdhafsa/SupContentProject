@@ -397,6 +397,8 @@ export default function AdminView() {
 }
 
 function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, onUpdatePromotion, users }) {
+  const superAdminEmail = "supmoviesteam@gmail.com";
+
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden">
       <div className="grid grid-cols-3 border-b border-gray-100 dark:border-gray-800">
@@ -421,6 +423,7 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
           {filteredUsers.map((user) => {
             const isAdmin = (user.roles || []).map((role) => String(role).toLowerCase()).includes("admin");
             const isCurrentUser = user.id === currentUser?.id;
+            const isSuperAdmin = String(user.email || "").trim().toLowerCase() === superAdminEmail;
             const initials = user.username?.slice(0, 2).toUpperCase() || "U";
 
             return (
@@ -493,32 +496,32 @@ function UsersPanel({ busyId, currentUser, filteredUsers, loading, onUpdateBan, 
                   </div>
                   <div className="sm:text-right">
                     <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-                      <button
-                        type="button"
-                        disabled={Boolean(busyId) || isCurrentUser}
-                        onClick={() => onUpdatePromotion(user, !isAdmin)}
-                        title={
-                          isCurrentUser
-                            ? "You cannot promote your own account"
-                            : undefined
-                        }
-                        className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {busyId === `promote-${user.id}` ? "Updating..." : isAdmin ? "Unpromote" : "Promote"}
-                      </button>
-                    <button
-                      type="button"
-                      disabled={Boolean(busyId) || isCurrentUser}
-                      onClick={() => onUpdateBan(user, !user.is_banned)}
-                      title={isCurrentUser ? "You cannot ban your own account" : undefined}
-                      className={`w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                        user.is_banned
-                          ? "bg-green-600 hover:bg-green-700 text-white"
-                          : "bg-[#D0021B] hover:bg-[#b30218] text-white"
-                      }`}
-                    >
-                      {busyId === `user-${user.id}` ? "Updating..." : user.is_banned ? "Unban" : "Ban"}
-                    </button>
+                      {!(isSuperAdmin && isAdmin) && (
+                        <button
+                          type="button"
+                          disabled={Boolean(busyId) || isCurrentUser}
+                          onClick={() => onUpdatePromotion(user, !isAdmin)}
+                          title={isCurrentUser ? "You cannot promote your own account" : undefined}
+                          className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {busyId === `promote-${user.id}` ? "Updating..." : isAdmin ? "Unpromote" : "Promote"}
+                        </button>
+                      )}
+                      {!(isSuperAdmin && !user.is_banned) && (
+                        <button
+                          type="button"
+                          disabled={Boolean(busyId) || isCurrentUser}
+                          onClick={() => onUpdateBan(user, !user.is_banned)}
+                          title={isCurrentUser ? "You cannot ban your own account" : undefined}
+                          className={`w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                            user.is_banned
+                              ? "bg-green-600 hover:bg-green-700 text-white"
+                              : "bg-[#D0021B] hover:bg-[#b30218] text-white"
+                          }`}
+                        >
+                          {busyId === `user-${user.id}` ? "Updating..." : user.is_banned ? "Unban" : "Ban"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
