@@ -7,6 +7,8 @@ import Login from "../pages/auth/Login";
 import ForgotPassword from "../pages/auth/ForgotPassword.jsx";
 import ResetPassword from "../pages/auth/ResetPassword.jsx";
 import OAuthCallback from "../pages/auth/OAuthCallback.jsx";
+import VerifyEmail from "../pages/auth/VerifyEmail.jsx";
+import VerificationPending from "../pages/auth/VerificationPending.jsx";
 import Home from "../pages/home/Home";
 import Help from "../pages/help/Help.jsx";
 import Profile from "../pages/user/Profile.jsx";
@@ -70,6 +72,8 @@ export default function AppRouter() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<OAuthCallback />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/verification-pending" element={<VerificationPending />} />
 
       <Route path="/" element={<HomeRedirect />} />
       <Route element={<MainLayout />}>

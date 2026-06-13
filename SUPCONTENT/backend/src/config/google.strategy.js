@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { UserModel } from "../models/user.model.js";
 import pool from "../config/db.js";
 
 const normalizeUsername = (value, fallback) => {
@@ -44,6 +45,8 @@ passport.use(
 
     async (accessToken, refreshToken, profile, done) => {
       try {
+        await UserModel.ensureEmailVerificationColumns();
+
         const provider = "google";
         const providerUserId = profile.id;
         const email = profile.emails?.[0]?.value;
@@ -75,10 +78,14 @@ passport.use(
           if (existingUser.rows.length > 0) {
             user = existingUser.rows[0];
 
-            if (!user.avatar_url && avatarUrl) {
+            if (!user.is_verified || (!user.avatar_url && avatarUrl)) {
               const updated = await pool.query(
                 `UPDATE users
-                 SET avatar_url=$1, updated_at=NOW()
+                 SET avatar_url=COALESCE(avatar_url, $1),
+                     is_verified=TRUE,
+                     verification_token=NULL,
+                     verification_token_expires=NULL,
+                     updated_at=NOW()
                  WHERE id=$2
                  RETURNING *`,
                 [avatarUrl, user.id]
@@ -93,8 +100,8 @@ passport.use(
             );
 
             const newUser = await pool.query(
-              `INSERT INTO users (email, username, avatar_url)
-               VALUES ($1, $2, $3)
+              `INSERT INTO users (email, username, avatar_url, is_verified)
+               VALUES ($1, $2, $3, TRUE)
                RETURNING *`,
               [email, username, avatarUrl]
             );
@@ -123,6 +130,20 @@ passport.use(
              ON CONFLICT (provider, provider_user_id) DO NOTHING`,
             [user.id, provider, providerUserId]
           );
+        }
+
+        if (user && !user.is_verified) {
+          const verifiedUser = await pool.query(
+            `UPDATE users
+             SET is_verified=TRUE,
+                 verification_token=NULL,
+                 verification_token_expires=NULL,
+                 updated_at=NOW()
+             WHERE id=$1
+             RETURNING *`,
+            [user.id]
+          );
+          user = verifiedUser.rows[0];
         }
 
         if (user.is_banned) {

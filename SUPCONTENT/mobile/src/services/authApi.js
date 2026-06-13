@@ -31,7 +31,10 @@ export async function loginWithEmail({ email, password }) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, 'Invalid email or password.'));
+    throw Object.assign(
+      new Error(getErrorMessage(data, 'Invalid email or password.')),
+      { code: data?.code, status: response.status }
+    );
   }
 
   return data;
@@ -48,6 +51,25 @@ export async function registerWithEmail({ username, email, password }) {
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, 'Unable to create account.'));
+  }
+
+  return data;
+}
+
+export async function resendVerificationEmail(email) {
+  const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
+    method: 'POST',
+    headers: getJsonHeaders(),
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw Object.assign(
+      new Error(getErrorMessage(data, "Impossible de renvoyer l'e-mail.")),
+      { status: response.status }
+    );
   }
 
   return data;

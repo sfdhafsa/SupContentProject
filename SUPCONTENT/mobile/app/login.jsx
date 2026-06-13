@@ -22,11 +22,13 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
     if (error) setError('');
     if (success) setSuccess('');
+    if (needsVerification) setNeedsVerification(false);
   };
 
   const handleLogin = async () => {
@@ -38,6 +40,7 @@ export default function Login() {
     setLoading(true);
     setError('');
     setSuccess('');
+    setNeedsVerification(false);
 
     try {
       const data = await loginWithEmail({
@@ -49,6 +52,7 @@ export default function Login() {
       setSuccess(`Connecte en tant que ${data.user?.username || data.user?.email || 'user'}.`);
       router.replace('/home');
     } catch (err) {
+      setNeedsVerification(err.code === 'EMAIL_NOT_VERIFIED');
       setError(err.message || 'Impossible de se connecter.');
     } finally {
       setLoading(false);
@@ -123,6 +127,16 @@ export default function Login() {
         />
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {needsVerification ? (
+          <Pressable
+            onPress={() => router.push({
+              pathname: '/verification-pending',
+              params: { email: form.email.trim() },
+            })}
+          >
+            <Text style={styles.resendText}>Renvoyer l'e-mail de verification</Text>
+          </Pressable>
+        ) : null}
         {success ? <Text style={styles.successText}>{success}</Text> : null}
 
         <Pressable
@@ -292,6 +306,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 10,
     textAlign: 'center',
+  },
+  resendText: {
+    color: '#ef0d1a',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
   signUpRow: {
     flexDirection: 'row',

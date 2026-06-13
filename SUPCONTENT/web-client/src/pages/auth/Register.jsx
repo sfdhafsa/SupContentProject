@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api/axios.js";
-import { useAuth } from "../../context/AuthContext.jsx";
 
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const authBaseUrl = apiUrl.endsWith("/api") ? apiUrl : `${apiUrl}/api`;
@@ -47,7 +46,6 @@ const hasStrongPassword = (password) =>
 
 export default function Register() {
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const [form, setForm] = useState({ username: "", email: "", password: "", confirm: "" });
   const [errors, setErrors] = useState({});
@@ -78,22 +76,17 @@ export default function Register() {
     setApiError("");
 
     try {
-      const res = await api.post("/auth/register", {
+      await api.post("/auth/register", {
         username: form.username,
         email: form.email,
         password: form.password,
       });
 
       // Si le backend connecte directement après register
-      const token = res.data?.token || res.data?.access_token;
-      const userData = res.data?.user || res.data?.data;
-
-      if (token) {
-        login(token, userData); // connecte directement
-        navigate("/");
-      } else {
-        navigate("/login"); // sinon redirige vers login
-      }
+      navigate("/verification-pending", {
+        replace: true,
+        state: { email: form.email },
+      });
     } catch (error) {
       const message =
         error?.response?.data?.errors?.[0]?.msg ||

@@ -9,6 +9,35 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
+const wait = (durationMs) =>
+  new Promise((resolve) => setTimeout(resolve, durationMs));
+
+export const waitForDatabase = async ({
+  retries = 15,
+  delayMs = 2000,
+} = {}) => {
+  let lastError;
+
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      await pool.query("SELECT 1");
+      console.log("PostgreSQL is ready");
+      return;
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `PostgreSQL unavailable (attempt ${attempt}/${retries}). Retrying in ${delayMs}ms...`
+      );
+
+      if (attempt < retries) {
+        await wait(delayMs);
+      }
+    }
+  }
+
+  throw lastError;
+};
+
 pool.on("connect", () => {
   console.log("✅ Connected to PostgreSQL");
 });

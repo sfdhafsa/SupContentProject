@@ -2,7 +2,6 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { validationResult } from 'express-validator';
 import { UserModel } from '../../models/user.model.js';
-import { RoleModel } from '../../models/role.model.js';
 import { signToken } from '../../utils/jwt.utils.js';
 import { TokenBlacklistModel } from '../../models/tokenBlacklist.model.js';
 import { PasswordResetModel } from '../../models/passwordReset.model.js';
@@ -10,11 +9,35 @@ import { EmailService } from '../../services/email.service.js';
 
 const SALT_ROUNDS = 12;
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
-const hashResetToken = (token) =>
+const hashToken = (token) =>
   crypto.createHash('sha256').update(token).digest('hex');
 
 const getClientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
+const createVerificationToken = () => {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+
+  return {
+    rawToken,
+    tokenHash: hashToken(rawToken),
+    expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
+  };
+};
+
+const getVerificationUrl = (rawToken) => {
+  const url = new URL('/verify-email', getClientUrl());
+  url.searchParams.set('token', rawToken);
+  return url.toString();
+};
+
+const ensureEmailCanBeSent = () => {
+  if (process.env.NODE_ENV === 'production' && !EmailService.isConfigured()) {
+    throw Object.assign(new Error('Email service is temporarily unavailable.'), {
+      status: 503,
+    });
+  }
+};
 
 const getMobileClientUrl = () =>
   process.env.MOBILE_CLIENT_URL || 'supcontent://auth/callback';
@@ -43,6 +66,7 @@ export const register = async (req, res, next) => {
     }
 
     const { email, username, password } = req.body;
+    ensureEmailCanBeSent();
 
     // Check uniqueness
     if (await UserModel.findByEmail(email)) {
@@ -55,33 +79,110 @@ export const register = async (req, res, next) => {
 
     // Hash password
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const { rawToken, tokenHash, expiresAt } = createVerificationToken();
 
     // Create user
     const user = await UserModel.createLocal({
       email,
       username,
-      passwordHash
+      passwordHash,
+      verificationToken: tokenHash,
+      verificationTokenExpires: expiresAt,
     });
 
-    const roles = await RoleModel.getRolesByUserId(user.id);
-    const normalizedRoles = roles.map(role => String(role).toLowerCase());
-
-    const token = signToken({
-      userId: user.id,
-      roles: normalizedRoles
-    });
-
-    const { password_hash, ...safeUser } = user;
+    const verificationUrl = getVerificationUrl(rawToken);
+    if (EmailService.isConfigured()) {
+      await EmailService.sendVerificationEmail({
+        to: user.email,
+        username: user.username,
+        verificationUrl,
+      });
+    }
 
     return res.status(201).json({
-      message: 'Compte créé avec succès.',
-      token,
-      user: {
-        ...safeUser,
-        roles: normalizedRoles
-      }
+      message: 'Compte cree. Consultez votre email pour valider votre adresse.',
+      user,
+      ...(process.env.NODE_ENV !== 'production' &&
+        !EmailService.isConfigured() && { verification_url: verificationUrl }),
     });
 
+  } catch (err) {
+    next(err);
+  }
+};
+
+// =====================
+// VERIFY EMAIL
+// =====================
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const rawToken = typeof req.query.token === 'string' ? req.query.token.trim() : '';
+
+    if (!/^[a-f0-9]{64}$/i.test(rawToken)) {
+      return res.status(400).json({ message: 'Token de verification requis.' });
+    }
+
+    const user = await UserModel.verifyEmailByToken(hashToken(rawToken));
+
+    if (!user) {
+      return res.status(400).json({ message: 'Lien de verification invalide ou expire.' });
+    }
+
+    return res.json({
+      message: 'Adresse email verifiee avec succes.',
+      user,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// =====================
+// RESEND VERIFICATION
+// =====================
+export const resendVerification = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    ensureEmailCanBeSent();
+
+    const response = {
+      message: 'Si ce compte existe et attend une validation, un nouvel email a ete envoye.',
+    };
+    const user = await UserModel.findByEmail(req.body.email);
+
+    if (!user || user.is_verified) {
+      return res.json(response);
+    }
+
+    const { rawToken, tokenHash, expiresAt } = createVerificationToken();
+    const updatedUser = await UserModel.replaceVerificationToken(
+      user.id,
+      tokenHash,
+      expiresAt
+    );
+
+    if (!updatedUser) {
+      return res.json(response);
+    }
+
+    const verificationUrl = getVerificationUrl(rawToken);
+    if (EmailService.isConfigured()) {
+      await EmailService.sendVerificationEmail({
+        to: updatedUser.email,
+        username: updatedUser.username,
+        verificationUrl,
+      });
+    }
+
+    return res.json({
+      ...response,
+      ...(process.env.NODE_ENV !== 'production' &&
+        !EmailService.isConfigured() && { verification_url: verificationUrl }),
+    });
   } catch (err) {
     next(err);
   }
@@ -116,6 +217,13 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ message: 'Identifiants invalides.' });
     }
 
+    if (!user.is_verified) {
+      return res.status(403).json({
+        message: 'Veuillez verifier votre adresse email avant de vous connecter.',
+        code: 'EMAIL_NOT_VERIFIED',
+      });
+    }
+
     // Get full user (clean profile)
     const fullUser = await UserModel.findById(user.id);
     const roles = fullUser.roles || [];
@@ -125,7 +233,7 @@ export const login = async (req, res, next) => {
       roles
     });
 
-    const { password_hash, ...safeUser } = fullUser;
+    const safeUser = fullUser;
 
     return res.json({
       message: 'Connexion réussie.',
@@ -180,7 +288,7 @@ export const requestPasswordReset = async (req, res, next) => {
     }
 
     const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = hashResetToken(rawToken);
+    const tokenHash = hashToken(rawToken);
     const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
 
     await PasswordResetModel.create({
@@ -220,7 +328,7 @@ export const resetPassword = async (req, res, next) => {
     }
 
     const { token, password } = req.body;
-    const tokenHash = hashResetToken(token);
+    const tokenHash = hashToken(token);
     const resetToken = await PasswordResetModel.findValidByHash(tokenHash);
 
     if (!resetToken) {

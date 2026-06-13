@@ -6,6 +6,27 @@ export const isSuperAdminUser = (user) =>
   String(user?.email || '').trim().toLowerCase() === SUPER_ADMIN_EMAIL;
 
 export const UserModel = {
+  async ensureEmailVerificationColumns() {
+    // Accounts created before this feature remain verified after deployment.
+    await pool.query(
+      `ALTER TABLE users
+       ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT TRUE,
+       ADD COLUMN IF NOT EXISTS verification_token TEXT,
+       ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMP`
+    );
+
+    await pool.query(
+      `ALTER TABLE users
+       ALTER COLUMN is_verified SET DEFAULT FALSE`
+    );
+
+    await pool.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS ux_users_verification_token
+       ON users (verification_token)
+       WHERE verification_token IS NOT NULL`
+    );
+  },
+
   async ensureBanAuditColumns() {
     await pool.query(
       `ALTER TABLE users
@@ -37,6 +58,8 @@ export const UserModel = {
   // GET USER BY EMAIL
   // =====================
   async findByEmail(email) {
+    await this.ensureEmailVerificationColumns();
+
     const { rows } = await pool.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
@@ -48,6 +71,7 @@ export const UserModel = {
   // GET USER BY ID + ROLES
   // =====================
   async findById(id) {
+    await this.ensureEmailVerificationColumns();
     await this.ensureNotificationPreferenceColumns();
     await this.ensureBanAuditColumns();
     await this.ensurePromotionAuditColumns();
@@ -57,6 +81,7 @@ export const UserModel = {
           u.id,
           u.email,
           u.username,
+          u.is_verified,
           u.avatar_url,
           u.bio,
           u.website_url,
@@ -171,16 +196,36 @@ export const UserModel = {
   // =====================
   // CREATE LOCAL USER
   // =====================
-  async createLocal({ email, username, passwordHash }) {
+  async createLocal({
+    email,
+    username,
+    passwordHash,
+    verificationToken,
+    verificationTokenExpires,
+  }) {
+    await this.ensureEmailVerificationColumns();
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
       const { rows } = await client.query(
-        `INSERT INTO users (email, username, password_hash)
-         VALUES ($1, $2, $3)
-         RETURNING id, email, username, created_at`,
-        [email, username || null, passwordHash]
+        `INSERT INTO users (
+           email,
+           username,
+           password_hash,
+           is_verified,
+           verification_token,
+           verification_token_expires
+         )
+         VALUES ($1, $2, $3, FALSE, $4, $5)
+         RETURNING id, email, username, is_verified, created_at`,
+        [
+          email,
+          username || null,
+          passwordHash,
+          verificationToken,
+          verificationTokenExpires,
+        ]
       );
       const user = rows[0];
 
@@ -288,6 +333,42 @@ export const UserModel = {
        WHERE id = $2`,
       [newHash, id]
     );
+  },
+
+  async verifyEmailByToken(verificationToken) {
+    await this.ensureEmailVerificationColumns();
+
+    const { rows } = await pool.query(
+      `UPDATE users
+       SET is_verified = TRUE,
+           verification_token = NULL,
+           verification_token_expires = NULL,
+           updated_at = NOW()
+       WHERE verification_token = $1
+         AND verification_token_expires > NOW()
+         AND is_verified = FALSE
+       RETURNING id, email, username, is_verified`,
+      [verificationToken]
+    );
+
+    return rows[0] || null;
+  },
+
+  async replaceVerificationToken(id, verificationToken, verificationTokenExpires) {
+    await this.ensureEmailVerificationColumns();
+
+    const { rows } = await pool.query(
+      `UPDATE users
+       SET verification_token = $2,
+           verification_token_expires = $3,
+           updated_at = NOW()
+       WHERE id = $1
+         AND is_verified = FALSE
+       RETURNING id, email, username, is_verified`,
+      [id, verificationToken, verificationTokenExpires]
+    );
+
+    return rows[0] || null;
   },
 
   // =====================

@@ -1,3 +1,5 @@
+import { buildVerificationEmail } from './emailTemplates/verificationEmail.template.js';
+
 const requiredSmtpConfig = [
   'SMTP_HOST',
   'SMTP_PORT',
@@ -15,6 +17,13 @@ const createTransporter = async () => {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
     secure: process.env.SMTP_SECURE === 'true',
+    requireTLS:
+      process.env.SMTP_SECURE !== 'true' &&
+      process.env.SMTP_STARTTLS !== 'false',
+    ignoreTLS:
+      process.env.SMTP_SECURE !== 'true' &&
+      process.env.SMTP_STARTTLS === 'false',
+    name: process.env.SMTP_EHLO_DOMAIN || 'localhost',
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
@@ -69,5 +78,31 @@ export const EmailService = {
         </div>
       `,
     });
+  },
+
+  async sendVerificationEmail({ to, username, verificationUrl }) {
+    if (!hasSmtpConfig()) {
+      throw Object.assign(new Error('SMTP configuration is missing.'), {
+        code: 'SMTP_NOT_CONFIGURED',
+      });
+    }
+
+    const transporter = await createTransporter();
+    const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER;
+    const content = buildVerificationEmail({ username, verificationUrl });
+
+    const info = await transporter.sendMail({
+      from,
+      to,
+      ...content,
+    });
+
+    console.log('Verification email accepted by SMTP', {
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected,
+    });
+
+    return info;
   },
 };

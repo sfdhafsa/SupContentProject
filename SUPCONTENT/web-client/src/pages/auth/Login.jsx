@@ -47,6 +47,7 @@ export default function Login() {
     searchParams.get("error") === "banned" ? "your account is banned" : ""
   );
   const [loading, setLoading]   = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const validate = () => {
     const e = {};
@@ -59,6 +60,7 @@ export default function Login() {
     setForm((f) => ({ ...f, [field]: e.target.value }));
     if (errors[field]) setErrors((err) => ({ ...err, [field]: "" }));
     if (apiError) setApiError("");
+    if (needsVerification) setNeedsVerification(false);
   };
 
   const handleSubmit = async (e) => {
@@ -69,6 +71,7 @@ export default function Login() {
 
     setLoading(true);
     setApiError("");
+    setNeedsVerification(false);
 
     try {
       const res = await api.post("/auth/login", {
@@ -84,6 +87,7 @@ export default function Login() {
       navigate("/");
 
     } catch (error) {
+      setNeedsVerification(error?.response?.data?.code === "EMAIL_NOT_VERIFIED");
       const message =
         error?.response?.data?.message ||
         error?.response?.data?.error   ||
@@ -175,6 +179,15 @@ export default function Login() {
           {apiError && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
               {apiError}
+              {needsVerification ? (
+                <Link
+                  to="/verification-pending"
+                  state={{ email: form.email }}
+                  className="block mt-2 font-semibold underline"
+                >
+                  Renvoyer l'email de verification
+                </Link>
+              ) : null}
             </div>
           )}
 

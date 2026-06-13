@@ -12,6 +12,18 @@ export async function runAdminSeed() {
   try {
     await client.query("BEGIN");
 
+    await client.query(
+      `ALTER TABLE users
+       ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT TRUE,
+       ADD COLUMN IF NOT EXISTS verification_token TEXT,
+       ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMP`
+    );
+
+    await client.query(
+      `ALTER TABLE users
+       ALTER COLUMN is_verified SET DEFAULT FALSE`
+    );
+
     const { rows: roleRows } = await client.query(
       `INSERT INTO roles (name)
        VALUES ('ADMIN')
@@ -32,13 +44,30 @@ export async function runAdminSeed() {
 
     if (!adminUserId) {
       const { rows: userRows } = await client.query(
-        `INSERT INTO users (email, username, password_hash)
-         VALUES ($1, $2, $3)
+        `INSERT INTO users (
+           email,
+           username,
+           password_hash,
+           is_verified,
+           verification_token,
+           verification_token_expires
+         )
+         VALUES ($1, $2, $3, TRUE, NULL, NULL)
          RETURNING id`,
         [ADMIN_USER.email, ADMIN_USER.username, ADMIN_USER.passwordHash]
       );
 
       adminUserId = userRows[0].id;
+    } else {
+      await client.query(
+        `UPDATE users
+         SET is_verified = TRUE,
+             verification_token = NULL,
+             verification_token_expires = NULL,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [adminUserId]
+      );
     }
 
     await client.query(

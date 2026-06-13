@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import ScreenContainer from '../src/components/ScreenContainer';
 import { registerWithEmail } from '../src/services/authApi';
-import { saveAuthSession } from '../src/services/authStorage';
 import { startGoogleOAuth } from '../src/services/oauth';
 
 export default function Register() {
@@ -53,14 +52,16 @@ export default function Register() {
     setError('');
 
     try {
-      const data = await registerWithEmail({
+      await registerWithEmail({
         username: form.username.trim(),
         email: form.email.trim(),
         password: form.password,
       });
 
-      await saveAuthSession(data.token, data.user);
-      router.replace('/home');
+      router.replace({
+        pathname: '/verification-pending',
+        params: { email: form.email.trim() },
+      });
     } catch (err) {
       setError(err.message || 'Impossible de creer le compte.');
     } finally {

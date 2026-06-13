@@ -22,6 +22,9 @@ CREATE TABLE users (
   notification_likes_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   notification_comments_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   notification_followers_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  verification_token TEXT,
+  verification_token_expires TIMESTAMP,
   is_banned BOOLEAN NOT NULL DEFAULT FALSE,
   banned_by UUID,
   banned_at TIMESTAMP,
@@ -212,6 +215,10 @@ CREATE UNIQUE INDEX ux_reviews_user_movie
 
 CREATE INDEX idx_password_reset_tokens_user_id
   ON password_reset_tokens (user_id);
+
+CREATE UNIQUE INDEX ux_users_verification_token
+  ON users (verification_token)
+  WHERE verification_token IS NOT NULL;
 
 -- =========================
 -- FOREIGN KEYS

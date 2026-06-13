@@ -6,7 +6,13 @@ import TopNavbar from '../src/components/TopNavbar';
 import useAuthSession, { AuthSessionProvider } from '../src/hooks/useAuthSession';
 import { NotificationBadgeProvider } from '../src/hooks/useNotificationBadge';
 
-const authOnlyPrefixes = ['/login', '/register', '/forgot-password', '/reset-password'];
+const authOnlyPrefixes = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/verification-pending',
+];
 const protectedPrefixes = ['/home', '/profile', '/settings', '/notifications', '/messages', '/conversation', '/admin-view'];
 const routesWithOwnTopNavbar = [
   '/home',
@@ -70,6 +76,7 @@ function RootNavigator() {
         <Stack.Screen name="register" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="reset-password" />
+        <Stack.Screen name="verification-pending" />
         <Stack.Screen name="home" />
         <Stack.Screen name="discover" />
         <Stack.Screen name="library" />

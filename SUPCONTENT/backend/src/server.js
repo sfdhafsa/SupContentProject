@@ -22,6 +22,7 @@ import "./config/google.strategy.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import { initializeMessagesSocket } from "./services/social/messages/messages.socket.js";
 import { runAdminSeed } from "./seeds/admin-seed.js";
+import { waitForDatabase } from "./config/db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,7 +90,8 @@ app.use(errorHandler);
 
 initializeMessagesSocket(server, corsOptions);
 
-runAdminSeed()
+waitForDatabase()
+  .then(() => runAdminSeed())
   .then(() => {
     server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })

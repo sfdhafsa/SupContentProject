@@ -7,6 +7,8 @@ import {
   logout,
   requestPasswordReset,
   resetPassword,
+  verifyEmail,
+  resendVerification,
   oauthCallback,
 } from '../../controllers/auth/auth.controllers.js';
 import { protect } from '../../middlewares/auth.middleware.js';
@@ -34,6 +36,10 @@ const loginRules = [
 ];
 
 const forgotPasswordRules = [
+  body('email').isEmail().withMessage('Email invalide.').normalizeEmail(),
+];
+
+const resendVerificationRules = [
   body('email').isEmail().withMessage('Email invalide.').normalizeEmail(),
 ];
 
@@ -186,6 +192,13 @@ router.post('/login',    authLimiter, loginRules,    login);
 router.post('/logout',   protect, logout);
 router.post('/forgot-password', authLimiter, forgotPasswordRules, requestPasswordReset);
 router.post('/reset-password',  authLimiter, resetPasswordRules,  resetPassword);
+router.get('/verify-email', authLimiter, verifyEmail);
+router.post(
+  '/resend-verification',
+  authLimiter,
+  resendVerificationRules,
+  resendVerification
+);
 
 // ── Google ───────────────────────────────────────────────────────
 router.get('/google', (req, res, next) => {
