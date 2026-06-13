@@ -189,7 +189,7 @@ export default function Messages() {
               ) : (
                 <EmptyState
                   title="Aucune conversation"
-                  text="Recherchez un abonne mutuel par nom d'utilisateur pour commencer."
+                  text="Rechercher un utilisateur ou une conversation."
                 />
               )}
             </View>

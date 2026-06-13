@@ -17,12 +17,23 @@ function BackArrow() {
 export default function ConversationScreen() {
   const { userId, username } = useLocalSearchParams();
   const router = useRouter();
+  const receiverId = Array.isArray(userId) ? userId[0] : userId;
+  const receiverName = Array.isArray(username) ? username[0] : username;
 
   // Resolve the authenticated user's ID from the JWT once at screen level
   const [currentUserId, setCurrentUserId] = useState(null);
   useEffect(() => {
     getAuthUser().then((user) => setCurrentUserId(user?.id || user?.userId || null));
   }, []);
+
+  const openReceiverProfile = () => {
+    if (!receiverId) return;
+
+    router.push({
+      pathname: '/publicProfile',
+      params: { id: String(receiverId) },
+    });
+  };
 
   return (
     <ScreenContainer>
@@ -33,22 +44,28 @@ export default function ConversationScreen() {
             <BackArrow />
           </Pressable>
 
-          <View style={styles.userInfo}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Voir le profil de ${receiverName || 'cet utilisateur'}`}
+            disabled={!receiverId}
+            onPress={openReceiverProfile}
+            style={({ pressed }) => [styles.userInfo, pressed && styles.userInfoPressed]}
+          >
             <View style={styles.avatarSmall}>
               <Text style={styles.avatarInitial}>
-                {username ? username.charAt(0).toUpperCase() : '?'}
+                {receiverName ? receiverName.charAt(0).toUpperCase() : '?'}
               </Text>
             </View>
             <Text style={styles.username} numberOfLines={1}>
-              {username || 'Conversation'}
+              {receiverName || 'Conversation'}
             </Text>
-          </View>
+          </Pressable>
 
           <View style={styles.headerRight} />
         </View>
 
         {/* Chat messages + input */}
-        <ChatView userId={userId} username={username} currentUserId={currentUserId} />
+        <ChatView userId={receiverId} username={receiverName} currentUserId={currentUserId} />
       </View>
     </ScreenContainer>
   );
@@ -103,6 +120,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
+  },
+  userInfoPressed: {
+    opacity: 0.72,
   },
   avatarSmall: {
     alignItems: 'center',

@@ -10,23 +10,51 @@ const getDefaultHost = () => {
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || `${getDefaultHost()}/api`;
 const REQUEST_TIMEOUT_MS = 15000;
 
+function buildUrl(path, params) {
+  if (!params) return `${API_BASE_URL}${path}`;
+
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null) {
+          searchParams.append(key, String(item));
+        }
+      });
+      return;
+    }
+
+    searchParams.append(key, String(value));
+  });
+
+  const query = searchParams.toString();
+  if (!query) return `${API_BASE_URL}${path}`;
+
+  const separator = path.includes('?') ? '&' : '?';
+  return `${API_BASE_URL}${path}${separator}${query}`;
+}
+
 async function request(path, options = {}) {
   const token = await getAuthToken();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const { params, ...fetchOptions } = options;
   const headers = {
     Accept: 'application/json',
-    ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+    ...(fetchOptions.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {}),
+    ...(fetchOptions.headers || {}),
   };
 
   let response;
 
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
+    response = await fetch(buildUrl(path, params), {
+      ...fetchOptions,
       headers,
       signal: controller.signal,
     });
