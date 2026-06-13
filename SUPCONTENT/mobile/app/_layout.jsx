@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import TopNavbar from '../src/components/TopNavbar';
 import useAuthSession, { AuthSessionProvider } from '../src/hooks/useAuthSession';
 import { NotificationBadgeProvider } from '../src/hooks/useNotificationBadge';
+import { UnreadChatBadgeProvider } from '../src/hooks/useUnreadChatBadge';
 
 const authOnlyPrefixes = ['/login', '/register', '/forgot-password', '/reset-password'];
 const protectedPrefixes = ['/home', '/profile', '/settings', '/notifications', '/messages', '/conversation', '/admin-view'];
@@ -93,7 +94,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthSessionProvider>
         <NotificationBadgeProvider>
-          <RootNavigator />
+          <UnreadChatBadgeProvider>
+            <RootNavigator />
+          </UnreadChatBadgeProvider>
         </NotificationBadgeProvider>
       </AuthSessionProvider>
     </SafeAreaProvider>

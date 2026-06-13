@@ -177,11 +177,14 @@ export default function Messages() {
         setActiveUser(getMessageOtherUser(nextMessages[0], user?.id));
       }
 
-      await Promise.all(
+      const markedRead = await Promise.all(
         nextMessages
           .filter((message) => String(message.receiver_id) === String(user?.id) && !message.is_read)
           .map((message) => messagesApi.markAsRead(message.id).catch(() => null))
       );
+      if (markedRead.some(Boolean)) {
+        window.dispatchEvent(new Event("supcontent:messages-changed"));
+      }
     } catch (err) {
       setError(err?.response?.data?.message || "Unable to load this conversation.");
       setMessages([]);

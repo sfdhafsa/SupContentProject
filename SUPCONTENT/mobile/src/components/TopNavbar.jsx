@@ -11,6 +11,7 @@ import {
 import LogoMark from './LogoMark';
 import useAuthSession from '../hooks/useAuthSession';
 import useNotificationBadge from '../hooks/useNotificationBadge';
+import useUnreadChatBadge from '../hooks/useUnreadChatBadge';
 
 const C = {
   red:    '#ef0d1a',
@@ -123,6 +124,7 @@ export default function TopNavbar({ username = 'User', onSearch }) {
   const router                        = useRouter();
   const { isAuthenticated, user }     = useAuthSession();
   const { unreadCount }                = useNotificationBadge();
+  const { unreadChatCount }            = useUnreadChatBadge();
   const authed                        = isAuthenticated;
   const displayUsername               = user?.username || username || 'User';
   const initial                       = displayUsername.slice(0, 1).toUpperCase();
@@ -204,6 +206,13 @@ export default function TopNavbar({ username = 'User', onSearch }) {
               hitSlop={8}
             >
               <ChatIcon />
+              {unreadChatCount > 0 ? (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                  </Text>
+                </View>
+              ) : null}
             </Pressable>
           )}
 

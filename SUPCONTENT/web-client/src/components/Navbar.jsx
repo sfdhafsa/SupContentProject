@@ -93,6 +93,9 @@ const navLinkClass = ({ isActive }) =>
       : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
   }`;
 
+const getUnreadChatCount = (conversations = []) =>
+  conversations.filter((conversation) => Number(conversation.unread_count || 0) > 0).length;
+
 function UserDropdown({ user, onLogout }) {
   const isAdmin = (user?.roles || []).map((role) => String(role).toLowerCase()).includes("admin");
 
@@ -308,6 +311,7 @@ export default function Navbar() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadChats, setUnreadChats] = useState(0);
   const searchRef                     = useRef(null);
 
   const navLinks = isAuthenticated ? NAV_LINKS_AUTH : NAV_LINKS_PUBLIC;
@@ -402,6 +406,31 @@ export default function Navbar() {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadChats(0);
+      return;
+    }
+
+    const fetchUnreadChats = () => {
+      messagesApi.getConversations()
+        .then((res) => setUnreadChats(getUnreadChatCount(res.data.conversations || [])))
+        .catch(() => setUnreadChats(0));
+    };
+
+    fetchUnreadChats();
+
+    const intervalId = window.setInterval(fetchUnreadChats, 5000);
+    window.addEventListener("focus", fetchUnreadChats);
+    window.addEventListener("supcontent:messages-changed", fetchUnreadChats);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", fetchUnreadChats);
+      window.removeEventListener("supcontent:messages-changed", fetchUnreadChats);
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
     if (!isAuthenticated || !token) return undefined;
 
     let mounted = true;
@@ -415,6 +444,14 @@ export default function Navbar() {
         }
 
         nextSocket = createdSocket;
+        const refreshUnreadChats = () => {
+          messagesApi.getConversations()
+            .then((res) => setUnreadChats(getUnreadChatCount(res.data.conversations || [])))
+            .catch(() => null);
+        };
+
+        createdSocket.on("receive_message", refreshUnreadChats);
+        createdSocket.on("message_sent", refreshUnreadChats);
         createdSocket.on("notifications_changed", (payload = {}) => {
           if (Number.isFinite(payload.unreadCount)) {
             setUnreadNotifications(payload.unreadCount);
@@ -555,9 +592,14 @@ export default function Navbar() {
               <Link
                 to="/messages"
                 title="Conversations"
-                className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all"
+                className="relative w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-white transition-all"
               >
                 <MessageIcon />
+                {unreadChats > 0 && (
+                  <span className="absolute right-1.5 top-1.5 min-w-4 h-4 px-1 rounded-full bg-[#D0021B] text-[10px] leading-4 text-white font-bold text-center">
+                    {unreadChats > 9 ? "9+" : unreadChats}
+                  </span>
+                )}
               </Link>
 
               <Link
@@ -695,8 +737,18 @@ export default function Navbar() {
                 onClick={() => setMobile(false)}
                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
-                <MessageIcon />
+                <span className="relative">
+                  <MessageIcon />
+                  {unreadChats > 0 && (
+                    <span className="absolute -right-1 -top-1 min-w-3.5 h-3.5 px-0.5 rounded-full bg-[#D0021B] text-[9px] leading-3.5 text-white font-bold text-center">
+                      {unreadChats > 9 ? "9+" : unreadChats}
+                    </span>
+                  )}
+                </span>
                 Conversations
+                {unreadChats > 0 && (
+                  <span className="ml-auto text-xs font-bold text-[#D0021B]">{unreadChats}</span>
+                )}
               </Link>
               <Link
                 to="/notifications"

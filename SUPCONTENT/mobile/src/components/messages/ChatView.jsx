@@ -17,7 +17,7 @@ import ChatBubble from './ChatBubble';
 export default function ChatView({ userId, username, currentUserId }) {
   const flatListRef = useRef(null);
   const [inputText, setInputText] = useState('');
-  const { messages, loading, sending, error, send, appendMessage } = useConversation(userId);
+  const { messages, loading, sending, error, send, appendMessage } = useConversation(userId, currentUserId);
 
   // Real-time socket
   const { sendSocketMessage } = useSocket({
