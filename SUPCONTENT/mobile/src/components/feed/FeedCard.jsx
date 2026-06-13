@@ -1,6 +1,13 @@
 import { useRouter } from 'expo-router';
 import { Bookmark, Heart, MessageCircle, Star } from 'lucide-react-native';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import useAuthSession from '../../hooks/useAuthSession';
+import {
+  createReviewComment,
+  getReviewComments,
+  toggleReviewLike,
+} from '../../services/reviewsApi';
 
 const RED = '#ef0d1a';
 const TEXT = '#111827';
@@ -90,9 +97,40 @@ function FeedAvatar({ avatarUrl, username }) {
   );
 }
 
+function CommentRow({ comment }) {
+  const initials = comment.username ? comment.username.slice(0, 2).toUpperCase() : 'U';
+
+  return (
+    <View style={styles.commentRow}>
+      <View style={styles.commentAvatar}>
+        {comment.avatar_url ? (
+          <Image source={{ uri: comment.avatar_url }} style={styles.commentAvatarImage} />
+        ) : (
+          <Text style={styles.commentAvatarText}>{initials}</Text>
+        )}
+      </View>
+      <View style={styles.commentBubble}>
+        <Text style={styles.commentUsername} numberOfLines={1}>{comment.username || 'User'}</Text>
+        <Text style={styles.commentText}>{comment.text}</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function FeedCard({ item, currentUserId }) {
   const router = useRouter();
+  const { token, isAuthenticated } = useAuthSession();
   const { activity, author, movie, review, comment, collection } = item;
+  const [liked, setLiked] = useState(Boolean(review?.has_liked));
+  const [likesCount, setLikesCount] = useState(Number(review?.likes_count || 0));
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentsCount, setCommentsCount] = useState(Number(review?.comments_count || 0));
+  const [commentText, setCommentText] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [actionError, setActionError] = useState('');
   const username = author?.username || '';
   const headline = activity?.headline || '';
   const headlineWithoutUsername = username && headline.startsWith(username)
@@ -105,6 +143,16 @@ export default function FeedCard({ item, currentUserId }) {
   const actionStyle = getActionStyle(item?.type || activity?.type);
   const ActionIcon = actionStyle.icon;
   const hasMoviePanel = Boolean(movie?.title || movie?.poster_url || review?.rating);
+
+  useEffect(() => {
+    setLiked(Boolean(review?.has_liked));
+    setLikesCount(Number(review?.likes_count || 0));
+    setCommentsCount(Number(review?.comments_count || 0));
+    setComments([]);
+    setCommentsOpen(false);
+    setCommentText('');
+    setActionError('');
+  }, [review?.id, review?.has_liked, review?.likes_count, review?.comments_count]);
 
   const openAuthorProfile = () => {
     if (!author?.id) return;
@@ -170,6 +218,92 @@ export default function FeedCard({ item, currentUserId }) {
     }
 
     openMovie();
+  };
+
+  const requireAuth = () => {
+    router.push('/login');
+  };
+
+  const loadComments = async () => {
+    if (!review?.id) return;
+
+    setCommentsLoading(true);
+    setActionError('');
+    try {
+      const data = await getReviewComments(review.id);
+      const nextComments = Array.isArray(data) ? data : [];
+      setComments(nextComments);
+      setCommentsCount(nextComments.length);
+    } catch (err) {
+      setActionError(err.message || 'Unable to load replies.');
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const toggleComments = () => {
+    const nextOpen = !commentsOpen;
+    setCommentsOpen(nextOpen);
+    if (nextOpen && comments.length === 0) {
+      loadComments();
+    }
+  };
+
+  const handleLike = async () => {
+    if (!review?.id || likeLoading) return;
+    if (!isAuthenticated) {
+      requireAuth();
+      return;
+    }
+
+    const previousLiked = liked;
+    const optimisticLiked = !previousLiked;
+    const optimisticDelta = optimisticLiked ? 1 : -1;
+
+    setLikeLoading(true);
+    setActionError('');
+    setLiked(optimisticLiked);
+    setLikesCount((count) => Math.max(0, count + optimisticDelta));
+
+    try {
+      const result = await toggleReviewLike({ token, reviewId: review.id });
+      const nextLiked = result.status === 'liked';
+      setLiked(nextLiked);
+      if (Number.isFinite(Number(result.count))) {
+        setLikesCount(Number(result.count));
+      }
+    } catch (err) {
+      setLiked(previousLiked);
+      setLikesCount((count) => Math.max(0, count - optimisticDelta));
+      setActionError(err.message || 'Unable to update this like.');
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const submitComment = async () => {
+    const trimmed = commentText.trim();
+    if (!review?.id || !trimmed || commentSubmitting) return;
+    if (!isAuthenticated) {
+      requireAuth();
+      return;
+    }
+
+    setCommentSubmitting(true);
+    setActionError('');
+    try {
+      await createReviewComment({ token, reviewId: review.id, text: trimmed });
+      setCommentText('');
+      const nextComments = await getReviewComments(review.id);
+      const normalized = Array.isArray(nextComments) ? nextComments : [];
+      setComments(normalized);
+      setCommentsCount(normalized.length);
+      setCommentsOpen(true);
+    } catch (err) {
+      setActionError(err.message || 'Unable to post this reply.');
+    } finally {
+      setCommentSubmitting(false);
+    }
   };
 
   return (
@@ -331,31 +465,106 @@ export default function FeedCard({ item, currentUserId }) {
       ) : null}
 
       {canOpenReviewTarget ? (
-        <View style={styles.feedFooter}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Ouvrir les mentions j'aime"
-            onPress={openReviewTarget}
-            style={styles.feedFooterAction}
-          >
-            <Heart size={12} color={MUTED} strokeWidth={2} />
-            <Text style={styles.feedFooterText}>
-              Like
-            </Text>
-          </Pressable>
+        <>
+          <View style={styles.feedFooter}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={liked ? "Retirer le j'aime" : "Aimer la critique"}
+              disabled={likeLoading}
+              onPress={handleLike}
+              style={[styles.feedFooterAction, likeLoading && styles.disabledAction]}
+            >
+              <Heart
+                size={12}
+                color={liked ? RED : MUTED}
+                fill={liked ? RED : 'transparent'}
+                strokeWidth={2}
+              />
+              <Text style={[styles.feedFooterText, liked && styles.feedFooterTextActive]}>
+                Like
+              </Text>
+            </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Ouvrir les reponses"
-            onPress={openReviewTarget}
-            style={styles.feedFooterAction}
-          >
-            <MessageCircle size={12} color={MUTED} strokeWidth={2} />
-            <Text style={styles.feedFooterText}>
-              Reply
-            </Text>
-          </Pressable>
-        </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Repondre a la critique"
+              onPress={toggleComments}
+              style={styles.feedFooterAction}
+            >
+              <MessageCircle size={12} color={commentsOpen ? TEXT : MUTED} strokeWidth={2} />
+              <Text style={[styles.feedFooterText, commentsOpen && styles.feedFooterTextOpen]}>
+                Reply
+              </Text>
+            </Pressable>
+          </View>
+
+          {(likesCount > 0 || commentsCount > 0) ? (
+            <View style={styles.feedCounts}>
+              {likesCount > 0 ? (
+                <Text style={styles.feedCountText}>
+                  {likesCount} {likesCount === 1 ? 'like' : 'likes'}
+                </Text>
+              ) : null}
+              {commentsCount > 0 && !commentsOpen ? (
+                <Pressable onPress={() => {
+                  setCommentsOpen(true);
+                  if (comments.length === 0) loadComments();
+                }}>
+                  <Text style={styles.feedCountLink}>
+                    View {commentsCount === 1 ? '1 reply' : `all ${commentsCount} replies`}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+
+          {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
+
+          {commentsOpen ? (
+            <View style={styles.commentsPanel}>
+              {commentsLoading ? (
+                <ActivityIndicator color={RED} size="small" />
+              ) : comments.length > 0 ? (
+                <View style={styles.commentsList}>
+                  {comments.map((item) => (
+                    <CommentRow key={item.id} comment={item} />
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.noCommentsText}>No replies yet.</Text>
+              )}
+
+              {isAuthenticated ? (
+                <View style={styles.commentComposer}>
+                  <TextInput
+                    value={commentText}
+                    onChangeText={setCommentText}
+                    placeholder="Write a reply..."
+                    placeholderTextColor="#9ca3af"
+                    style={styles.commentInput}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={!commentText.trim() || commentSubmitting}
+                    onPress={submitComment}
+                    style={[
+                      styles.commentPostButton,
+                      (!commentText.trim() || commentSubmitting) && styles.disabledAction,
+                    ]}
+                  >
+                    <Text style={styles.commentPostText}>
+                      {commentSubmitting ? '...' : 'Post'}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable onPress={requireAuth} style={styles.signInCommentButton}>
+                  <Text style={styles.signInCommentText}>Sign in to reply.</Text>
+                </Pressable>
+              )}
+            </View>
+          ) : null}
+        </>
       ) : null}
     </View>
   );
@@ -532,5 +741,150 @@ const styles = StyleSheet.create({
   feedFooterText: {
     color: MUTED,
     fontSize: 10,
+  },
+
+  feedFooterTextActive: {
+    color: RED,
+    fontWeight: '700',
+  },
+
+  feedFooterTextOpen: {
+    color: TEXT,
+    fontWeight: '700',
+  },
+
+  disabledAction: {
+    opacity: 0.5,
+  },
+
+  feedCounts: {
+    gap: 2,
+    marginLeft: 40,
+    marginTop: 6,
+  },
+
+  feedCountText: {
+    color: TEXT,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  feedCountLink: {
+    color: MUTED,
+    fontSize: 11,
+  },
+
+  actionError: {
+    color: RED,
+    fontSize: 10,
+    marginLeft: 40,
+    marginTop: 6,
+  },
+
+  commentsPanel: {
+    backgroundColor: '#f9fafb',
+    borderColor: BORDER,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 10,
+    marginLeft: 40,
+    marginTop: 8,
+    padding: 10,
+  },
+
+  commentsList: {
+    gap: 8,
+  },
+
+  commentRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  commentAvatar: {
+    alignItems: 'center',
+    backgroundColor: '#eef2ff',
+    borderRadius: 12,
+    height: 24,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 24,
+  },
+
+  commentAvatarImage: {
+    height: '100%',
+    width: '100%',
+  },
+
+  commentAvatarText: {
+    color: '#4338ca',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+
+  commentBubble: {
+    flex: 1,
+  },
+
+  commentUsername: {
+    color: TEXT,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  commentText: {
+    color: '#4b5563',
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 1,
+  },
+
+  noCommentsText: {
+    color: MUTED,
+    fontSize: 11,
+  },
+
+  commentComposer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  commentInput: {
+    backgroundColor: '#ffffff',
+    borderColor: BORDER,
+    borderRadius: 8,
+    borderWidth: 1,
+    color: TEXT,
+    flex: 1,
+    fontSize: 12,
+    minHeight: 36,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+
+  commentPostButton: {
+    alignItems: 'center',
+    backgroundColor: RED,
+    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 34,
+    paddingHorizontal: 10,
+  },
+
+  commentPostText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  signInCommentButton: {
+    alignSelf: 'flex-start',
+  },
+
+  signInCommentText: {
+    color: RED,
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
