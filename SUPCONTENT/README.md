@@ -8,6 +8,8 @@ et échanger par messagerie privée.
 Le projet comprend une application web, une application mobile, une API REST
 et une base de données PostgreSQL.
 
+**Dépôt GitHub :** [https://github.com/sfdhafsa/SupContentProject](https://github.com/sfdhafsa/SupContentProject)
+
 ## Fonctionnalités
 
 - Inscription et connexion sécurisées avec JWT.
@@ -206,16 +208,22 @@ l'ordinateur ou utiliser le tunnel fourni par le projet.
 ```bash
 cd mobile
 npm install
-npm start
+npm run start:tunnel
+npm run start:tunnel --clear
 ```
 
-Autres commandes Expo :
+Cette commande démarre les tunnels nécessaires et lance Expo en supprimant
+automatiquement le cache grâce à l'option `--clear` intégrée au script.
+
+
+
+Autres commandes Expo disponibles :
 
 ```bash
+npm start
 npm run android
 npm run ios
 npm run web
-npm run start:tunnel
 ```
 
 ## Scripts
