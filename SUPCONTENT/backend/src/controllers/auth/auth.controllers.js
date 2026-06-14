@@ -8,6 +8,7 @@ import { signToken } from '../../utils/jwt.utils.js';
 import { TokenBlacklistModel } from '../../models/tokenBlacklist.model.js';
 import { PasswordResetModel } from '../../models/passwordReset.model.js';
 import { EmailService } from '../../services/email.service.js';
+import { getClientRedirectUrlFromOAuthState } from '../../services/auth/oauthFlow.js';
 
 const SALT_ROUNDS = 12;
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
@@ -16,22 +17,6 @@ const hashResetToken = (token) =>
   crypto.createHash('sha256').update(token).digest('hex');
 
 const getClientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
-
-const getMobileClientUrl = () =>
-  process.env.MOBILE_CLIENT_URL || 'supcontent://auth/callback';
-
-const getOAuthCallbackUrl = (state) => {
-  if (!state) return `${getClientUrl()}/auth/callback`;
-
-  try {
-    const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
-    if (parsed.redirectUri) return parsed.redirectUri;
-    if (parsed.client === 'mobile') return getMobileClientUrl();
-    return `${getClientUrl()}/auth/callback`;
-  } catch {
-    return `${getClientUrl()}/auth/callback`;
-  }
-};
 
 // =====================
 // REGISTER
@@ -244,7 +229,7 @@ export const resetPassword = async (req, res, next) => {
 // =====================
 export const oauthCallback = (req, res) => {
   const user = req.user;
-  const callbackUrl = new URL(getOAuthCallbackUrl(req.query.state));
+  const callbackUrl = new URL(getClientRedirectUrlFromOAuthState(req.query.state));
 
   if (!user) {
     callbackUrl.searchParams.set('error', req.oauthError || 'oauth_failed');

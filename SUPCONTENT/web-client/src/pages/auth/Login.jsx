@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api/axios.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { getGoogleAuthUrl } from "../../services/auth/googleOAuth.js";
 
 const FilmIcon = () => (
   <svg viewBox="0 0 26 26" fill="none" className="w-6 h-6">
@@ -24,17 +25,6 @@ const FEATURES = [
   { title: "Review & Rate",    desc: "Share your thoughts and rate your favorite films" },
   { title: "Connect & Share",  desc: "Follow friends and explore curated lists" },
 ];
-
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-const authBaseUrl = apiUrl.endsWith("/api") ? apiUrl : `${apiUrl}/api`;
-const getGoogleAuthUrl = () => {
-  const params = new URLSearchParams({
-    client: "web",
-    redirect_uri: `${window.location.origin}/auth/callback`,
-  });
-
-  return `${authBaseUrl}/auth/google?${params.toString()}`;
-};
 
 export default function Login() {
   const navigate    = useNavigate();

@@ -109,7 +109,7 @@ function Start-QuickTunnel {
         (Get-Content -LiteralPath $stderrLog -Raw -ErrorAction SilentlyContinue)
       ) -join "`n"
 
-      $match = [regex]::Match($logs, 'https://[a-z0-9-]+\.trycloudflare\.com')
+      $match = [regex]::Match($logs, 'https://(?!(?:api)\.trycloudflare\.com)[a-z0-9-]+-[a-z0-9-]+-[a-z0-9-]+[a-z0-9-]*\.trycloudflare\.com')
       if ($match.Success) {
         return @{
           Process = $process
@@ -132,6 +132,45 @@ function Start-QuickTunnel {
   throw "The $Name tunnel failed after $MaxAttempts attempts.`n$lastDetails"
 }
 
+function Test-BackendTunnelHealth {
+  param(
+    [Parameter(Mandatory)] [string] $ApiUrl,
+    [int] $MaxAttempts = 30
+  )
+
+  for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+    try {
+      Clear-DnsClientCache -ErrorAction SilentlyContinue
+      $health = Invoke-RestMethod -Uri "$ApiUrl/health" -TimeoutSec 5
+      if ($health.status -eq 'ok') {
+        return $true
+      }
+    } catch {
+      if ($attempt -eq $MaxAttempts) {
+        Write-Warning "Backend tunnel health check failed: $($_.Exception.Message)"
+      } else {
+        Start-Sleep -Seconds 2
+      }
+    }
+  }
+
+  return $false
+}
+
+function Test-PublicDnsResolution {
+  param(
+    [Parameter(Mandatory)] [string] $Url
+  )
+
+  try {
+    $hostname = ([System.Uri]$Url).Host
+    $records = Resolve-DnsName $hostname -Server 1.1.1.1 -ErrorAction Stop
+    return [bool]($records | Where-Object { $_.IPAddress })
+  } catch {
+    return $false
+  }
+}
+
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 Stop-PreviousDevProcesses
 Start-Sleep -Seconds 2
@@ -140,26 +179,39 @@ $backendTunnel = $null
 $mobileTunnel = $null
 try {
   Write-Host 'Creating backend tunnel...' -ForegroundColor Cyan
-  $backendTunnel = Start-QuickTunnel -Name 'backend' -Port 3000
-  $apiUrl = "$($backendTunnel.Url)/api"
-  $googleCallbackUrl = "$apiUrl/auth/google/callback"
-
-  $health = $null
-  for ($attempt = 0; $attempt -lt 30; $attempt++) {
-    try {
-      Clear-DnsClientCache -ErrorAction SilentlyContinue
-      $health = Invoke-RestMethod -Uri "$apiUrl/health" -TimeoutSec 5
-      if ($health.status -eq 'ok') {
-        break
-      }
-    } catch {
-      Start-Sleep -Seconds 2
+  $apiUrl = $null
+  for ($backendAttempt = 1; $backendAttempt -le 4; $backendAttempt++) {
+    if ($backendTunnel -and $backendTunnel.Process -and -not $backendTunnel.Process.HasExited) {
+      Stop-Process -Id $backendTunnel.Process.Id -Force -ErrorAction SilentlyContinue
     }
+
+    $backendTunnel = Start-QuickTunnel -Name 'backend' -Port 3000
+    $candidateApiUrl = "$($backendTunnel.Url)/api"
+
+    if (Test-BackendTunnelHealth -ApiUrl $candidateApiUrl -MaxAttempts 15) {
+      $apiUrl = $candidateApiUrl
+      break
+    }
+
+    Write-Warning "Backend tunnel URL is not reachable yet ($backendAttempt/4): $candidateApiUrl"
   }
 
-  if ($health.status -ne 'ok') {
-    Write-Warning 'Windows DNS has not resolved the new backend URL yet. Continuing; it may need another minute before the phone can reach it.'
+  if (-not $apiUrl) {
+    $dnsHint = ''
+    if ($backendTunnel -and (Test-PublicDnsResolution -Url $backendTunnel.Url)) {
+      $dnsHint = @'
+
+The tunnel hostname resolves with public DNS (1.1.1.1), but not with your current Windows DNS.
+Set your Wi-Fi DNS to 1.1.1.1 or 8.8.8.8, then run:
+  ipconfig /flushdns
+  npm run start:tunnel
+'@
+    }
+
+    throw "Could not create a reachable backend tunnel. Check DNS/network access to trycloudflare.com and rerun the script.$dnsHint"
   }
+
+  $googleCallbackUrl = "$apiUrl/auth/google/callback"
 
   Set-EnvValue -Path $mobileEnvPath -Name 'EXPO_PUBLIC_API_URL' -Value $apiUrl
   Set-EnvValue -Path $projectEnvPath -Name 'GOOGLE_CALLBACK_URL' -Value $googleCallbackUrl

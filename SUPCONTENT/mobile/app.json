@@ -24,16 +24,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar",
       [
         "expo-image-picker",
         {
           "photosPermission": "Autorisez SUPMOVIES à accéder à vos photos pour modifier votre avatar.",
           "microphonePermission": false
         }
-      ],
-      "expo-sharing",
-      "expo-web-browser"
+      ]
     ]
   }
 }

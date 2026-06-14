@@ -4,8 +4,6 @@ import { getAuthToken } from './authStorage';
 async function getAuthHeaders() {
   const token = await getAuthToken();
 
-  console.log("TOKEN MOBILE =", token);
-
   return {
     Accept: 'application/json',
     'Content-Type': 'application/json',

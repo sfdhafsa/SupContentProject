@@ -44,6 +44,7 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      BASE_URL: ${BASE_URL:-http://localhost:3000}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-supmoviesAdmin}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-supmoviesteam@gmail.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
