@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Animated, Pressable, SafeAreaView,
-  ScrollView, StyleSheet, Text, TextInput, View,
+  RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
@@ -16,6 +16,8 @@ export default function Lists() {
   const { loading: authLoading, isAuthenticated, user } = useAuthSession();
   const [lists, setLists]                 = useState([]);
   const [loading, setLoading]             = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [loadError, setLoadError]         = useState('');
   const [name, setName]                   = useState('');
   const [desc, setDesc]                   = useState('');
   const [isPublic, setIsPublic]           = useState(false);
@@ -28,9 +30,11 @@ export default function Lists() {
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (!authLoading) fetchLists();
-  }, [authLoading, isAuthenticated, user?.id, user?.userId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!authLoading) fetchLists();
+    }, [authLoading, isAuthenticated, user?.id, user?.userId])
+  );
 
   useEffect(() => {
     if (deleteTarget) {
@@ -44,15 +48,39 @@ export default function Lists() {
     }
   }, [deleteTarget]);
 
-  async function fetchLists() {
-    setLoading(true);
+  async function fetchAllPublicLists() {
+    const firstPage = await getPublicLists({ page: 1, limit: 50 });
+    const allLists = [...(firstPage.lists || firstPage.data || [])];
+    const totalPages = Number(firstPage.totalPages) || 1;
+
+    for (let page = 2; page <= totalPages; page += 1) {
+      const nextPage = await getPublicLists({ page, limit: 50 });
+      allLists.push(...(nextPage.lists || nextPage.data || []));
+    }
+
+    return allLists;
+  }
+
+  async function fetchLists({ refresh = false } = {}) {
+    if (refresh) setRefreshing(true);
+    else setLoading(true);
+    setLoadError('');
+
     try {
-      const res = isAuthenticated
-        ? await getMyLists(user.id || user.userId)
-        : await getPublicLists({ page: 1, limit: 20 });
-      setLists(res.data || res.lists || []);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      if (isAuthenticated) {
+        const res = await getMyLists(user.id || user.userId);
+        setLists(res.data || []);
+      } else {
+        setLists(await fetchAllPublicLists());
+      }
+    } catch (e) {
+      console.error(e);
+      setLoadError(e.message || 'Impossible de charger les listes.');
+      setLists([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }
 
   async function handleCreate() {
@@ -131,7 +159,18 @@ export default function Lists() {
         </View>
       ) : null}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={s.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchLists({ refresh: true })}
+            tintColor="#D0021B"
+            colors={['#D0021B']}
+          />
+        }
+      >
         <View style={s.header}>
           <Text style={[s.headerTitle, { color: colors.text }]}>
             {isAuthenticated ? 'Mes listes' : 'Listes publiques'}
@@ -206,6 +245,14 @@ export default function Lists() {
 
         {loading ? (
           <View style={s.center}><ActivityIndicator color="#D0021B" /></View>
+        ) : loadError ? (
+          <View style={[s.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[s.emptyTitle, { color: colors.text }]}>Chargement impossible</Text>
+            <Text style={[s.emptySub, { color: colors.subtle }]}>{loadError}</Text>
+            <Pressable style={s.retryBtn} onPress={() => fetchLists()}>
+              <Text style={s.retryBtnText}>Reessayer</Text>
+            </Pressable>
+          </View>
         ) : lists.length === 0 ? (
           <View style={[s.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[s.emptyTitle, { color: colors.text }]}>
@@ -334,6 +381,8 @@ const s = StyleSheet.create({
   emptyCard:          { backgroundColor: '#fff', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#e5e7eb', gap: 8 },
   emptyTitle:         { color: '#111827', fontSize: 14, fontWeight: '700' },
   emptySub:           { color: '#9ca3af', fontSize: 12, textAlign: 'center' },
+  retryBtn:           { marginTop: 8, backgroundColor: '#D0021B', borderRadius: 10, paddingHorizontal: 18, paddingVertical: 10 },
+  retryBtnText:       { color: '#fff', fontSize: 12, fontWeight: '800' },
   listsContainer:     { gap: 10 },
   listCard:           { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 14, gap: 12, borderWidth: 1, borderColor: '#e5e7eb' },
   listIconBox:        { width: 48, height: 48, borderRadius: 14, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' },

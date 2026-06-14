@@ -64,7 +64,13 @@ export async function getPublicLists({ page = 1, limit = 20, search = '' } = {})
     params.set('search', search);
   }
 
-  const res = await fetch(`${API_BASE_URL}/lists/public?${params.toString()}`, { headers: await getAuthHeaders() });
+  const res = await fetch(`${API_BASE_URL}/lists/public?${params.toString()}`, {
+    headers: {
+      ...await getAuthHeaders(),
+      'Cache-Control': 'no-cache',
+    },
+    cache: 'no-store',
+  });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || 'Erreur serveur');
   return data;
