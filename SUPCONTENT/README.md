@@ -115,6 +115,7 @@ les e-mails :
 ```dotenv
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 FACEBOOK_APP_ID=
@@ -124,6 +125,41 @@ SMTP_USER=
 SMTP_PASSWORD=
 SMTP_FROM=
 ```
+
+#### Configurer Google OAuth
+
+Chaque personne qui déploie sa propre instance doit créer ses propres
+identifiants Google OAuth. Il ne faut pas réutiliser le `GOOGLE_CLIENT_ID` ou le
+`GOOGLE_CLIENT_SECRET` d'un autre déploiement.
+
+1. Ouvrir la [Google Cloud Console](https://console.cloud.google.com/) et créer
+   ou sélectionner un projet.
+2. Configurer l'écran de consentement OAuth et ajouter les utilisateurs de test
+   si l'application est encore en mode test.
+3. Dans **API et services > Identifiants**, créer un **ID client OAuth** de type
+   **Application Web**.
+4. Ajouter l'URI de redirection autorisée correspondant à l'API :
+
+```text
+# Développement local
+http://localhost:3000/api/auth/google/callback
+
+# Production
+https://api.votre-domaine.com/api/auth/google/callback
+```
+
+5. Reporter les identifiants générés et l'URI exacte dans `.env` :
+
+```dotenv
+GOOGLE_CLIENT_ID=id_client_fourni_par_google
+GOOGLE_CLIENT_SECRET=secret_fourni_par_google
+GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
+```
+
+En production, `GOOGLE_CALLBACK_URL` doit utiliser une URL publique en HTTPS et
+correspondre exactement à l'URI enregistrée dans Google Cloud, protocole,
+domaine, port et chemin compris. Le secret client ne doit jamais être ajouté à
+`.env.example`, envoyé au client web ou publié dans Git.
 
 Créer aussi les fichiers suivants, contenant chacun uniquement le mot de passe
 correspondant :
