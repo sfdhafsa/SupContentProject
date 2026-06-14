@@ -12,12 +12,14 @@ import {
   View,
 } from 'react-native';
 import ScreenContainer from '../src/components/ScreenContainer';
+import { useTheme } from '../src/context/ThemeContext';
 import { loginWithEmail } from '../src/services/authApi';
 import { saveAuthSession } from '../src/services/authStorage';
 import { startGoogleOAuth } from '../src/services/oauth';
 
 export default function Login() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -56,7 +58,7 @@ export default function Login() {
   };
 
   return (
-    <ScreenContainer backgroundColor="#f8fafc">
+    <ScreenContainer backgroundColor={colors.bg}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
@@ -77,35 +79,35 @@ export default function Login() {
           </View>
         </View>
 
-        <Text style={styles.title}>Bon retour</Text>
-        <Text style={styles.subtitle}>Connectez-vous a votre compte pour continuer</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Bon retour</Text>
+        <Text style={[styles.subtitle, { color: colors.muted }]}>Connectez-vous a votre compte pour continuer</Text>
 
         <View style={styles.socialRow}>
-          <Pressable onPress={startGoogleOAuth} style={styles.socialButton}>
-            <Text style={styles.googleIcon}>G</Text>
-            <Text style={styles.socialText}>Google</Text>
+          <Pressable onPress={startGoogleOAuth} style={[styles.socialButton, { borderColor: colors.border, backgroundColor: colors.card }]}>
+            <Text style={[styles.googleIcon, { color: colors.text }]}>G</Text>
+            <Text style={[styles.socialText, { color: colors.text }]}>Google</Text>
           </Pressable>
         </View>
 
         <View style={styles.dividerRow}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>OU</Text>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <Text style={[styles.dividerText, { color: colors.subtle }]}>OU</Text>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
         </View>
 
-        <Text style={styles.label}>E-mail</Text>
+        <Text style={[styles.label, { color: colors.text }]}>E-mail</Text>
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
           onChangeText={(value) => updateField('email', value)}
           placeholder="name@example.com"
-          placeholderTextColor="#7f8a9b"
-          style={styles.input}
+          placeholderTextColor={colors.subtle}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.input, color: colors.text }]}
           value={form.email}
         />
 
         <View style={styles.passwordHeader}>
-          <Text style={styles.label}>Mot de passe</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Mot de passe</Text>
           <Link href="/forgot-password" asChild>
             <Pressable>
               <Text style={styles.forgotText}>Oublie ?</Text>
@@ -116,9 +118,9 @@ export default function Login() {
         <TextInput
           onChangeText={(value) => updateField('password', value)}
           placeholder="Saisissez votre mot de passe"
-          placeholderTextColor="#7f8a9b"
+          placeholderTextColor={colors.subtle}
           secureTextEntry
-          style={styles.input}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.input, color: colors.text }]}
           value={form.password}
         />
 
@@ -134,7 +136,7 @@ export default function Login() {
         </Pressable>
 
         <View style={styles.signUpRow}>
-          <Text style={styles.mutedText}>Vous n'avez pas de compte ? </Text>
+          <Text style={[styles.mutedText, { color: colors.muted }]}>Vous n'avez pas de compte ? </Text>
           <Link href="/register" asChild>
             <Pressable>
               <Text style={styles.signUpText}>S'inscrire</Text>
