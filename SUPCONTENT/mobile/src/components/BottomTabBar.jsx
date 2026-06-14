@@ -5,7 +5,7 @@ import useAuthSession from '../hooks/useAuthSession';
 
 const publicTabs = [
   { label: 'Explore', route: '/discover', icon: 'search' },
-  { label: 'Lists', route: '/library', icon: 'library' },
+  { label: 'Lists', route: '/lists', icon: 'library' },
   { label: 'Sign in', route: '/login', icon: 'signin' },
 ];
 

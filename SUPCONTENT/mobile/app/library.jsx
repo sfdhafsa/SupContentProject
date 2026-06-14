@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
-import { getAuthUser } from '../src/services/authStorage';
+import useAuthSession from '../src/hooks/useAuthSession';
 import { getLibrary, upsertLibraryEntry, removeLibraryEntry } from '../src/services/libraryApi';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w200';
@@ -33,14 +33,19 @@ const STATUS_COLORS = {
 export default function Library() {
   const router = useRouter();
   const { colors } = useTheme();
-  const [user, setUser]                   = useState(null);
+  const { loading: authLoading, isAuthenticated, user } = useAuthSession();
   const [activeStatus, setActiveStatus]   = useState(null);
   const [movies, setMovies]               = useState([]);
   const [loading, setLoading]             = useState(false);
   const [selectedMovie, setSelectedMovie] = useState(null);
 
-  useEffect(() => { getAuthUser().then(setUser); }, []);
-  useEffect(() => { if (user) fetchLibrary(); }, [user, activeStatus]);
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/lists');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  useEffect(() => { if (isAuthenticated) fetchLibrary(); }, [isAuthenticated, activeStatus]);
 
   async function fetchLibrary() {
     setLoading(true);
@@ -76,6 +81,18 @@ export default function Library() {
   const vuCount    = movies.filter(m => m.status === 'COMPLETED').length;
   const aVoirCount = movies.filter(m => m.status === 'TO_WATCH').length;
   const filtered   = activeStatus ? movies.filter(m => m.status === activeStatus) : movies;
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <SafeAreaView style={[s.safe, { backgroundColor: colors.bg }]}>
+        <TopNavbar username={user?.username || 'User'} />
+        <View style={s.center}>
+          <ActivityIndicator color="#D0021B" size="large" />
+        </View>
+        <BottomTabBar />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: colors.bg }]}>

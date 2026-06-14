@@ -7,15 +7,15 @@ import { useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
-import { getAuthUser } from '../src/services/authStorage';
-import { getMyLists, createList, updateList, deleteList } from '../src/services/libraryApi';
+import useAuthSession from '../src/hooks/useAuthSession';
+import { getMyLists, getPublicLists, createList, updateList, deleteList } from '../src/services/libraryApi';
 
 export default function Lists() {
   const router = useRouter();
   const { colors } = useTheme();
-  const [user, setUser]                   = useState(null);
+  const { loading: authLoading, isAuthenticated, user } = useAuthSession();
   const [lists, setLists]                 = useState([]);
-  const [loading, setLoading]             = useState(false);
+  const [loading, setLoading]             = useState(true);
   const [name, setName]                   = useState('');
   const [desc, setDesc]                   = useState('');
   const [isPublic, setIsPublic]           = useState(false);
@@ -28,8 +28,9 @@ export default function Lists() {
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => { getAuthUser().then(setUser); }, []);
-  useEffect(() => { if (user) fetchLists(); }, [user]);
+  useEffect(() => {
+    if (!authLoading) fetchLists();
+  }, [authLoading, isAuthenticated, user?.id, user?.userId]);
 
   useEffect(() => {
     if (deleteTarget) {
@@ -46,8 +47,10 @@ export default function Lists() {
   async function fetchLists() {
     setLoading(true);
     try {
-      const res = await getMyLists(user.id || user.userId);
-      setLists(res.data || []);
+      const res = isAuthenticated
+        ? await getMyLists(user.id || user.userId)
+        : await getPublicLists({ page: 1, limit: 20 });
+      setLists(res.data || res.lists || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }
@@ -73,6 +76,16 @@ export default function Lists() {
     setName(list.name);
     setDesc(list.description || '');
     setIsPublic(list.is_public);
+  }
+
+  function handleEditPress(event, list) {
+    event.stopPropagation();
+    startEdit(list);
+  }
+
+  function handleDeletePress(event, list) {
+    event.stopPropagation();
+    setDeleteTarget(list);
   }
 
   function cancelEdit() {
@@ -104,24 +117,33 @@ export default function Lists() {
     <SafeAreaView style={[s.safe, { backgroundColor: colors.bg }]}>
       <TopNavbar username={user?.username || 'User'} />
 
-      <View style={[s.subNav, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Pressable style={s.subNavBtn} onPress={() => router.push('/library')}>
-          <Text style={[s.subNavText, { color: colors.subtle }]}>Biblio</Text>
-        </Pressable>
-        <Pressable style={[s.subNavBtn, s.subNavBtnActive]}>
-          <Text style={[s.subNavText, s.subNavTextActive]}>Listes</Text>
-        </Pressable>
-        <Pressable style={s.subNavBtn} onPress={() => router.push('/dashboard')}>
-          <Text style={[s.subNavText, { color: colors.subtle }]}>Stats</Text>
-        </Pressable>
-      </View>
+      {isAuthenticated ? (
+        <View style={[s.subNav, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Pressable style={s.subNavBtn} onPress={() => router.push('/library')}>
+            <Text style={[s.subNavText, { color: colors.subtle }]}>Biblio</Text>
+          </Pressable>
+          <Pressable style={[s.subNavBtn, s.subNavBtnActive]}>
+            <Text style={[s.subNavText, s.subNavTextActive]}>Listes</Text>
+          </Pressable>
+          <Pressable style={s.subNavBtn} onPress={() => router.push('/dashboard')}>
+            <Text style={[s.subNavText, { color: colors.subtle }]}>Stats</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
         <View style={s.header}>
-          <Text style={[s.headerTitle, { color: colors.text }]}>Mes listes</Text>
-          <Text style={[s.headerSub, { color: colors.muted }]}>Organisez vos films par themes et coups de coeur.</Text>
+          <Text style={[s.headerTitle, { color: colors.text }]}>
+            {isAuthenticated ? 'Mes listes' : 'Listes publiques'}
+          </Text>
+          <Text style={[s.headerSub, { color: colors.muted }]}>
+            {isAuthenticated
+              ? 'Organisez vos films par themes et coups de coeur.'
+              : 'Decouvrez les collections partagees par la communaute.'}
+          </Text>
         </View>
 
+        {isAuthenticated ? (
         <View style={[s.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={s.formCardAccent} />
           <View style={s.formCardHeader}>
@@ -169,10 +191,13 @@ export default function Lists() {
             </View>
           </View>
         </View>
+        ) : null}
 
         <View style={s.sectionHeader}>
           <View style={s.sectionTitleRow}>
-            <Text style={[s.sectionTitle, { color: colors.subtle }]}>MES LISTES</Text>
+            <Text style={[s.sectionTitle, { color: colors.subtle }]}>
+              {isAuthenticated ? 'MES LISTES' : 'LISTES PUBLIQUES'}
+            </Text>
             <View style={s.sectionBadge}>
               <Text style={s.sectionBadgeText}>{lists.length}</Text>
             </View>
@@ -183,15 +208,25 @@ export default function Lists() {
           <View style={s.center}><ActivityIndicator color="#D0021B" /></View>
         ) : lists.length === 0 ? (
           <View style={[s.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[s.emptyTitle, { color: colors.text }]}>Aucune liste pour le moment</Text>
-            <Text style={[s.emptySub, { color: colors.subtle }]}>Creez une liste pour organiser vos films.</Text>
+            <Text style={[s.emptyTitle, { color: colors.text }]}>
+              {isAuthenticated ? 'Aucune liste pour le moment' : 'Aucune liste publique'}
+            </Text>
+            <Text style={[s.emptySub, { color: colors.subtle }]}>
+              {isAuthenticated
+                ? 'Creez une liste pour organiser vos films.'
+                : 'Les listes publiques apparaitront ici quand elles seront partagees.'}
+            </Text>
           </View>
         ) : (
           <View style={s.listsContainer}>
             {lists.map((list) => {
               const count = parseInt(list.movie_count) || 0;
               return (
-                <View key={list.id} style={[s.listCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Pressable
+                  key={list.id}
+                  style={[s.listCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  onPress={() => router.push({ pathname: '/list/[id]', params: { id: String(list.id) } })}
+                >
                   <View style={[s.listIconBox, { backgroundColor: colors.cardMuted }]}>
                     <Text style={[s.listIconText, { color: colors.muted }]}>{list.is_public ? 'G' : 'P'}</Text>
                   </View>
@@ -208,15 +243,17 @@ export default function Lists() {
                     </View>
                     {list.description ? <Text style={[s.listDesc, { color: colors.subtle }]} numberOfLines={1}>{list.description}</Text> : null}
                   </View>
-                  <View style={s.listActions}>
-                    <Pressable style={[s.iconBtnEdit, { backgroundColor: colors.iconButton }]} onPress={() => startEdit(list)}>
-                      <Text style={[s.iconBtnEditText, { color: colors.muted }]}>Ed</Text>
-                    </Pressable>
-                    <Pressable style={s.iconBtnDel} onPress={() => setDeleteTarget(list)}>
-                      <Text style={s.iconBtnDelText}>Sup</Text>
-                    </Pressable>
-                  </View>
-                </View>
+                  {isAuthenticated ? (
+                    <View style={s.listActions}>
+                      <Pressable style={[s.iconBtnEdit, { backgroundColor: colors.iconButton }]} onPress={(event) => handleEditPress(event, list)}>
+                        <Text style={[s.iconBtnEditText, { color: colors.muted }]}>Ed</Text>
+                      </Pressable>
+                      <Pressable style={s.iconBtnDel} onPress={(event) => handleDeletePress(event, list)}>
+                        <Text style={s.iconBtnDelText}>Sup</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                </Pressable>
               );
             })}
           </View>
