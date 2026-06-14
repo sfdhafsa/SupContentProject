@@ -2,7 +2,7 @@ import { validationResult } from 'express-validator';
 import { RoleModel } from '../../models/role.model.js';
 
 /**
- * 📌 GET all roles
+ *  GET all roles
  * GET /api/roles
  */
 export const getAllRoles = async (req, res, next) => {
@@ -19,7 +19,7 @@ export const getAllRoles = async (req, res, next) => {
 };
 
 /**
- * 📌 CREATE role
+ * CREATE role
  * POST /api/roles
  * (admin only normalement)
  */
@@ -54,7 +54,7 @@ export const createRole = async (req, res, next) => {
 };
 
 /**
- * 📌 DELETE role
+ *  DELETE role
  * DELETE /api/roles/:id
  */
 export const deleteRole = async (req, res, next) => {
@@ -81,7 +81,7 @@ export const deleteRole = async (req, res, next) => {
 };
 
 /**
- * 📌 ASSIGN role to user
+ * ASSIGN role to user
  * POST /api/roles/assign
  */
 export const assignRoleToUser = async (req, res, next) => {
@@ -108,7 +108,7 @@ export const assignRoleToUser = async (req, res, next) => {
 };
 
 /**
- * 📌 REMOVE role from user
+ * REMOVE role from user
  * DELETE /api/roles/remove
  */
 export const removeRoleFromUser = async (req, res, next) => {

@@ -1,5 +1,5 @@
  /**
-  * 📣 Types de notifications utilisés dans le système social
+  *  Types de notifications utilisés dans le système social
   * Chaque type correspond à une action utilisateur dans l'app
   */
 

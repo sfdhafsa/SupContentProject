@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 
 /**
- * 🔐 Générer un JWT
+ * Générer un JWT
  * @param {Object} param0
  * @param {string} param0.userId
  * @param {Array} param0.roles
@@ -26,7 +26,7 @@ export const signToken = ({ userId, roles = [] }) => {
 };
 
 /**
- * 🔍 Vérifier un JWT
+ * Vérifier un JWT
  * @param {string} token
  * @returns {object} decoded payload
  */
@@ -40,7 +40,7 @@ export const verifyToken = (token) => {
 };
 
 /**
- * 👀 Décoder un JWT sans vérification (debug)
+ * Décoder un JWT sans vérification (debug)
  * @param {string} token
  * @returns {object|null}
  */

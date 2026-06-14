@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import bcrypt from 'bcrypt';
 import { validationResult } from 'express-validator';
 import path from 'path';

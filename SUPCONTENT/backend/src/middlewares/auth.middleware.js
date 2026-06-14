@@ -18,7 +18,7 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ message: 'Token révoqué.' });
     }
 
-    // 🔥 sub = userId
+    // sub = userId
     const user = await UserModel.findById(decoded.sub);
 
     if (!user) {

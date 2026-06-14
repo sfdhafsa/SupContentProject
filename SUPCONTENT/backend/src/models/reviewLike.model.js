@@ -3,7 +3,7 @@
 import db from "../config/db.js";
 
 export const ReviewLikeModel = {
-  // 🔹 CREATE like
+  //  CREATE like
   async create(userId, reviewId) {
     const query = `
       INSERT INTO review_likes (user_id, review_id)
@@ -16,7 +16,7 @@ export const ReviewLikeModel = {
     return rows[0];
   },
 
-  // 🔹 DELETE like (unlike)
+  //  DELETE like (unlike)
   async delete(userId, reviewId) {
     const query = `
       DELETE FROM review_likes
@@ -28,7 +28,7 @@ export const ReviewLikeModel = {
     return rows[0];
   },
 
-  // 🔹 CHECK if like exists
+  //  CHECK if like exists
   async exists(userId, reviewId) {
     const query = `
       SELECT 1
@@ -40,7 +40,7 @@ export const ReviewLikeModel = {
     return rowCount > 0;
   },
 
-  // 🔹 COUNT likes for a review (utile pour feed)
+  //  COUNT likes for a review (utile pour feed)
   async countByReviewId(reviewId) {
     const query = `
       SELECT COUNT(*)::int AS count
