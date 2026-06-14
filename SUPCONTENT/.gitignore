@@ -5,6 +5,7 @@ backend/.env
 # Node modules
 node_modules/
 backend/node_modules/
+mobile/.expo-export-check/
 
 # Logs
 *.log
