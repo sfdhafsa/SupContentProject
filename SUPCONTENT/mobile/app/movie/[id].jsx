@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   Modal,
@@ -15,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { getMovieById } from '../../src/services/moviesApi';
+import { addMovieToList, getMyLists, upsertLibraryEntry } from '../../src/services/libraryApi';
 import {
   createReport,
   createReview,
@@ -832,9 +834,16 @@ export default function MovieDetail() {
   const router    = useRouter();
   const scrollRef = useRef(null);
   const reviewsSectionYRef = useRef(0);
+  const { loading: authLoading, isAuthenticated, user } = useAuthSession();
   const [movie, setMovie]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+  const [librarySaving, setLibrarySaving] = useState(false);
+  const [lists, setLists] = useState([]);
+  const [listsLoading, setListsLoading] = useState(false);
+  const [listsModalVisible, setListsModalVisible] = useState(false);
+  const [selectedListId, setSelectedListId] = useState(null);
+  const [listSaving, setListSaving] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -844,6 +853,39 @@ export default function MovieDetail() {
       .catch(() => setError('Film introuvable'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setLists([]);
+      setSelectedListId(null);
+      return;
+    }
+
+    let active = true;
+
+    async function loadLists() {
+      setListsLoading(true);
+
+      try {
+        const data = await getMyLists(user.id || user.userId);
+        const nextLists = data.data || [];
+
+        if (!active) return;
+        setLists(nextLists);
+        setSelectedListId((current) => current || nextLists[0]?.id || null);
+      } catch {
+        if (active) setLists([]);
+      } finally {
+        if (active) setListsLoading(false);
+      }
+    }
+
+    loadLists();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, user]);
 
   if (loading) {
     return (
@@ -876,6 +918,54 @@ export default function MovieDetail() {
   const rating  = movie.vote_average ? parseFloat(movie.vote_average) : null;
   const budget  = formatMoney(movie.budget);
   const revenue = formatMoney(movie.revenue);
+  const tmdbId = movie.tmdb_id || movie.external_id || id;
+
+  const handleAddToLibrary = async () => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    setLibrarySaving(true);
+
+    try {
+      await upsertLibraryEntry(null, tmdbId, 'TO_WATCH');
+      Alert.alert('Bibliotheque', 'Film ajoute a votre bibliotheque.');
+    } catch (addError) {
+      Alert.alert('Bibliotheque', addError?.message || "Impossible d'ajouter ce film.");
+    } finally {
+      setLibrarySaving(false);
+    }
+  };
+
+  const handleOpenLists = () => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    setListsModalVisible(true);
+  };
+
+  const handleAddToSelectedList = async () => {
+    if (!selectedListId || listSaving) return;
+
+    setListSaving(true);
+
+    try {
+      await addMovieToList(selectedListId, null, tmdbId);
+      setListsModalVisible(false);
+      Alert.alert('Liste', 'Film ajoute a la liste.');
+    } catch (addError) {
+      Alert.alert('Liste', addError?.message || "Impossible d'ajouter ce film a la liste.");
+    } finally {
+      setListSaving(false);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -1083,10 +1173,33 @@ export default function MovieDetail() {
           {/* Boutons */}
           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
             <Pressable
-              style={{ flex: 1, backgroundColor: C.red, paddingVertical: 14, borderRadius: 14, alignItems: 'center' }}
-              onPress={() => {/* personne 3 */}}
+              disabled={librarySaving || authLoading}
+              style={{
+                flex: 1,
+                backgroundColor: C.red,
+                paddingVertical: 14,
+                borderRadius: 14,
+                alignItems: 'center',
+                opacity: librarySaving || authLoading ? 0.65 : 1,
+              }}
+              onPress={handleAddToLibrary}
             >
+              {librarySaving ? <ActivityIndicator color={C.white} size="small" /> : null}
               <Text style={{ color: C.white, fontSize: 15, fontWeight: '800' }}>+ Ma bibliothèque</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleOpenLists}
+              hitSlop={6}
+              style={{
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.18)',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: '700' }}>+ Liste</Text>
             </Pressable>
             <Pressable
               onPress={() => router.back()}
@@ -1241,11 +1354,240 @@ export default function MovieDetail() {
           </View>
         </View>
       </ScrollView>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={listsModalVisible}
+        onRequestClose={() => setListsModalVisible(false)}
+      >
+        <View style={s.listModalOverlay}>
+          <View style={s.listModalCard}>
+            <View style={s.listModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.listModalTitle}>Ajouter a une liste</Text>
+                <Text style={s.listModalSubtitle} numberOfLines={1}>{movie.title}</Text>
+              </View>
+              <Pressable
+                hitSlop={8}
+                onPress={() => setListsModalVisible(false)}
+                style={s.listModalClose}
+              >
+                <Text style={s.listModalCloseText}>x</Text>
+              </Pressable>
+            </View>
+
+            {listsLoading ? (
+              <View style={s.listModalLoading}>
+                <ActivityIndicator color={C.red} />
+              </View>
+            ) : lists.length === 0 ? (
+              <View style={s.listModalEmpty}>
+                <Text style={s.listModalEmptyTitle}>Aucune liste disponible.</Text>
+                <Text style={s.listModalEmptyText}>Creez une liste pour organiser ce film.</Text>
+                <Pressable
+                  style={s.listModalPrimary}
+                  onPress={() => {
+                    setListsModalVisible(false);
+                    router.push('/lists');
+                  }}
+                >
+                  <Text style={s.listModalPrimaryText}>Creer une liste</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <ScrollView style={s.listModalOptions} contentContainerStyle={{ gap: 8 }}>
+                  {lists.map((list) => {
+                    const selected = selectedListId === list.id;
+
+                    return (
+                      <Pressable
+                        key={list.id}
+                        onPress={() => setSelectedListId(list.id)}
+                        style={[s.listModalOption, selected && s.listModalOptionActive]}
+                      >
+                        <View style={[s.listModalRadio, selected && s.listModalRadioActive]}>
+                          {selected ? <View style={s.listModalRadioDot} /> : null}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[s.listModalOptionTitle, selected && { color: C.red }]} numberOfLines={1}>
+                            {list.name}
+                          </Text>
+                          <Text style={s.listModalOptionMeta}>
+                            {parseInt(list.movie_count, 10) || 0} film{(parseInt(list.movie_count, 10) || 0) !== 1 ? 's' : ''}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+                <View style={s.listModalActions}>
+                  <Pressable
+                    style={s.listModalSecondary}
+                    onPress={() => setListsModalVisible(false)}
+                  >
+                    <Text style={s.listModalSecondaryText}>Annuler</Text>
+                  </Pressable>
+                  <Pressable
+                    disabled={!selectedListId || listSaving}
+                    style={[s.listModalPrimary, (!selectedListId || listSaving) && { opacity: 0.6 }]}
+                    onPress={handleAddToSelectedList}
+                  >
+                    <Text style={s.listModalPrimaryText}>{listSaving ? 'Ajout...' : 'Ajouter'}</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  listModalOverlay: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  listModalCard: {
+    backgroundColor: C.white,
+    borderRadius: 18,
+    maxHeight: '78%',
+    padding: 18,
+    width: '100%',
+  },
+  listModalHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 14,
+  },
+  listModalTitle: {
+    color: C.black,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  listModalSubtitle: {
+    color: C.gray500,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  listModalClose: {
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
+  },
+  listModalCloseText: {
+    color: C.gray500,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  listModalLoading: {
+    alignItems: 'center',
+    minHeight: 120,
+    justifyContent: 'center',
+  },
+  listModalEmpty: {
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 18,
+  },
+  listModalEmptyTitle: {
+    color: C.black,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  listModalEmptyText: {
+    color: C.gray500,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  listModalOptions: {
+    maxHeight: 280,
+  },
+  listModalOption: {
+    alignItems: 'center',
+    borderColor: C.gray200,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  listModalOptionActive: {
+    backgroundColor: '#fef2f2',
+    borderColor: C.red,
+  },
+  listModalRadio: {
+    alignItems: 'center',
+    borderColor: C.gray400,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    height: 20,
+    justifyContent: 'center',
+    width: 20,
+  },
+  listModalRadioActive: {
+    borderColor: C.red,
+  },
+  listModalRadioDot: {
+    backgroundColor: C.red,
+    borderRadius: 5,
+    height: 10,
+    width: 10,
+  },
+  listModalOptionTitle: {
+    color: C.black,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  listModalOptionMeta: {
+    color: C.gray500,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 3,
+  },
+  listModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'flex-end',
+    marginTop: 16,
+  },
+  listModalPrimary: {
+    alignItems: 'center',
+    backgroundColor: C.red,
+    borderRadius: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  listModalPrimaryText: {
+    color: C.white,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  listModalSecondary: {
+    alignItems: 'center',
+    borderColor: C.gray200,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  listModalSecondaryText: {
+    color: C.gray500,
+    fontSize: 13,
+    fontWeight: '800',
+  },
   sectionLbl: {
     color: C.gray400,
     fontSize: 10,
