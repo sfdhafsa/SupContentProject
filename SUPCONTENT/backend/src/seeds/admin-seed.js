@@ -1,9 +1,9 @@
+import bcrypt from "bcrypt";
 import pool from "../config/db.js";
 
 const ADMIN_USER = {
-  username: "supmoviesAdmin",
-  email: "supmoviesteam@gmail.com",
-  passwordHash: "$2b$10$oGoDUrRpa2tlRh70XqHe0eKmVh9H/JaS.Rj5PlmkIz0ydxyV64Yai",
+  username: process.env.ADMIN_USERNAME || "supmoviesAdmin",
+  email: process.env.ADMIN_EMAIL || "supmoviesteam@gmail.com",
 };
 
 export async function runAdminSeed() {
@@ -31,11 +31,18 @@ export async function runAdminSeed() {
     let adminUserId = existingRows[0]?.id;
 
     if (!adminUserId) {
+      if (!process.env.ADMIN_PASSWORD) {
+        throw new Error(
+          "ADMIN_PASSWORD environment variable is required to create the admin user"
+        );
+      }
+
+      const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
       const { rows: userRows } = await client.query(
         `INSERT INTO users (email, username, password_hash)
          VALUES ($1, $2, $3)
          RETURNING id`,
-        [ADMIN_USER.email, ADMIN_USER.username, ADMIN_USER.passwordHash]
+        [ADMIN_USER.email, ADMIN_USER.username, passwordHash]
       );
 
       adminUserId = userRows[0].id;

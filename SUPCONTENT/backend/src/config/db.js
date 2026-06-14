@@ -1,11 +1,15 @@
 import pkg from "pg";
 const { Pool } = pkg;
 
+if (!process.env.DB_PASSWORD) {
+  throw new Error("DB_PASSWORD environment variable is required");
+}
+
 const pool = new Pool({
   user: process.env.DB_USER || "supcontent",
   host: process.env.DB_HOST || "database",
   database: process.env.DB_NAME || "supcontent",
-  password: process.env.DB_PASSWORD || "supcontent123",
+  password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT || 5432,
 });
 
