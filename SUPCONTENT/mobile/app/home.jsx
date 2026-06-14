@@ -46,7 +46,7 @@ function getGreeting() {
 }
 
 // ── SkeletonBox ──
-function SkeletonBox({ width, height, borderRadius = 8, style }) {
+function SkeletonBox({ width, height, borderRadius = 8, style, color = C.gray200 }) {
   const anim = useRef(new Animated.Value(0.4)).current;
   useEffect(() => {
     Animated.loop(
@@ -57,22 +57,22 @@ function SkeletonBox({ width, height, borderRadius = 8, style }) {
     ).start();
   }, []);
   return (
-    <Animated.View style={[{ width, height, borderRadius, backgroundColor: C.gray200, opacity: anim }, style]} />
+    <Animated.View style={[{ width, height, borderRadius, backgroundColor: color, opacity: anim }, style]} />
   );
 }
 
-function SkeletonMovieCard() {
+function SkeletonMovieCard({ colors }) {
   return (
     <View style={{ width: CARD_W, marginRight: 12 }}>
-      <SkeletonBox width={CARD_W} height={CARD_H} borderRadius={12} />
-      <SkeletonBox width={CARD_W * 0.75} height={10} borderRadius={4} style={{ marginTop: 8 }} />
-      <SkeletonBox width={CARD_W * 0.45} height={9}  borderRadius={4} style={{ marginTop: 4 }} />
+      <SkeletonBox width={CARD_W} height={CARD_H} borderRadius={12} color={colors.border} />
+      <SkeletonBox width={CARD_W * 0.75} height={10} borderRadius={4} color={colors.border} style={{ marginTop: 8 }} />
+      <SkeletonBox width={CARD_W * 0.45} height={9} borderRadius={4} color={colors.border} style={{ marginTop: 4 }} />
     </View>
   );
 }
 
 // ── AnimatedMovieCard ──
-function AnimatedMovieCard({ movie, onPress, index }) {
+function AnimatedMovieCard({ movie, onPress, index, colors }) {
   const scale    = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -95,14 +95,14 @@ function AnimatedMovieCard({ movie, onPress, index }) {
       }}>
         <View style={{
           width: CARD_W, height: CARD_H, borderRadius: 12, overflow: 'hidden',
-          backgroundColor: C.gray200,
-          shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+          backgroundColor: colors.border,
+          shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.15, shadowRadius: 8, elevation: 5,
         }}>
           {movie.poster_url
             ? <Image source={{ uri: movie.poster_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-            : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.gray100 }}>
-                <Text style={{ fontSize: 28, color: C.gray400 }}>—</Text>
+            : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardMuted }}>
+                <Text style={{ fontSize: 28, color: colors.subtle }}>—</Text>
               </View>
           }
           {movie.vote_average > 0 && (
@@ -119,11 +119,11 @@ function AnimatedMovieCard({ movie, onPress, index }) {
             </View>
           )}
         </View>
-        <Text style={{ fontSize: 12, fontWeight: '700', color: C.black, marginTop: 8 }} numberOfLines={1}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 8 }} numberOfLines={1}>
           {movie.title}
         </Text>
         {movie.release_date && (
-          <Text style={{ fontSize: 11, color: C.gray400, marginTop: 2 }}>
+          <Text style={{ fontSize: 11, color: colors.subtle, marginTop: 2 }}>
             {movie.release_date.slice(0, 4)}
           </Text>
         )}
@@ -133,12 +133,12 @@ function AnimatedMovieCard({ movie, onPress, index }) {
 }
 
 // ── SectionHeader avec icône Lucide ──
-function SectionHeader({ icon, title, onSeeAll }) {
+function SectionHeader({ icon, title, onSeeAll, colors }) {
   return (
     <View style={s.sectionHeader}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         {icon}
-        <Text style={s.sectionTitle}>{title}</Text>
+        <Text style={[s.sectionTitle, { color: colors.text }]}>{title}</Text>
       </View>
       {onSeeAll && (
         <Pressable onPress={onSeeAll} hitSlop={8}>
@@ -186,10 +186,11 @@ function HomeContent() {
 
           {/* ── Header personnalisé — sans badge Cinéphile ── */}
           <Animated.View style={[s.greetingSection, {
+            borderBottomColor: colors.border,
             opacity: headerAnim,
             transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
           }]}>
-            <Text style={s.greetingLabel}>{getGreeting()},</Text>
+            <Text style={[s.greetingLabel, { color: colors.subtle }]}>{getGreeting()},</Text>
             <Text style={[s.greetingName, { color: colors.text }]}>{username || '…'}</Text>
             <Text style={[s.greetingSub, { color: colors.muted }]}>Découvrez les films du moment</Text>
           </Animated.View>
@@ -200,6 +201,7 @@ function HomeContent() {
               icon={<Flame size={16} color={C.red} strokeWidth={2.5} />}
               title="Tendances cette semaine"
               onSeeAll={() => router.push('/discover')}
+              colors={colors}
             />
             <ScrollView
               horizontal
@@ -207,9 +209,15 @@ function HomeContent() {
               contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}
             >
               {trendingLoading
-                ? Array.from({ length: 5 }).map((_, i) => <SkeletonMovieCard key={i} />)
+                ? Array.from({ length: 5 }).map((_, i) => <SkeletonMovieCard key={i} colors={colors} />)
                 : trending.map((movie, i) => (
-                    <AnimatedMovieCard key={movie.tmdb_id} movie={movie} onPress={handleMoviePress} index={i} />
+                    <AnimatedMovieCard
+                      key={movie.tmdb_id}
+                      movie={movie}
+                      onPress={handleMoviePress}
+                      index={i}
+                      colors={colors}
+                    />
                   ))
               }
             </ScrollView>
@@ -219,6 +227,7 @@ function HomeContent() {
           <View style={{ marginTop: 20 }}>
             <SectionHeader
               icon={<Users size={16} color={C.red} strokeWidth={2.5} />}
+              colors={colors}
               title="Activité des amis"
             />
             <View style={s.feedWrapper}>
@@ -226,26 +235,26 @@ function HomeContent() {
                 <View style={{ gap: 12, paddingHorizontal: 16, paddingTop: 12 }}>
                   {Array.from({ length: 3 }).map((_, i) => (
                     <View key={i} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-                      <SkeletonBox width={40} height={40} borderRadius={20} />
+                      <SkeletonBox width={40} height={40} borderRadius={20} color={colors.border} />
                       <View style={{ flex: 1, gap: 6 }}>
-                        <SkeletonBox width="70%" height={10} borderRadius={4} />
-                        <SkeletonBox width="50%" height={9}  borderRadius={4} />
+                        <SkeletonBox width="70%" height={10} borderRadius={4} color={colors.border} />
+                        <SkeletonBox width="50%" height={9} borderRadius={4} color={colors.border} />
                       </View>
                     </View>
                   ))}
                 </View>
               ) : feedError ? (
                 <View style={s.feedEmpty}>
-                  <Text style={{ color: C.gray400, fontSize: 13, textAlign: 'center' }}>
+                  <Text style={{ color: colors.muted, fontSize: 13, textAlign: 'center' }}>
                     Impossible de charger l'activité
                   </Text>
                 </View>
               ) : feedItems?.length === 0 ? (
                 <View style={s.feedEmpty}>
-                  <Text style={{ color: C.black, fontSize: 15, fontWeight: '700', marginBottom: 6 }}>
+                  <Text style={{ color: colors.text, fontSize: 15, fontWeight: '700', marginBottom: 6 }}>
                     Aucune activité pour l'instant
                   </Text>
-                  <Text style={{ color: C.gray400, fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
+                  <Text style={{ color: colors.muted, fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
                     Suivez des amis pour voir leurs films, critiques et listes ici.
                   </Text>
                   <Pressable onPress={() => router.push('/discover')} style={s.discoverBtn} hitSlop={4}>
