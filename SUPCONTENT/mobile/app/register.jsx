@@ -12,12 +12,14 @@ import {
   View,
 } from 'react-native';
 import ScreenContainer from '../src/components/ScreenContainer';
+import { useTheme } from '../src/context/ThemeContext';
 import { registerWithEmail } from '../src/services/authApi';
 import { saveAuthSession } from '../src/services/authStorage';
 import { startGoogleOAuth } from '../src/services/oauth';
 
 export default function Register() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -69,7 +71,7 @@ export default function Register() {
   };
 
   return (
-    <ScreenContainer backgroundColor="#f8fafc">
+    <ScreenContainer backgroundColor={colors.bg}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
@@ -90,58 +92,58 @@ export default function Register() {
           </View>
         </View>
 
-        <Text style={styles.title}>Creer un compte</Text>
-        <Text style={styles.subtitle}>Inscrivez-vous pour commencer avec SUPMOVIES</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Creer un compte</Text>
+        <Text style={[styles.subtitle, { color: colors.muted }]}>Inscrivez-vous pour commencer avec SUPMOVIES</Text>
 
-        <Pressable onPress={startGoogleOAuth} style={styles.socialButton}>
-          <Text style={styles.googleIcon}>G</Text>
-          <Text style={styles.socialText}>Google</Text>
+        <Pressable onPress={startGoogleOAuth} style={[styles.socialButton, { borderColor: colors.border, backgroundColor: colors.card }]}>
+          <Text style={[styles.googleIcon, { color: colors.text }]}>G</Text>
+          <Text style={[styles.socialText, { color: colors.text }]}>Google</Text>
         </Pressable>
 
         <View style={styles.dividerRow}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>OU</Text>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <Text style={[styles.dividerText, { color: colors.subtle }]}>OU</Text>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
         </View>
 
-        <Text style={styles.label}>Nom d'utilisateur</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Nom d'utilisateur</Text>
         <TextInput
           autoCapitalize="none"
           onChangeText={(value) => updateField('username', value)}
           placeholder="moviefan123"
-          placeholderTextColor="#7f8a9b"
-          style={styles.input}
+          placeholderTextColor={colors.subtle}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.input, color: colors.text }]}
           value={form.username}
         />
 
-        <Text style={styles.label}>E-mail</Text>
+        <Text style={[styles.label, { color: colors.text }]}>E-mail</Text>
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
           onChangeText={(value) => updateField('email', value)}
           placeholder="name@example.com"
-          placeholderTextColor="#7f8a9b"
-          style={styles.input}
+          placeholderTextColor={colors.subtle}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.input, color: colors.text }]}
           value={form.email}
         />
 
-        <Text style={styles.label}>Mot de passe</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Mot de passe</Text>
         <TextInput
           onChangeText={(value) => updateField('password', value)}
           placeholder="Creer un mot de passe (8 caracteres min.)"
-          placeholderTextColor="#7f8a9b"
+          placeholderTextColor={colors.subtle}
           secureTextEntry
-          style={styles.input}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.input, color: colors.text }]}
           value={form.password}
         />
 
-        <Text style={styles.label}>Confirmer le mot de passe</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Confirmer le mot de passe</Text>
         <TextInput
           onChangeText={(value) => updateField('confirmPassword', value)}
           placeholder="Confirmez votre mot de passe"
-          placeholderTextColor="#7f8a9b"
+          placeholderTextColor={colors.subtle}
           secureTextEntry
-          style={styles.input}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.input, color: colors.text }]}
           value={form.confirmPassword}
         />
 
@@ -156,7 +158,7 @@ export default function Register() {
         </Pressable>
 
         <View style={styles.signInRow}>
-          <Text style={styles.mutedText}>Vous avez deja un compte ? </Text>
+          <Text style={[styles.mutedText, { color: colors.muted }]}>Vous avez deja un compte ? </Text>
           <Link href="/login" asChild>
             <Pressable>
               <Text style={styles.signInText}>Se connecter</Text>

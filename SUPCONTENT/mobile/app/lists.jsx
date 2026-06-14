@@ -128,9 +128,9 @@ export default function Lists() {
             <View style={s.formCardIcon}>
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>+</Text>
             </View>
-            <Text style={s.formCardTitle}>{editingList ? 'Modifier la liste' : 'Nouvelle liste'}</Text>
+            <Text style={[s.formCardTitle, { color: colors.text }]}>{editingList ? 'Modifier la liste' : 'Nouvelle liste'}</Text>
           </View>
-          <Text style={s.formLabel}>NOM</Text>
+          <Text style={[s.formLabel, { color: colors.subtle }]}>NOM</Text>
           <TextInput
             style={[s.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }, nameFocused && s.inputFocused]}
             placeholder="Ex: Films a voir ce mois-ci"
@@ -140,7 +140,7 @@ export default function Lists() {
             onFocus={() => setNameFocused(true)}
             onBlur={() => setNameFocused(false)}
           />
-          <Text style={s.formLabel}>DESCRIPTION</Text>
+          <Text style={[s.formLabel, { color: colors.subtle }]}>DESCRIPTION</Text>
           <TextInput
             style={[s.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }, descFocused && s.inputFocused]}
             placeholder="Optionnel"
@@ -155,12 +155,12 @@ export default function Lists() {
               <View style={[s.checkbox, isPublic && s.checkboxOn]}>
                 {isPublic && <Text style={s.checkmark}>v</Text>}
               </View>
-              <Text style={s.publicLabel}>Publique</Text>
+              <Text style={[s.publicLabel, { color: colors.muted }]}>Publique</Text>
             </Pressable>
             <View style={s.formBtns}>
               {editingList && (
                 <Pressable style={s.cancelBtn} onPress={cancelEdit}>
-                  <Text style={s.cancelBtnText}>Annuler</Text>
+                  <Text style={[s.cancelBtnText, { color: colors.muted }]}>Annuler</Text>
                 </Pressable>
               )}
               <Pressable style={[s.createBtn, creating && { opacity: 0.7 }]} onPress={handleCreate} disabled={creating}>
@@ -172,7 +172,7 @@ export default function Lists() {
 
         <View style={s.sectionHeader}>
           <View style={s.sectionTitleRow}>
-            <Text style={s.sectionTitle}>MES LISTES</Text>
+            <Text style={[s.sectionTitle, { color: colors.subtle }]}>MES LISTES</Text>
             <View style={s.sectionBadge}>
               <Text style={s.sectionBadgeText}>{lists.length}</Text>
             </View>
@@ -193,7 +193,7 @@ export default function Lists() {
               return (
                 <View key={list.id} style={[s.listCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={[s.listIconBox, { backgroundColor: colors.cardMuted }]}>
-                    <Text style={s.listIconText}>{list.is_public ? 'G' : 'P'}</Text>
+                    <Text style={[s.listIconText, { color: colors.muted }]}>{list.is_public ? 'G' : 'P'}</Text>
                   </View>
                   <View style={s.listInfo}>
                     <Text style={[s.listName, { color: colors.text }]} numberOfLines={1}>{list.name}</Text>
@@ -209,8 +209,8 @@ export default function Lists() {
                     {list.description ? <Text style={[s.listDesc, { color: colors.subtle }]} numberOfLines={1}>{list.description}</Text> : null}
                   </View>
                   <View style={s.listActions}>
-                    <Pressable style={s.iconBtnEdit} onPress={() => startEdit(list)}>
-                      <Text style={s.iconBtnEditText}>Ed</Text>
+                    <Pressable style={[s.iconBtnEdit, { backgroundColor: colors.iconButton }]} onPress={() => startEdit(list)}>
+                      <Text style={[s.iconBtnEditText, { color: colors.muted }]}>Ed</Text>
                     </Pressable>
                     <Pressable style={s.iconBtnDel} onPress={() => setDeleteTarget(list)}>
                       <Text style={s.iconBtnDelText}>Sup</Text>
@@ -230,12 +230,12 @@ export default function Lists() {
           <Animated.View style={[s.backdrop, { opacity: fadeAnim }]}>
             <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} />
           </Animated.View>
-          <Animated.View style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}>
-            <View style={s.sheetHandle} />
+          <Animated.View style={[s.sheet, { backgroundColor: colors.card, transform: [{ translateY: slideAnim }] }]}>
+            <View style={[s.sheetHandle, { backgroundColor: colors.border }]} />
             <View style={s.sheetIconWrap} />
-            <Text style={s.sheetTitle}>Supprimer la liste</Text>
-            <Text style={s.sheetSub}>
-              Supprimer <Text style={s.sheetListName}>"{deleteTarget?.name}"</Text> ?
+            <Text style={[s.sheetTitle, { color: colors.text }]}>Supprimer la liste</Text>
+            <Text style={[s.sheetSub, { color: colors.muted }]}>
+              Supprimer <Text style={[s.sheetListName, { color: colors.text }]}>"{deleteTarget?.name}"</Text> ?
             </Text>
             {movieCount > 0 && (
               <View style={s.sheetWarningBox}>
@@ -244,8 +244,8 @@ export default function Lists() {
             )}
             <Text style={s.sheetIrreversible}>Cette action est irreversible.</Text>
             <View style={s.sheetBtns}>
-              <Pressable style={s.sheetCancel} onPress={closeSheet}>
-                <Text style={s.sheetCancelText}>Annuler</Text>
+              <Pressable style={[s.sheetCancel, { borderColor: colors.border }]} onPress={closeSheet}>
+                <Text style={[s.sheetCancelText, { color: colors.muted }]}>Annuler</Text>
               </Pressable>
               <Pressable style={[s.sheetConfirm, deleting && { opacity: 0.6 }]} onPress={confirmDelete} disabled={deleting}>
                 <Text style={s.sheetConfirmText}>{deleting ? '...' : 'Oui, supprimer'}</Text>

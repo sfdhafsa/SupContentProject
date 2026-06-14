@@ -105,6 +105,7 @@ function Stars({ rating, size = 10 }) {
 // AnimatedMovieCard
 // ─────────────────────────────────────────
 function AnimatedMovieCard({ movie, onPress, width, height }) {
+  const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const W = width  || CARD_W;
   const H = height || Math.round(W * 1.5);
@@ -123,7 +124,7 @@ function AnimatedMovieCard({ movie, onPress, width, height }) {
               </View>
           }
         </View>
-        <Text style={{ fontSize: 11, fontWeight: '600', color: C.black, marginTop: 5 }} numberOfLines={1}>
+        <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text, marginTop: 5 }} numberOfLines={1}>
           {movie.title}
         </Text>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
@@ -286,10 +287,12 @@ function MovieRow({ title, movies, onPress, loading }) {
 // SearchCategoryHeader
 // ─────────────────────────────────────────
 function SearchCategoryHeader({ label, count }) {
+  const { colors } = useTheme();
+
   return (
-    <View style={s.categoryHeader}>
-      <Text style={s.categoryLabel}>{label}</Text>
-      <View style={s.categoryCountBadge}>
+    <View style={[s.categoryHeader, { borderBottomColor: colors.border }]}>
+      <Text style={[s.categoryLabel, { color: colors.text }]}>{label}</Text>
+      <View style={[s.categoryCountBadge, { backgroundColor: colors.cardMuted }]}>
         <Text style={s.categoryCountTxt}>{count}</Text>
       </View>
     </View>
@@ -300,6 +303,7 @@ function SearchCategoryHeader({ label, count }) {
 // SearchItem — films / users / listes
 // ─────────────────────────────────────────
 function SearchItem({ item, onMoviePress, onUserPress, onListPress }) {
+  const { colors } = useTheme();
   const scale    = useRef(new Animated.Value(1)).current;
   const pressIn  = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 25 }).start();
   const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 25 }).start();
@@ -321,7 +325,7 @@ function SearchItem({ item, onMoviePress, onUserPress, onListPress }) {
             }
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={s.searchTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={[s.searchTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
             <Text style={s.searchSub}>{item.release_date?.slice(0, 4) || '—'}</Text>
             {item.vote_average > 0 && (
               <Text style={{ fontSize: 11, color: C.yellow, fontWeight: '700', marginTop: 2 }}>
@@ -343,7 +347,7 @@ function SearchItem({ item, onMoviePress, onUserPress, onListPress }) {
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={s.searchTitle}>@{item.username}</Text>
+            <Text style={[s.searchTitle, { color: colors.text }]}>@{item.username}</Text>
             {item.bio ? (
               <Text style={s.searchSub} numberOfLines={1}>{item.bio}</Text>
             ) : null}
@@ -360,7 +364,7 @@ function SearchItem({ item, onMoviePress, onUserPress, onListPress }) {
             <Text style={{ color: C.white, fontSize: 16, fontWeight: '800' }}>≡</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={s.searchTitle} numberOfLines={1}>{item.name}</Text>
+            <Text style={[s.searchTitle, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
             <Text style={s.searchSub}>
               {item.movie_count != null ? `${item.movie_count} film${item.movie_count !== 1 ? 's' : ''}` : 'Liste publique'}
             </Text>
@@ -375,7 +379,7 @@ function SearchItem({ item, onMoviePress, onUserPress, onListPress }) {
 
   return (
     <Pressable onPress={handlePress} onPressIn={pressIn} onPressOut={pressOut}>
-      <Animated.View style={[s.searchItem, { transform: [{ scale }] }]}>
+      <Animated.View style={[s.searchItem, { backgroundColor: colors.bg, borderBottomColor: colors.border, transform: [{ scale }] }]}>
         {content}
       </Animated.View>
     </Pressable>
@@ -471,6 +475,7 @@ function SearchResults({
 function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
   onToggleGenre, onYearRange, onRating, onSort, onApply, onReset }) {
 
+  const { colors } = useTheme();
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -506,11 +511,13 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
 
   return (
     <Animated.View style={[s.filterPanel, {
+      backgroundColor: colors.card,
+      borderColor: colors.border,
       opacity: slideAnim,
       transform: [{ translateY: slideAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
     }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 }}>
-        <Text style={{ fontSize: 14, fontWeight: '800', color: C.black }}>Filtres & Tri</Text>
+        <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>Filtres & Tri</Text>
         <Pressable onPress={onReset} hitSlop={8}>
           <Text style={{ fontSize: 13, color: C.red, fontWeight: '700' }}>Effacer tout</Text>
         </Pressable>
@@ -520,7 +527,7 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
         {SORTS.map((o) => (
           <Pressable key={o.value} onPress={() => onSort(o.value)} style={[s.pill, sortBy === o.value && s.pillActive]}>
-            <Text style={[s.pillTxt, sortBy === o.value && s.pillTxtActive]}>{o.label}</Text>
+            <Text style={[s.pillTxt, { color: colors.muted }, sortBy === o.value && s.pillTxtActive]}>{o.label}</Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -537,7 +544,7 @@ function FilterPanel({ visible, genres, genreIds, yearRange, minRating, sortBy,
         {YEARS.map((r) => (
           <Pressable key={r.label} onPress={() => onYearRange(yearRange?.label === r.label ? null : r)}
             style={[s.pill, yearRange?.label === r.label && s.pillActive]}>
-            <Text style={[s.pillTxt, yearRange?.label === r.label && s.pillTxtActive]}>{r.label}</Text>
+            <Text style={[s.pillTxt, { color: colors.muted }, yearRange?.label === r.label && s.pillTxtActive]}>{r.label}</Text>
           </Pressable>
         ))}
       </ScrollView>

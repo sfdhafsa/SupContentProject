@@ -136,8 +136,8 @@ export default function Library() {
           <View style={s.center}><ActivityIndicator color="#D0021B" size="large" /></View>
         ) : filtered.length === 0 ? (
           <View style={s.emptyBox}>
-            <Text style={s.emptyTitle}>Aucun film ici</Text>
-            <Text style={s.emptySub}>Ajoutez des films a votre bibliotheque</Text>
+            <Text style={[s.emptyTitle, { color: colors.text }]}>Aucun film ici</Text>
+            <Text style={[s.emptySub, { color: colors.subtle }]}>Ajoutez des films a votre bibliotheque</Text>
             <Pressable style={s.discoverBtn} onPress={() => router.push('/discover')}>
               <Text style={s.discoverBtnText}>Decouvrir des films</Text>
             </Pressable>

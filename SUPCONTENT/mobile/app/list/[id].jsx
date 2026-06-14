@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import ScreenContainer from '../../src/components/ScreenContainer';
 import { getListById } from '../../src/services/listsApi';
+import { useTheme } from '../../src/context/ThemeContext';
 
 const POSTER_BASE_URL = 'https://image.tmdb.org/t/p/w300';
 
@@ -23,6 +24,7 @@ function getPosterUrl(movie) {
 
 function MovieCard({ movie }) {
   const router = useRouter();
+  const { colors } = useTheme();
   const posterUrl = getPosterUrl(movie);
   const movieId = movie?.external_id || movie?.tmdb_id;
 
@@ -37,13 +39,13 @@ function MovieCard({ movie }) {
       {posterUrl ? (
         <Image source={{ uri: posterUrl }} style={styles.poster} />
       ) : (
-        <View style={styles.posterFallback}>
-          <Text style={styles.posterFallbackText} numberOfLines={3}>
+        <View style={[styles.posterFallback, { backgroundColor: colors.cardMuted }]}>
+          <Text style={[styles.posterFallbackText, { color: colors.muted }]} numberOfLines={3}>
             {movie?.title || 'Film'}
           </Text>
         </View>
       )}
-      <Text style={styles.movieTitle} numberOfLines={2}>
+      <Text style={[styles.movieTitle, { color: colors.text }]} numberOfLines={2}>
         {movie?.title || 'Untitled'}
       </Text>
     </Pressable>
@@ -53,6 +55,7 @@ function MovieCard({ movie }) {
 export default function ListDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors } = useTheme();
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -86,12 +89,12 @@ export default function ListDetail() {
   const movies = list?.movies || [];
 
   return (
-    <ScreenContainer backgroundColor="#f8fafc" contentStyle={styles.screen}>
-      <View style={styles.header}>
+    <ScreenContainer backgroundColor={colors.bg} contentStyle={styles.screen}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+        <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
           {list?.name || 'Liste'}
         </Text>
         <View style={styles.headerSpacer} />
@@ -103,7 +106,7 @@ export default function ListDetail() {
         </View>
       ) : error ? (
         <View style={styles.centerState}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.red }]}>{error}</Text>
         </View>
       ) : (
         <FlatList
@@ -119,11 +122,11 @@ export default function ListDetail() {
                   {list?.is_public ? 'Public' : 'Private'}
                 </Text>
               </View>
-              <Text style={styles.title}>{list?.name}</Text>
-              {list?.description ? (
-                <Text style={styles.description}>{list.description}</Text>
-              ) : null}
-              <Text style={styles.meta}>
+               <Text style={[styles.title, { color: colors.text }]}>{list?.name}</Text>
+               {list?.description ? (
+                 <Text style={[styles.description, { color: colors.muted }]}>{list.description}</Text>
+               ) : null}
+               <Text style={[styles.meta, { color: colors.subtle }]}>
                 {movies.length} film{movies.length !== 1 ? 's' : ''}
                 {list?.owner_username ? ` by ${list.owner_username}` : ''}
               </Text>
@@ -131,7 +134,7 @@ export default function ListDetail() {
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>Cette liste est vide.</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Cette liste est vide.</Text>
             </View>
           }
           renderItem={({ item }) => <MovieCard movie={item} />}

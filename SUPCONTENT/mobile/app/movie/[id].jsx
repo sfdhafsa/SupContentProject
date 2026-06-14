@@ -28,6 +28,7 @@ import {
   updateReview,
 } from '../../src/services/reviewsApi';
 import useAuthSession from '../../src/hooks/useAuthSession';
+import { useTheme } from '../../src/context/ThemeContext';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const BACKDROP_H = Math.round(SH * 0.32);
@@ -835,6 +836,7 @@ export default function MovieDetail() {
   const scrollRef = useRef(null);
   const reviewsSectionYRef = useRef(0);
   const { loading: authLoading, isAuthenticated, user } = useAuthSession();
+  const { colors } = useTheme();
   const [movie, setMovie]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
@@ -1361,18 +1363,18 @@ export default function MovieDetail() {
         onRequestClose={() => setListsModalVisible(false)}
       >
         <View style={s.listModalOverlay}>
-          <View style={s.listModalCard}>
+          <View style={[s.listModalCard, { backgroundColor: colors.card }]}>
             <View style={s.listModalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={s.listModalTitle}>Ajouter a une liste</Text>
-                <Text style={s.listModalSubtitle} numberOfLines={1}>{movie.title}</Text>
+                <Text style={[s.listModalTitle, { color: colors.text }]}>Ajouter a une liste</Text>
+                <Text style={[s.listModalSubtitle, { color: colors.muted }]} numberOfLines={1}>{movie.title}</Text>
               </View>
               <Pressable
                 hitSlop={8}
                 onPress={() => setListsModalVisible(false)}
                 style={s.listModalClose}
               >
-                <Text style={s.listModalCloseText}>x</Text>
+                <Text style={[s.listModalCloseText, { color: colors.muted }]}>x</Text>
               </Pressable>
             </View>
 
@@ -1382,8 +1384,8 @@ export default function MovieDetail() {
               </View>
             ) : lists.length === 0 ? (
               <View style={s.listModalEmpty}>
-                <Text style={s.listModalEmptyTitle}>Aucune liste disponible.</Text>
-                <Text style={s.listModalEmptyText}>Creez une liste pour organiser ce film.</Text>
+                <Text style={[s.listModalEmptyTitle, { color: colors.text }]}>Aucune liste disponible.</Text>
+                <Text style={[s.listModalEmptyText, { color: colors.muted }]}>Creez une liste pour organiser ce film.</Text>
                 <Pressable
                   style={s.listModalPrimary}
                   onPress={() => {
@@ -1404,16 +1406,20 @@ export default function MovieDetail() {
                       <Pressable
                         key={list.id}
                         onPress={() => setSelectedListId(list.id)}
-                        style={[s.listModalOption, selected && s.listModalOptionActive]}
+                        style={[
+                          s.listModalOption,
+                          { backgroundColor: colors.card, borderColor: colors.border },
+                          selected && s.listModalOptionActive,
+                        ]}
                       >
                         <View style={[s.listModalRadio, selected && s.listModalRadioActive]}>
                           {selected ? <View style={s.listModalRadioDot} /> : null}
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={[s.listModalOptionTitle, selected && { color: C.red }]} numberOfLines={1}>
+                          <Text style={[s.listModalOptionTitle, { color: colors.text }, selected && { color: C.red }]} numberOfLines={1}>
                             {list.name}
                           </Text>
-                          <Text style={s.listModalOptionMeta}>
+                          <Text style={[s.listModalOptionMeta, { color: colors.muted }]}>
                             {parseInt(list.movie_count, 10) || 0} film{(parseInt(list.movie_count, 10) || 0) !== 1 ? 's' : ''}
                           </Text>
                         </View>
@@ -1423,10 +1429,10 @@ export default function MovieDetail() {
                 </ScrollView>
                 <View style={s.listModalActions}>
                   <Pressable
-                    style={s.listModalSecondary}
+                    style={[s.listModalSecondary, { borderColor: colors.border }]}
                     onPress={() => setListsModalVisible(false)}
                   >
-                    <Text style={s.listModalSecondaryText}>Annuler</Text>
+                    <Text style={[s.listModalSecondaryText, { color: colors.muted }]}>Annuler</Text>
                   </Pressable>
                   <Pressable
                     disabled={!selectedListId || listSaving}
