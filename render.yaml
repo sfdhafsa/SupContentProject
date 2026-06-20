@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: supcontent-backend
+    name: supmovies-backend
     runtime: node
     rootDir: SUPCONTENT/backend
     region: frankfurt
