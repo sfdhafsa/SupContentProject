@@ -18,7 +18,6 @@ import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
 import useAuthSession from '../src/hooks/useAuthSession.js';
 import api from '../src/config/api.js';
-import { clearAuthSession } from '../src/services/authStorage.js';
 
 /* ── Utilitaires (inline, pas besoin d'import externe) ── */
 
@@ -326,11 +325,12 @@ function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) 
 
 function ProfileContent() {
   const router = useRouter();
-  const { user, token, loading: authLoading } = useAuthSession();
+  const { user, token, loading: authLoading, signOut } = useAuthSession();
   const { colors } = useTheme();
 
   const [activeTab, setActiveTab] = useState('Overview');
   const [profileLoading, setProfileLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [reviews, setReviews] = useState([]);
   const [lists, setLists] = useState([]);
@@ -358,8 +358,15 @@ function ProfileContent() {
   );
 
   const handleLogout = async () => {
-    await clearAuthSession();
-    router.replace('/discover');
+    if (signingOut) return;
+
+    setSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      router.replace('/discover');
+      setSigningOut(false);
+    }
   };
 
   useEffect(() => {
@@ -601,13 +608,21 @@ function ProfileContent() {
 
           <View style={styles.actionsSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Actions</Text>
-            <Pressable style={[styles.profileLogoutBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleLogout}>
+            <Pressable
+              disabled={signingOut}
+              style={[
+                styles.profileLogoutBtn,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                signingOut && styles.profileLogoutBtnDisabled,
+              ]}
+              onPress={handleLogout}
+            >
               <View style={styles.profileLogoutIcon}>
                 <View style={styles.profileLogoutDoor} />
                 <View style={styles.profileLogoutShaft} />
                 <View style={styles.profileLogoutChevron} />
               </View>
-              <Text style={styles.profileLogoutText}>Sign out</Text>
+              <Text style={styles.profileLogoutText}>{signingOut ? 'Signing out...' : 'Sign out'}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -884,6 +899,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   profileLogoutText: { color: RED, fontSize: 12, fontWeight: '800' },
+  profileLogoutBtnDisabled: { opacity: 0.6 },
   profileLogoutIcon: {
     height: 16,
     position: 'relative',

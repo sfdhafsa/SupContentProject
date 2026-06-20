@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  clearAuthSession,
   getAuthToken,
   getAuthUser,
   subscribeToAuthSession,
@@ -57,10 +58,23 @@ export function AuthSessionProvider({ children }) {
     };
   }, []);
 
+  const signOut = useCallback(async () => {
+    // Update the app immediately so protected screens cannot keep rendering with
+    // a stale in-memory session while persistent storage is being cleared.
+    setSession({
+      loading: false,
+      token: null,
+      user: null,
+    });
+
+    await clearAuthSession();
+  }, []);
+
   const value = useMemo(() => ({
     ...session,
     isAuthenticated: !!session.token && !!session.user,
-  }), [session]);
+    signOut,
+  }), [session, signOut]);
 
   return (
     <AuthSessionContext.Provider value={value}>
