@@ -21,7 +21,7 @@ import ScreenContainer from '../src/components/ScreenContainer';
 import { useTheme } from '../src/context/ThemeContext';
 import api, { API_BASE_URL } from '../src/config/api';
 import { clearAuthSession, getAuthToken, saveAuthSession } from '../src/services/authStorage';
-import { useAuth } from '../src/services/authApi';
+import useAuthSession from '../src/hooks/useAuthSession';
 
 const RED = '#ef0d1a';
 const TEXT = '#111827';
@@ -133,7 +133,7 @@ function SettingToggle({ label, description, value, onChange }) {
 
 function SettingsContent() {
   const router = useRouter();
-  const { user, token, loading } = useAuth();
+  const { user, token, loading } = useAuthSession();
   const { colors, darkMode, toggleTheme } = useTheme();
   const [tab, setTab] = useState('Profil');
   const [localUser, setLocalUser] = useState(user);

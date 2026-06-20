@@ -1,11 +1,4 @@
-import { useEffect, useState } from 'react';
 import { API_BASE_URL } from '../config/api';
-import {
-  clearAuthSession,
-  getAuthToken,
-  getAuthUser,
-  saveAuthSession,
-} from './authStorage';
 
 function getJsonHeaders() {
   return {
@@ -84,56 +77,4 @@ export async function getCurrentUser(token) {
 export function getGoogleOAuthUrl(redirectUri, client = 'mobile') {
   const params = new URLSearchParams({ client, redirect_uri: redirectUri });
   return `${API_BASE_URL}/auth/google?${params.toString()}`;
-}
-
-export function useAuth() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadUser() {
-      try {
-        const storedToken = await getAuthToken();
-        const storedUser = await getAuthUser();
-
-        if (!mounted) return;
-        setToken(storedToken);
-        setUser(storedUser);
-
-        if (storedToken) {
-          const freshUser = await getCurrentUser(storedToken);
-          if (!mounted) return;
-          setUser(freshUser);
-          await saveAuthSession(storedToken, freshUser);
-        }
-      } catch (error) {
-        if (error?.status === 401 || error?.status === 403) {
-          await clearAuthSession();
-        }
-        if (!mounted) return;
-        if (error?.status === 401 || error?.status === 403) {
-          setToken(null);
-          setUser(null);
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    loadUser();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  return {
-    isAuthenticated: !!token && !!user,
-    loading,
-    token,
-    user,
-  };
 }

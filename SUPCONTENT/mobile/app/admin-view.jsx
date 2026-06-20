@@ -18,7 +18,7 @@ import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
 import api from '../src/config/api';
-import { useAuth } from '../src/services/authApi';
+import useAuthSession from '../src/hooks/useAuthSession';
 
 const RED = '#d0021b';
 const BG = '#f6f7f9';
@@ -409,7 +409,7 @@ function AdminViewContent() {
   const { colors } = useTheme();
   const router = useRouter();
   const { tab } = useLocalSearchParams();
-  const { user: currentUser, loading: authLoading } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuthSession();
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [reviews, setReviews] = useState([]);

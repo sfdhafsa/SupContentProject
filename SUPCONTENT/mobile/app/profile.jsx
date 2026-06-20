@@ -16,7 +16,7 @@ import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
-import { useAuth } from '../src/services/authApi.js';
+import useAuthSession from '../src/hooks/useAuthSession.js';
 import api from '../src/config/api.js';
 import { clearAuthSession } from '../src/services/authStorage.js';
 
@@ -326,7 +326,7 @@ function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) 
 
 function ProfileContent() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, token, loading: authLoading } = useAuthSession();
   const { colors } = useTheme();
 
   const [activeTab, setActiveTab] = useState('Overview');
@@ -363,7 +363,7 @@ function ProfileContent() {
   };
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!token || !user?.id) return;
 
     const fetchProfileData = async () => {
       setProfileLoading(true);
@@ -414,7 +414,7 @@ function ProfileContent() {
     };
 
     fetchProfileData();
-  }, [user?.id]);
+  }, [token, user?.id]);
 
   if (authLoading || !user) {
     return (
