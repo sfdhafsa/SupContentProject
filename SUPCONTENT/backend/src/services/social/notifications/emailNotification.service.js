@@ -1,47 +1,15 @@
 import db from '../../../config/db.js';
 import { UserModel } from '../../../models/user.model.js';
 import { notificationTypes } from '../../../utils/notificationTypes.js';
-
-const env = globalThis.process?.env || {};
-
-const getSmtpConfig = () => ({
-  host: env.SMTP_HOST,
-  port: parseInt(env.SMTP_PORT || '587', 10),
-  user: env.SMTP_USER,
-  pass: env.SMTP_PASS || env.SMTP_PASSWORD,
-  from: env.EMAIL_FROM || env.SMTP_FROM || env.SMTP_USER,
-  secure: env.SMTP_SECURE === 'true',
-});
-
-const isConfigured = (config) =>
-  config.host && config.port && config.from && config.user && config.pass;
+import { isBrevoConfigured, sendBrevoEmail } from '../../brevoEmail.service.js';
 
 const sendEmail = async ({ to, subject, text }) => {
-  const config = getSmtpConfig();
-
-  if (!isConfigured(config)) {
-    globalThis.console.warn('[EMAIL] SMTP is not configured. Email notification skipped.');
+  if (!isBrevoConfigured()) {
+    globalThis.console.warn('[EMAIL] Brevo is not configured. Email notification skipped.');
     return false;
   }
 
-  const { default: nodemailer } = await import('nodemailer');
-  const transporter = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    requireTLS: !config.secure && env.SMTP_STARTTLS !== 'false',
-    ignoreTLS: !config.secure && env.SMTP_STARTTLS === 'false',
-    auth: {
-      user: config.user,
-      pass: config.pass,
-    },
-  });
-
-  await transporter.sendMail({
-    from: config.from,
+  await sendBrevoEmail({
     to,
     subject,
     text,

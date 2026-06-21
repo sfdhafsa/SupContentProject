@@ -1,48 +1,14 @@
-const requiredSmtpConfig = [
-  'SMTP_HOST',
-  'SMTP_PORT',
-  'SMTP_USER',
-];
-
-const hasSmtpConfig = () =>
-  requiredSmtpConfig.every((key) => Boolean(process.env[key])) &&
-  Boolean(process.env.SMTP_PASS || process.env.SMTP_PASSWORD);
-
-const createTransporter = async () => {
-  const { default: nodemailer } = await import('nodemailer');
-
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_SECURE === 'true',
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD,
-    },
-  });
-};
+import { isBrevoConfigured, sendBrevoEmail } from './brevoEmail.service.js';
 
 export const EmailService = {
   isConfigured() {
-    return hasSmtpConfig();
+    return isBrevoConfigured();
   },
 
   async sendPasswordResetEmail({ to, username, resetUrl }) {
-    if (!hasSmtpConfig()) {
-      throw Object.assign(new Error('SMTP configuration is missing.'), {
-        code: 'SMTP_NOT_CONFIGURED',
-      });
-    }
-
-    const transporter = await createTransporter();
     const displayName = username || 'there';
-    const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER;
 
-    await transporter.sendMail({
-      from,
+    await sendBrevoEmail({
       to,
       subject: 'Reset your SUPMOVIES password',
       text: [
