@@ -2,7 +2,7 @@
   "expo": {
     "name": "mobile",
     "slug": "mobile",
-    "scheme": "supcontent",
+    "scheme": "supmobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "supmovies.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,6 +32,13 @@
           "microphonePermission": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "212f01d5-d2d4-4ebf-9a6b-4d4609e54ecd"
+      }
+    },
+    "owner": "hafsasfed"
   }
 }
