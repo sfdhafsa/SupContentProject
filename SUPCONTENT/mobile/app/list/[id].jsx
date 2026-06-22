@@ -9,6 +9,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { ArrowLeft, Film, Globe2, LockKeyhole, Play, UserRound } from 'lucide-react-native';
 import ScreenContainer from '../../src/components/ScreenContainer';
 import { getListById } from '../../src/services/listsApi';
 import { useTheme } from '../../src/context/ThemeContext';
@@ -34,10 +36,10 @@ function MovieCard({ movie }) {
       accessibilityLabel={`Ouvrir ${movie?.title || 'le film'}`}
       disabled={!movieId}
       onPress={() => router.push(`/movie/${movieId}`)}
-      style={styles.movieCard}
+      style={({ pressed }) => [styles.movieCard, pressed && styles.movieCardPressed]}
     >
       {posterUrl ? (
-        <Image source={{ uri: posterUrl }} style={styles.poster} />
+        <Image source={{ uri: posterUrl }} style={[styles.poster, { backgroundColor: colors.cardMuted }]} />
       ) : (
         <View style={[styles.posterFallback, { backgroundColor: colors.cardMuted }]}>
           <Text style={[styles.posterFallbackText, { color: colors.muted }]} numberOfLines={3}>
@@ -45,9 +47,14 @@ function MovieCard({ movie }) {
           </Text>
         </View>
       )}
-      <Text style={[styles.movieTitle, { color: colors.text }]} numberOfLines={2}>
-        {movie?.title || 'Untitled'}
-      </Text>
+      <View style={styles.movieInfo}>
+        <Text style={[styles.movieTitle, { color: colors.text }]} numberOfLines={2}>
+          {movie?.title || 'Untitled'}
+        </Text>
+        {movie?.release_date ? (
+          <Text style={[styles.movieYear, { color: colors.subtle }]}>{movie.release_date.slice(0, 4)}</Text>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -55,7 +62,7 @@ function MovieCard({ movie }) {
 export default function ListDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, darkMode } = useTheme();
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -90,12 +97,13 @@ export default function ListDetail() {
 
   return (
     <ScreenContainer backgroundColor={colors.bg} contentStyle={styles.screen}>
+      <StatusBar style={darkMode ? 'light' : 'dark'} backgroundColor={colors.surface} />
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Back</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Retour" onPress={() => router.back()} style={[styles.backButton, { backgroundColor: colors.iconButton }]}>
+          <ArrowLeft color={colors.text} size={19} strokeWidth={2.4} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-          {list?.name || 'Liste'}
+          Détails de la liste
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -116,25 +124,43 @@ export default function ListDetail() {
           columnWrapperStyle={styles.movieRow}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            <View style={styles.hero}>
-              <View style={styles.visibilityBadge}>
-                <Text style={styles.visibilityText}>
-                  {list?.is_public ? 'Public' : 'Private'}
-                </Text>
+            <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.heroTopRow}>
+                <View style={[styles.listIcon, { backgroundColor: colors.activeSoft }]}>
+                  <Film color={colors.red} size={22} strokeWidth={2.25} />
+                </View>
+                <View style={[styles.visibilityBadge, { backgroundColor: colors.cardMuted }]}>
+                  {list?.is_public ? <Globe2 color={colors.muted} size={13} /> : <LockKeyhole color={colors.muted} size={13} />}
+                  <Text style={[styles.visibilityText, { color: colors.muted }]}>
+                    {list?.is_public ? 'Publique' : 'Privée'}
+                  </Text>
+                </View>
               </View>
                <Text style={[styles.title, { color: colors.text }]}>{list?.name}</Text>
                {list?.description ? (
                  <Text style={[styles.description, { color: colors.muted }]}>{list.description}</Text>
                ) : null}
-               <Text style={[styles.meta, { color: colors.subtle }]}>
-                {movies.length} film{movies.length !== 1 ? 's' : ''}
-                {list?.owner_username ? ` by ${list.owner_username}` : ''}
-              </Text>
+              <View style={styles.metaRow}>
+                <View style={[styles.countPill, { backgroundColor: colors.cardMuted }]}>
+                  <Play color={colors.red} size={12} fill={colors.red} />
+                  <Text style={[styles.countText, { color: colors.muted }]}>{movies.length} film{movies.length !== 1 ? 's' : ''}</Text>
+                </View>
+                {list?.owner_username ? (
+                  <View style={styles.ownerRow}>
+                    <UserRound color={colors.subtle} size={13} />
+                    <Text style={[styles.meta, { color: colors.subtle }]}>par {list.owner_username}</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
           }
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Cette liste est vide.</Text>
+            <View style={[styles.emptyState, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.emptyIcon, { backgroundColor: colors.cardMuted }]}>
+                <Film color={colors.muted} size={26} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Cette liste est vide</Text>
+              <Text style={[styles.emptyDescription, { color: colors.muted }]}>Les films ajoutés à cette liste apparaîtront ici.</Text>
             </View>
           }
           renderItem={({ item }) => <MovieCard movie={item} />}
@@ -150,32 +176,27 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderBottomColor: '#e5e7eb',
     borderBottomWidth: 1,
     flexDirection: 'row',
-    height: 56,
+    height: 64,
     justifyContent: 'space-between',
     paddingHorizontal: 16,
   },
   backButton: {
-    minWidth: 56,
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    color: '#ef0d1a',
-    fontSize: 14,
-    fontWeight: '800',
+    alignItems: 'center',
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
   },
   headerTitle: {
-    color: '#111827',
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     textAlign: 'center',
   },
   headerSpacer: {
-    minWidth: 56,
+    width: 36,
   },
   centerState: {
     alignItems: 'center',
@@ -190,42 +211,80 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   listContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 96,
   },
   hero: {
-    marginBottom: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 22,
+    padding: 18,
+  },
+  heroTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  listIcon: {
+    alignItems: 'center',
+    borderRadius: 14,
+    height: 46,
+    justifyContent: 'center',
+    width: 46,
   },
   visibilityBadge: {
+    alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#eef2ff',
-    borderRadius: 8,
-    marginBottom: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 999,
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   visibilityText: {
-    color: '#4338ca',
     fontSize: 11,
     fontWeight: '800',
   },
   title: {
-    color: '#111827',
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
-    lineHeight: 34,
+    letterSpacing: -0.5,
+    lineHeight: 31,
   },
   description: {
-    color: '#6b7280',
     fontSize: 14,
     lineHeight: 21,
     marginTop: 8,
   },
+  metaRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 16,
+  },
+  countPill: {
+    alignItems: 'center',
+    borderRadius: 999,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  ownerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+  },
   meta: {
-    color: '#9ca3af',
     fontSize: 12,
     fontWeight: '700',
-    marginTop: 10,
   },
   movieRow: {
     gap: 12,
@@ -235,17 +294,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     maxWidth: '50%',
   },
+  movieCardPressed: {
+    opacity: 0.76,
+    transform: [{ scale: 0.98 }],
+  },
   poster: {
     aspectRatio: 2 / 3,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 10,
+    borderRadius: 14,
     width: '100%',
   },
   posterFallback: {
     alignItems: 'center',
     aspectRatio: 2 / 3,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 10,
+    borderRadius: 14,
     justifyContent: 'center',
     padding: 12,
     width: '100%',
@@ -257,25 +318,44 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   movieTitle: {
-    color: '#111827',
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
-    marginTop: 7,
+  },
+  movieInfo: {
+    gap: 2,
+    paddingHorizontal: 2,
+    paddingTop: 8,
+  },
+  movieYear: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
-    minHeight: 160,
+    minHeight: 240,
     justifyContent: 'center',
     padding: 24,
   },
+  emptyIcon: {
+    alignItems: 'center',
+    borderRadius: 18,
+    height: 58,
+    justifyContent: 'center',
+    marginBottom: 14,
+    width: 58,
+  },
   emptyTitle: {
-    color: '#6b7280',
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  emptyDescription: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+    maxWidth: 220,
+    textAlign: 'center',
   },
 });

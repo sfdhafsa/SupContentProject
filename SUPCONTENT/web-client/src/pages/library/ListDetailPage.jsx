@@ -112,52 +112,58 @@ export default function ListDetailPage() {
   const movies = list.movies || [];
 
   return (
-    <div style={styles.page}>
-      <div style={styles.toolbar}>
-        <Link to="/lists" style={styles.backLink}>
+    <main className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-7 font-sans text-gray-900 transition-colors dark:bg-gray-950 dark:text-gray-100 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <Link to="/lists" className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 transition-colors hover:text-[#D0021B] dark:text-gray-400 dark:hover:text-red-400">
           <ArrowLeftIcon />
-          Back to Lists
+          Retour aux listes
         </Link>
 
         {isOwner && (
-          <div style={styles.actions}>
-            <Link to="/discover" style={styles.addBtn}>
+          <div className="flex items-center gap-2">
+            <Link to="/discover" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#D0021B] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#ad0016]">
               <PlusIcon />
-              Add Movie
+              Ajouter un film
             </Link>
-            <button type="button" style={styles.moreBtn} onClick={() => setShowEdit(true)} aria-label="Edit list">
+            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800" onClick={() => setShowEdit(true)} aria-label="Modifier la liste">
               <MoreIcon />
             </button>
           </div>
         )}
       </div>
 
-      <header style={styles.header}>
-        <div>
-          <div style={styles.titleRow}>
-            <h1 style={styles.title}>{list.name}</h1>
-            <span style={styles.visibilityIcon} title={list.is_public ? 'Public' : 'Private'}>
+      <header className="mb-8 overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-8">
+        <div className="mb-6 flex items-start justify-between gap-5">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-[#D0021B] dark:bg-red-950/40">
+            <BookmarkIcon />
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300" title={list.is_public ? 'Publique' : 'Privée'}>
               {list.is_public ? <GlobeIcon /> : <LockIcon />}
-            </span>
-          </div>
-          {list.description && <p style={styles.description}>{list.description}</p>}
-          <div style={styles.meta}>
-            <Link to={`/profile/${list.user_id}`} style={styles.owner}>
-              <span style={styles.avatar}>{getInitials(list.owner_username)}</span>
-              <span>by {list.owner_username}</span>
+              {list.is_public ? 'Publique' : 'Privée'}
+          </span>
+        </div>
+        <h1 className="max-w-3xl text-3xl font-black tracking-tight text-gray-950 dark:text-white sm:text-4xl">{list.name}</h1>
+        {list.description && <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400 sm:text-base">{list.description}</p>}
+        <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
+          <Link to={`/profile/${list.user_id}`} className="inline-flex items-center gap-2 font-bold text-gray-700 transition-colors hover:text-[#D0021B] dark:text-gray-200 dark:hover:text-red-400">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-xs font-black text-gray-500 dark:bg-gray-800 dark:text-gray-300">{getInitials(list.owner_username)}</span>
+              <span>par {list.owner_username}</span>
             </Link>
-            <span style={styles.count}>{movies.length} movie{movies.length !== 1 ? 's' : ''}</span>
-          </div>
+            <span className="h-4 w-px bg-gray-200 dark:bg-gray-700" />
+            <span className="font-bold text-gray-400 dark:text-gray-500">{movies.length} film{movies.length !== 1 ? 's' : ''}</span>
         </div>
       </header>
 
       {movies.length === 0 ? (
-        <div style={styles.empty}>
-          <p style={styles.emptyTitle}>This list is empty</p>
-          {isOwner && <Link to="/discover" style={styles.addBtn}>Add Movie</Link>}
+        <div className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center dark:border-gray-700 dark:bg-gray-900">
+          <span className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300"><BookmarkIcon /></span>
+          <p className="text-base font-black text-gray-950 dark:text-white">Cette liste est vide</p>
+          <p className="mt-2 max-w-xs text-sm leading-6 text-gray-500 dark:text-gray-400">Les films ajoutés à cette liste apparaîtront ici.</p>
+          {isOwner && <Link to="/discover" className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#D0021B] px-4 text-sm font-bold text-white transition hover:bg-[#ad0016]"><PlusIcon /> Ajouter un film</Link>}
         </div>
       ) : (
-        <div style={styles.grid}>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {movies.map((movie) => (
             <MoviePosterCard
               key={movie.id}
@@ -177,7 +183,8 @@ export default function ListDetailPage() {
           onClose={() => setShowEdit(false)}
         />
       )}
-    </div>
+      </div>
+    </main>
   );
 }
 
@@ -188,16 +195,16 @@ function MoviePosterCard({ movie, isOwner, onRemove }) {
   const rating = Number.isFinite(numericRating) && numericRating > 0 ? numericRating.toFixed(1) : null;
 
   return (
-    <article style={styles.card}>
-      <Link to={`/movies/${movie.external_id}`} style={styles.posterLink} title={`${movie.title}${year ? ` (${year})` : ''}`}>
+    <article className="group min-w-0">
+      <Link to={`/movies/${movie.external_id}`} className="relative block aspect-[2/3] overflow-hidden rounded-2xl bg-gray-200 shadow-sm transition duration-200 group-hover:-translate-y-1 group-hover:shadow-lg dark:bg-gray-800" title={`${movie.title}${year ? ` (${year})` : ''}`}>
         {poster ? (
-          <img src={poster} alt={movie.title} style={styles.poster} loading="lazy" />
+          <img src={poster} alt={movie.title} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" loading="lazy" />
         ) : (
-          <div style={styles.posterFallback}>{movie.title}</div>
+          <div className="flex h-full items-center justify-center p-4 text-center text-sm font-bold text-gray-500 dark:text-gray-400">{movie.title}</div>
         )}
 
         {rating && (
-          <span style={styles.ratingBadge}>
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gray-950/85 px-2 py-1 text-xs font-black text-white backdrop-blur">
             <StarIcon />
             {rating}
           </span>
@@ -206,7 +213,7 @@ function MoviePosterCard({ movie, isOwner, onRemove }) {
         {isOwner && (
           <button
             type="button"
-            style={styles.bookmarkBtn}
+            className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-gray-950/75 text-white backdrop-blur transition hover:bg-[#D0021B]"
             onClick={(e) => {
               e.preventDefault();
               onRemove();
@@ -217,6 +224,8 @@ function MoviePosterCard({ movie, isOwner, onRemove }) {
           </button>
         )}
       </Link>
+      <p className="mt-2 truncate text-sm font-bold text-gray-900 dark:text-gray-100">{movie.title}</p>
+      {year && <p className="mt-0.5 text-xs font-medium text-gray-400 dark:text-gray-500">{year}</p>}
     </article>
   );
 }
@@ -242,38 +251,38 @@ function EditModal({ list, onSubmit, onDelete, onClose }) {
   }
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h2 style={styles.modalTitle}>Edit list</h2>
-          <button type="button" style={styles.modalClose} onClick={onClose} aria-label="Close">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-900" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-lg font-black text-gray-950 dark:text-white">Modifier la liste</h2>
+          <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-950 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white" onClick={onClose} aria-label="Fermer">
             <CloseIcon />
           </button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Name</label>
+          <div className="mb-4">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nom</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              style={styles.input}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-950 outline-none transition focus:border-[#D0021B] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               maxLength={100}
             />
           </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Description</label>
+          <div className="mb-4">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              style={{ ...styles.input, resize: 'vertical' }}
+              className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-950 outline-none transition focus:border-[#D0021B] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <div style={styles.toggleRow}>
+          <div className="mb-6 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-3.5 dark:border-gray-700 dark:bg-gray-800">
             <div>
-              <p style={styles.toggleLabel}>Public list</p>
-              <p style={styles.toggleDesc}>Visible to everyone</p>
+              <p className="m-0 text-sm font-bold text-gray-900 dark:text-white">Liste publique</p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Visible par tout le monde</p>
             </div>
             <button
               type="button"
@@ -287,11 +296,11 @@ function EditModal({ list, onSubmit, onDelete, onClose }) {
               }} />
             </button>
           </div>
-          <div style={styles.modalActions}>
-            <button type="button" style={styles.deleteTextBtn} onClick={onDelete}>Delete</button>
-            <div style={styles.modalRightActions}>
-              <button type="button" style={styles.cancelBtn} onClick={onClose}>Cancel</button>
-              <button type="submit" style={styles.submitBtn}>Save changes</button>
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" className="text-sm font-bold text-[#D0021B] transition hover:text-red-800" onClick={onDelete}>Supprimer</button>
+            <div className="flex gap-2">
+              <button type="button" className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800" onClick={onClose}>Annuler</button>
+              <button type="submit" className="rounded-xl bg-[#D0021B] px-4 py-2.5 text-sm font-black text-white transition hover:bg-[#ad0016]">Enregistrer</button>
             </div>
           </div>
         </form>
@@ -302,15 +311,15 @@ function EditModal({ list, onSubmit, onDelete, onClose }) {
 
 function LoadingState() {
   return (
-    <div style={{ ...styles.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: '#6b7280' }}>Loading...</p>
+    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-50 text-sm font-bold text-gray-500 dark:bg-gray-950 dark:text-gray-400">
+      Chargement...
     </div>
   );
 }
 
 function ErrorState({ message }) {
   return (
-    <div style={{ ...styles.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-50 p-6 dark:bg-gray-950">
       <div style={{ textAlign: 'center' }}>
         <p style={{ color: '#D0021B', fontSize: 15, marginBottom: 12 }}>{message}</p>
         <Link to="/lists" style={styles.backLink}>
