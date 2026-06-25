@@ -2,13 +2,16 @@ import { StyleSheet, Text, View } from 'react-native';
 import BottomTabBar from './BottomTabBar';
 import ScreenContainer from './ScreenContainer';
 import TopNavbar from './TopNavbar';
+import { useBottomTabSpacing } from '../hooks/useBottomTabSpacing';
 
 export default function PlaceholderScreen({ title }) {
+  const { scrollPaddingBottom } = useBottomTabSpacing();
+
   return (
     <ScreenContainer>
       <View style={styles.phone}>
         <TopNavbar />
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingBottom: scrollPaddingBottom }]}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.text}>Cette page mobile sera bientot developpee.</Text>
         </View>
@@ -31,7 +34,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 28,
-    paddingBottom: 86,
   },
   title: {
     color: '#111827',

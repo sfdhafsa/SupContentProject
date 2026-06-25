@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,10 +15,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
 import useAuthSession from '../src/hooks/useAuthSession';
+import { useBottomTabSpacing } from '../src/hooks/useBottomTabSpacing';
 import {
   discoverMovies,
   getGenres,
@@ -574,6 +575,7 @@ export default function Discover() {
   const searchParams                = useLocalSearchParams();
   const { isAuthenticated }         = useAuthSession();
   const { colors, darkMode }        = useTheme();
+  const { scrollPaddingBottom }     = useBottomTabSpacing();
 
   const [inlineQuery, setInlineQuery]     = useState(searchParams.q || '');
   const [isSearching, setIsSearching]     = useState(!!searchParams.q);
@@ -689,7 +691,7 @@ export default function Discover() {
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 80 }}
+          contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
         >
           {!isSearching && !isFiltering && trending.length > 0 && (
             <HeroCarousel movies={trending} onPress={handlePress} />

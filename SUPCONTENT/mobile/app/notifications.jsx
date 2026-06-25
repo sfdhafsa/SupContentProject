@@ -25,6 +25,7 @@ import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
+import { useBottomTabSpacing } from '../src/hooks/useBottomTabSpacing';
 import useNotificationBadge from '../src/hooks/useNotificationBadge';
 import { useSocket } from '../src/hooks/useSocket';
 import {
@@ -138,9 +139,9 @@ function EmptyState({ unreadOnly }) {
   );
 }
 
-function LoadingState() {
+function LoadingState({ bottomOffset = 0 }) {
   return (
-    <View style={styles.loading}>
+    <View style={[styles.loading, { marginBottom: bottomOffset }]}>
       <ActivityIndicator color={RED} size="large" />
     </View>
   );
@@ -149,6 +150,7 @@ function LoadingState() {
 function NotificationsContent() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { scrollPaddingBottom, tabBarHeight } = useBottomTabSpacing();
   const { refreshUnreadCount } = useNotificationBadge();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -433,7 +435,7 @@ function NotificationsContent() {
         ) : null}
 
         {loading ? (
-          <LoadingState />
+          <LoadingState bottomOffset={tabBarHeight} />
         ) : (
           <FlatList
             data={visibleNotifications}
@@ -441,6 +443,7 @@ function NotificationsContent() {
             renderItem={renderNotification}
             contentContainerStyle={[
               styles.list,
+              { paddingBottom: scrollPaddingBottom },
               visibleNotifications.length === 0 && styles.emptyList,
             ]}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -567,10 +570,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    marginBottom: 66,
   },
   list: {
-    paddingBottom: 86,
     paddingHorizontal: 14,
   },
   emptyList: {

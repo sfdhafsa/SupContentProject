@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, Dimensions, Image, Pressable,
-  SafeAreaView, ScrollView, StyleSheet, Text, View,
+  ScrollView, StyleSheet, Text, View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
 import useAuthSession from '../src/hooks/useAuthSession';
+import { useBottomTabSpacing } from '../src/hooks/useBottomTabSpacing';
 import { getLibrary, upsertLibraryEntry, removeLibraryEntry } from '../src/services/libraryApi';
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w200';
@@ -34,6 +36,7 @@ export default function Library() {
   const router = useRouter();
   const { colors } = useTheme();
   const { loading: authLoading, isAuthenticated, user } = useAuthSession();
+  const { scrollPaddingBottom } = useBottomTabSpacing();
   const [activeStatus, setActiveStatus]   = useState(null);
   const [movies, setMovies]               = useState([]);
   const [loading, setLoading]             = useState(false);
@@ -110,7 +113,10 @@ export default function Library() {
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[s.scroll, { paddingBottom: scrollPaddingBottom }]}
+      >
         <View style={s.header}>
           <Text style={[s.headerTitle, { color: colors.text }]}>Ma bibliotheque</Text>
           <Text style={[s.headerSub, { color: colors.muted }]}>Vos films sauvegardes</Text>
@@ -220,7 +226,7 @@ const s = StyleSheet.create({
   subNavBtnActive:     { borderBottomWidth: 2, borderBottomColor: '#D0021B' },
   subNavText:          { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
   subNavTextActive:    { color: '#D0021B' },
-  scroll:              { padding: 16, paddingBottom: 100, gap: 16 },
+  scroll:              { padding: 16, gap: 16 },
   header:              { gap: 4 },
   headerTitle:         { color: '#111827', fontSize: 22, fontWeight: '900' },
   headerSub:           { color: '#6b7280', fontSize: 12 },

@@ -1,19 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Animated, Pressable, SafeAreaView,
+  ActivityIndicator, Animated, Pressable,
   RefreshControl, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
 import useAuthSession from '../src/hooks/useAuthSession';
+import { useBottomTabSpacing } from '../src/hooks/useBottomTabSpacing';
 import { getMyLists, getPublicLists, createList, updateList, deleteList } from '../src/services/libraryApi';
 
 export default function Lists() {
   const router = useRouter();
   const { colors } = useTheme();
   const { loading: authLoading, isAuthenticated, user } = useAuthSession();
+  const { scrollPaddingBottom } = useBottomTabSpacing();
   const [lists, setLists]                 = useState([]);
   const [loading, setLoading]             = useState(true);
   const [refreshing, setRefreshing]       = useState(false);
@@ -161,7 +164,7 @@ export default function Lists() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={s.scroll}
+        contentContainerStyle={[s.scroll, { paddingBottom: scrollPaddingBottom }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -349,7 +352,7 @@ const s = StyleSheet.create({
   subNavBtnActive:    { borderBottomWidth: 2, borderBottomColor: '#D0021B' },
   subNavText:         { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
   subNavTextActive:   { color: '#D0021B' },
-  scroll:             { padding: 16, paddingBottom: 100, gap: 14 },
+  scroll:             { padding: 16, gap: 14 },
   header:             { gap: 4 },
   headerTitle:        { color: '#111827', fontSize: 22, fontWeight: '900' },
   headerSub:          { color: '#6b7280', fontSize: 12 },

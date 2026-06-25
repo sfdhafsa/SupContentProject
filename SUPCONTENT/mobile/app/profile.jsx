@@ -16,6 +16,7 @@ import RequireAuth from '../src/components/RequireAuth';
 import ScreenContainer from '../src/components/ScreenContainer';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
+import { useBottomTabSpacing } from '../src/hooks/useBottomTabSpacing';
 import useAuthSession from '../src/hooks/useAuthSession.js';
 import api from '../src/config/api.js';
 
@@ -327,6 +328,7 @@ function ProfileContent() {
   const router = useRouter();
   const { user, token, loading: authLoading, signOut } = useAuthSession();
   const { colors } = useTheme();
+  const { scrollPaddingBottom } = useBottomTabSpacing();
 
   const [activeTab, setActiveTab] = useState('Overview');
   const [profileLoading, setProfileLoading] = useState(true);
@@ -516,7 +518,7 @@ function ProfileContent() {
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPaddingBottom }]}
           showsVerticalScrollIndicator={false}
         >
           {/* Bannière + avatar + boutons */}
@@ -713,7 +715,7 @@ const styles = StyleSheet.create({
 
   // Scroll
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 82 },
+  scrollContent: {},
 
   // Bannière
   bannerWrapper: { height: 154, position: 'relative' },

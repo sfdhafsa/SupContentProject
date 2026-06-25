@@ -14,6 +14,7 @@ import {
 import BottomTabBar from '../src/components/BottomTabBar';
 import ScreenContainer from '../src/components/ScreenContainer';
 import { useTheme } from '../src/context/ThemeContext';
+import { useBottomTabSpacing } from '../src/hooks/useBottomTabSpacing';
 import { getAuthToken } from '../src/services/authStorage';
 import api, { API_BASE_URL } from '../src/config/api';
 
@@ -330,6 +331,7 @@ function FollowModal({ visible, title, users, loading, emptyMessage, onClose }) 
 export default function PublicProfileScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { scrollPaddingBottom } = useBottomTabSpacing();
   const { id } = useLocalSearchParams(); // /public-profile?id=123
 
   const [loading, setLoading] = useState(true);
@@ -591,7 +593,7 @@ export default function PublicProfileScreen() {
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPaddingBottom }]}
           showsVerticalScrollIndicator={false}
         >
           {/* Bannière + avatar + boutons */}
@@ -812,7 +814,7 @@ const styles = StyleSheet.create({
 
   // Scroll
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 82 },
+  scrollContent: {},
 
   // Bannière
   bannerWrapper: { height: 158, position: 'relative' },

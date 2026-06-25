@@ -19,6 +19,7 @@ import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
 import api from '../src/config/api';
 import useAuthSession from '../src/hooks/useAuthSession';
+import { useBottomTabSpacing } from '../src/hooks/useBottomTabSpacing';
 
 const RED = '#d0021b';
 const BG = '#f6f7f9';
@@ -408,6 +409,7 @@ function Meta({ label, value }) {
 function AdminViewContent() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { scrollPaddingBottom } = useBottomTabSpacing();
   const { tab } = useLocalSearchParams();
   const { user: currentUser, loading: authLoading } = useAuthSession();
   const [activeTab, setActiveTab] = useState('users');
@@ -654,7 +656,7 @@ function AdminViewContent() {
         <TopNavbar username={currentUser?.username || 'Admin'} />
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPaddingBottom }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
@@ -745,7 +747,6 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   scrollContent: {
-    paddingBottom: 86,
     paddingHorizontal: 16,
     paddingTop: 18,
   },

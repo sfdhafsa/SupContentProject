@@ -2,6 +2,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import useAuthSession from '../hooks/useAuthSession';
+import { useBottomTabSpacing } from '../hooks/useBottomTabSpacing';
 
 const publicTabs = [
   { label: 'Explore', route: '/discover', icon: 'search' },
@@ -83,6 +84,7 @@ export default function BottomTabBar() {
   const pathname = usePathname();
   const { isAuthenticated, user } = useAuthSession();
   const { colors } = useTheme();
+  const { bottomInset, tabBarHeight } = useBottomTabSpacing(0);
   const tabs = isAuthenticated ? getPrivateTabs(user) : publicTabs;
 
   const handlePress = async (tab) => {
@@ -95,6 +97,8 @@ export default function BottomTabBar() {
       {
         backgroundColor: colors.surface,
         borderTopColor: colors.border,
+        height: tabBarHeight,
+        paddingBottom: Math.max(bottomInset, 8),
       },
     ]}>
       {tabs.map((tab) => {
@@ -121,10 +125,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     bottom: 0,
     flexDirection: 'row',
-    height: 66,
     justifyContent: 'space-around',
     left: 0,
-    paddingBottom: 8,
     paddingTop: 6,
     paddingHorizontal: 4,
     position: 'absolute',

@@ -18,6 +18,7 @@ import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
 import FeedList from '../src/components/feed/FeedList';
 import { useFeed } from '../src/hooks/useFeed';
+import { useBottomTabSpacing } from '../src/hooks/useBottomTabSpacing';
 import { getAuthUser } from '../src/services/authStorage';
 import { getTrending } from '../src/services/moviesApi';
 
@@ -159,6 +160,7 @@ function HomeContent() {
   const [trendingLoading, setTrendingLoading] = useState(true);
   const headerAnim = useRef(new Animated.Value(0)).current;
   const { items: feedItems, loading: feedLoading, error: feedError } = useFeed();
+  const { scrollPaddingBottom } = useBottomTabSpacing();
 
   useEffect(() => {
     getAuthUser().then((user) => {
@@ -182,7 +184,7 @@ function HomeContent() {
       <View style={[s.page, { backgroundColor: colors.page }]}>
         <TopNavbar username={username || 'User'} />
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}>
 
           {/* ── Header personnalisé — sans badge Cinéphile ── */}
           <Animated.View style={[s.greetingSection, {

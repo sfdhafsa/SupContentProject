@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Pressable, SafeAreaView,
+  ActivityIndicator, Pressable,
   ScrollView, StyleSheet, Text, View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import BottomTabBar from '../src/components/BottomTabBar';
 import TopNavbar from '../src/components/TopNavbar';
 import { useTheme } from '../src/context/ThemeContext';
+import { useBottomTabSpacing } from '../src/hooks/useBottomTabSpacing';
 import { getAuthUser } from '../src/services/authStorage';
 import { getLibraryStats } from '../src/services/libraryApi';
 
@@ -20,6 +22,7 @@ const BAR_DATA = [
 export default function Dashboard() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { scrollPaddingBottom } = useBottomTabSpacing();
   const [user, setUser]       = useState(null);
   const [stats, setStats]     = useState(null);
   const [loading, setLoading] = useState(false);
@@ -67,7 +70,10 @@ export default function Dashboard() {
       {loading ? (
         <View style={s.center}><ActivityIndicator color="#D0021B" size="large" /></View>
       ) : (
-        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[s.scroll, { paddingBottom: scrollPaddingBottom }]}
+          showsVerticalScrollIndicator={false}
+        >
 
           <View style={s.header}>
             <Text style={[s.headerTitle, { color: colors.text }]}>Mes statistiques</Text>
@@ -154,7 +160,7 @@ const s = StyleSheet.create({
   subNavText:       { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
   subNavTextActive: { color: '#D0021B' },
   center:           { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll:           { padding: 16, paddingBottom: 100, gap: 16 },
+  scroll:           { padding: 16, gap: 16 },
   header:           { gap: 4 },
   headerTitle:      { color: '#111827', fontSize: 22, fontWeight: '900' },
   headerSub:        { color: '#6b7280', fontSize: 12 },
